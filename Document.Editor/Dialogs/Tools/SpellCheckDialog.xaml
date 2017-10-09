@@ -1,0 +1,17 @@
+﻿<Window x:Class="SpellCheckDialog" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:Fluent="clr-namespace:Fluent;assembly=Fluent"
+    Title="Spell Check" Icon="spellcheck16.ico" ShowInTaskbar="False" MinHeight="320" MinWidth="240" Height="320" Width="240" WindowStartupLocation="CenterOwner" ResizeMode="CanResize">
+    <Grid Background="#7BFFFFFF">
+        <ListBox Margin="10,43,10,41" Name="WordListBox" Background="#7BFFFFFF" BorderBrush="#7BFFFFFF" />
+        <Label Content="Suggesttons:" Height="28" Margin="10,10,0,0" HorizontalAlignment="Left" Name="Label1" VerticalAlignment="Top" />
+        <Fluent:Button SizeDefinition="Middle" Icon="../../Images/Common/cancel16.png" Header="Cancel" HorizontalAlignment="Right" Margin="0,0,10,10" Name="CancelButton" VerticalAlignment="Bottom" IsCancel="True">
+            <Fluent:Button.ToolTip>
+                <Fluent:ScreenTip Title="Cancel" Text="Cancel and Close the Dialog" Image="../../Images/Common/cancel48.png" />
+            </Fluent:Button.ToolTip>
+        </Fluent:Button>
+        <Fluent:Button SizeDefinition="Middle" Icon="../../Images/Common/ok16.png" Header="OK" HorizontalAlignment="Right" Margin="0,0,77,10" Name="OKButton" VerticalAlignment="Bottom" IsEnabled="False">
+            <Fluent:Button.ToolTip>
+                <Fluent:ScreenTip Title="OK" Text="Close the Dialog and Correct Spelling" Image="../../Images/Common/ok48.png" />
+            </Fluent:Button.ToolTip>
+        </Fluent:Button>
+    </Grid>
+</Window>

@@ -1,0 +1,327 @@
+﻿<Window x:Class="OptionsDialog" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:Fluent="clr-namespace:Fluent;assembly=Fluent"
+    Title="Options" Icon="options.ico" ResizeMode="CanResize" WindowStartupLocation="CenterOwner" Height="400" Width="640" MinHeight="320" MinWidth="640" ShowInTaskbar="False" Name="OptionsDialog">
+    <Grid Background="#7BFFFFFF">
+        <Fluent:Button Margin="0,0,10,10" SizeDefinition="Middle" Header="Cancel" Icon="../../Images/Common/cancel16.png" Name="CancelButton" VerticalAlignment="Bottom" HorizontalAlignment="Right" IsDefault="True" IsCancel="True">
+            <Fluent:Button.ToolTip>
+                <Fluent:ScreenTip Title="Cancel" Text="Cancel and Close the Dialog" Image="../../Images/Common/cancel48.png" />
+            </Fluent:Button.ToolTip>
+        </Fluent:Button>
+        <Fluent:Button Header="OK" SizeDefinition="Middle" Margin="0,0,77,10" Icon="../../Images/Common/ok16.png" Name="OKButton" VerticalAlignment="Bottom" HorizontalAlignment="Right" IsEnabled="True" BorderBrush="#7BFFFFFF">
+            <Fluent:Button.ToolTip>
+                <Fluent:ScreenTip Title="OK" Text="Close the Dialog and Save Settings" Image="../../Images/Common/ok48.png" />
+            </Fluent:Button.ToolTip>
+        </Fluent:Button>
+        <Fluent:Button Header="Reset" SizeDefinition="Middle" Icon="../../Images/Tools/reset16.png" HorizontalAlignment="Left" Margin="10,0,0,10" Name="ResetButton" VerticalAlignment="Bottom">
+            <Button.ToolTip>
+                <Fluent:ScreenTip Title="Reset" Text="Reset options to defaults" Image="../../Images/Tools/reset48.png" />
+            </Button.ToolTip>
+        </Fluent:Button>
+        <TabControl Margin="-2,-2,0,41" Name="TabCell" Background="#7BFFFFFF" BorderBrush="#7BFFFFFF">
+            <TabItem Name="GeneralTabItem" Width="128" Height="40" Background="Transparent" BorderBrush="Transparent">
+                <TabItem.ToolTip>
+                    <Fluent:ScreenTip Title="General Options" Text="Set general options" Image="../../Images/Help/reportbug48.png" />
+                </TabItem.ToolTip>
+                <TabItem.Header>
+                    <StackPanel Height="32" Orientation="Horizontal">
+                        <Image RenderOptions.BitmapScalingMode="NearestNeighbor" Source="../../Images/Help/reportbug32.png" Width="32" Height="32" />
+                        <TextBlock Margin="4,0,0,0" VerticalAlignment="Center" Text="General" />
+                    </StackPanel>
+                </TabItem.Header>
+                <ScrollViewer>
+                    <StackPanel>
+                        <GroupBox Margin="8,4,8,0" Name="StartupGroupBox" Height="47" VerticalAlignment="Top">
+                            <GroupBox.Header>
+                                <StackPanel Orientation="Horizontal" Margin="0,-1,0,0">
+                                    <Image RenderOptions.BitmapScalingMode="Fant" Height="16" Width="16" Source="../../Images/Tools/startup16.png" />
+                                    <TextBlock Text="Startup" Margin="4,0,0,0" />
+                                </StackPanel>
+                            </GroupBox.Header>
+                            <Grid>
+                                <Fluent:ComboBox Margin="-1,0,219,0" Name="StartUpComboBox" Header="When Document.Editor Starts:" SelectedIndex="0" IsEditable="False" VerticalAlignment="Top">
+                                    <Fluent:ComboBox.ToolTip>
+                                        <Fluent:ScreenTip Title="Startup Mode" Text="Set Startup Mode" />
+                                    </Fluent:ComboBox.ToolTip>
+                                    <ComboBoxItem>Open a New Document</ComboBoxItem>
+                                    <ComboBoxItem>Restore Previous Documents</ComboBoxItem>
+                                    <ComboBoxItem>Show Open Dialog</ComboBoxItem>
+                                    <ComboBoxItem>Do Nothing</ComboBoxItem>
+                                </Fluent:ComboBox>
+                                <Fluent:CheckBox Header="Startup Dialog" Foreground="Black" HorizontalAlignment="Right" Margin="0,0,120,0" Name="ShowStartupDialogCheckBox" VerticalAlignment="Top">
+                                    <Fluent:CheckBox.ToolTip>
+                                        <Fluent:ScreenTip Title="Startup Dialog" Text="Enable/Disable Startup Dialog" />
+                                    </Fluent:CheckBox.ToolTip>
+                                </Fluent:CheckBox>
+                                <Fluent:CheckBox Header="Check for Updates" Foreground="Black" HorizontalAlignment="Right" Margin="0,0,0,0" Name="CheckForUpdatesOnStartupCheckBox" VerticalAlignment="Top">
+                                    <Fluent:CheckBox.ToolTip>
+                                        <Fluent:ScreenTip Title="Check for Updates" Text="Enable/Disable check for updates on startup" />
+                                    </Fluent:CheckBox.ToolTip>
+                                </Fluent:CheckBox>
+                            </Grid>
+                        </GroupBox>
+                        <GroupBox Margin="8,4,8,0" Name="ThemeGroupBox" Height="47" VerticalAlignment="Top">
+                            <GroupBox.Header>
+                                <StackPanel Orientation="Horizontal" Margin="0,-1,0,0">
+                                    <Image RenderOptions.BitmapScalingMode="Fant" Height="16" Width="16" Source="../../Images/Tools/theme16.png" />
+                                    <TextBlock Text="Theme" Margin="4,0,0,0" />
+                                </StackPanel>
+                            </GroupBox.Header>
+                            <Grid>
+                                <Fluent:ComboBox Margin="-1,0,112,0" Name="ThemeComboBox" IsEditable="False" Header="Selected Theme:" SelectedIndex="0" IsEnabled="True" VerticalAlignment="Top">
+                                    <Fluent:ComboBox.ToolTip>
+                                        <Fluent:ScreenTip Title="Selected Theme" Text="Set Selected Theme" />
+                                    </Fluent:ComboBox.ToolTip>
+                                    <ComboBoxItem>Blue</ComboBoxItem>
+                                    <ComboBoxItem>Silver</ComboBoxItem>
+                                    <ComboBoxItem>Black</ComboBoxItem>
+                                    <ComboBoxItem>Modern</ComboBoxItem>
+                                    <ComboBoxItem>Windows 8/10</ComboBoxItem>
+                                </Fluent:ComboBox>
+                                <Fluent:CheckBox Header="Glass in Dialogs" Foreground="Black" HorizontalAlignment="Right" Margin="0,0,0,0" Name="EnableGlassCheckBox" VerticalAlignment="Top">
+                                    <Fluent:CheckBox.ToolTip>
+                                        <Fluent:ScreenTip Title="Glass in Dialogs" Text="Enable/Disable Glass Effect in Dialogs" />
+                                    </Fluent:CheckBox.ToolTip>
+                                </Fluent:CheckBox>
+                            </Grid>
+                        </GroupBox>
+                        <GroupBox Margin="8,4,8,0" Name="TextToSpeechGroupBox" Height="47" VerticalAlignment="Top">
+                            <GroupBox.Header>
+                                <StackPanel Orientation="Horizontal" Margin="0,-1,0,0">
+                                    <Image RenderOptions.BitmapScalingMode="Fant" Height="16" Width="16" Source="../../Images/Tools/speech16.png" />
+                                    <TextBlock Text="Text To Speech" Margin="4,0,0,0" />
+                                </StackPanel>
+                            </GroupBox.Header>
+                            <Grid>
+                                <Fluent:ComboBox Margin="-1,0,96,0" Name="TTSComboBox" Header="Selected Voice:" IsEditable="False" VerticalAlignment="Top">
+                                    <Fluent:ComboBox.ToolTip>
+                                        <Fluent:ScreenTip Title="Selected Voice" Text="Set Selected Voice" />
+                                    </Fluent:ComboBox.ToolTip>
+                                </Fluent:ComboBox>
+                                <Fluent:Spinner Header="Speed:" HorizontalAlignment="Right" VerticalAlignment="Top" Name="TTSSlider" Width="96" Format="0" Maximum="10" Minimum="-10">
+                                    <Fluent:Spinner.ToolTip>
+                                        <Fluent:ScreenTip Title="Speed" Text="Set Voice Speed" />
+                                    </Fluent:Spinner.ToolTip>
+                                </Fluent:Spinner>
+                            </Grid>
+                        </GroupBox>
+                        <GroupBox Height="47" Margin="8,4,8,0" Name="RecentDocumentsGroupBox" VerticalAlignment="Top">
+                            <GroupBox.Header>
+                                <StackPanel Orientation="Horizontal" Margin="0,-1,0,0">
+                                    <Image RenderOptions.BitmapScalingMode="Fant" Height="16" Width="16" Source="../../Images/Document/recent16.png" />
+                                    <TextBlock Text="Recent Documents" Margin="4,0,0,0" />
+                                </StackPanel>
+                            </GroupBox.Header>
+                            <Grid>
+                                <Fluent:Button Name="ClearRecentButton" Header="Clear" Icon="../../Images/Tools/clear16.png" SizeDefinition="Middle" HorizontalAlignment="Right" VerticalAlignment="Top">
+                                    <Fluent:Button.ToolTip>
+                                        <Fluent:ScreenTip Title="Clear" Text="Clear Recent Documents" Image="../../Images/Tools/clear48.png" />
+                                    </Fluent:Button.ToolTip>
+                                </Fluent:Button>
+                                <Fluent:CheckBox Header="Recent Documents List" Foreground="Black" HorizontalAlignment="Left" Margin="-1,0,0,0" Name="RecentDocumentsCheckBox" IsChecked="True" IsEnabled="True" VerticalAlignment="Top">
+                                    <Fluent:CheckBox.ToolTip>
+                                        <Fluent:ScreenTip Title="Recent Documents List" Text="Enable/Disable Recent Documents List (Restart Required)" />
+                                    </Fluent:CheckBox.ToolTip>
+                                </Fluent:CheckBox>
+                            </Grid>
+                        </GroupBox>
+                        <GroupBox Margin="8,4,8,0" Height="47" IsEnabled="True" VerticalAlignment="Top">
+                            <GroupBox.Header>
+                                <StackPanel Orientation="Horizontal" Margin="0,-1,0,0">
+                                    <Image RenderOptions.BitmapScalingMode="Fant" Height="16" Width="16" Source="../../Images/View/ruler16.png" />
+                                    <TextBlock Text="Ruler" Margin="4,0,0,0" />
+                                </StackPanel>
+                            </GroupBox.Header>
+                            <Grid>
+                                <Fluent:ComboBox Name="RulerMeasurementComboBox" Header="Measurement:" Margin="-1,0,0,0" IsEditable="False" VerticalAlignment="Top">
+                                    <Fluent:ComboBox.ToolTip>
+                                        <Fluent:ScreenTip Title="Measurement" Text="Set Measurement Mode" />
+                                    </Fluent:ComboBox.ToolTip>
+                                    <ComboBoxItem Content="Inchs"/>
+                                    <ComboBoxItem Content="Centimeters"/>
+                                </Fluent:ComboBox>
+                            </Grid>
+                        </GroupBox>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+            <TabItem Width="128" Height="40" Background="Transparent" BorderBrush="Transparent">
+                <TabItem.ToolTip>
+                    <Fluent:ScreenTip Title="Documents Options" Text="Set documents options" Image="../../Images/Tab/xaml48.png" />
+                </TabItem.ToolTip>
+                <TabItem.Header>
+                    <DockPanel>
+                        <Image RenderOptions.BitmapScalingMode="NearestNeighbor" Source="../../Images/Tab/xaml32.png" Width="32" Height="32" />
+                        <TextBlock Margin="4,0,0,0" VerticalAlignment="Center" Text="Documents" />
+                    </DockPanel>
+                </TabItem.Header>
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <GroupBox Visibility="Collapsed"  Header="Header Size Mode" Height="47" Margin="6,167,8,0" Name="GroupBox3" VerticalAlignment="Top">
+                            <Grid>
+                                <Label HorizontalAlignment="Left" Margin="6,-5,0,0" Name="Label3" Width="44" VerticalContentAlignment="Center" Height="32" VerticalAlignment="Top">Mode:</Label>
+                                <ComboBox Margin="56,0,6,0" Name="ComboBox1" SelectedIndex="0" HorizontalContentAlignment="Left" IsEnabled="False" Height="23" VerticalAlignment="Top" BorderBrush="#7BFFFFFF">
+                                    <ComboBoxItem Content="Strech"></ComboBoxItem>
+                                </ComboBox>
+                            </Grid>
+                        </GroupBox>
+                        <GroupBox Height="47" Margin="8,4,8,0" Name="CloseButtonGroupBox" VerticalAlignment="Top">
+                            <GroupBox.Header>
+                                <StackPanel Orientation="Horizontal" Margin="0,-1,0,0">
+                                    <Image RenderOptions.BitmapScalingMode="Fant" Height="16" Width="16" Source="../../Images/Document/Close/close16.png" />
+                                    <TextBlock Text="Close Button" Margin="4,0,0,0" />
+                                </StackPanel>
+                            </GroupBox.Header>
+                            <Grid>
+                                <Fluent:ComboBox HorizontalContentAlignment="Left" Margin="-1,0,0,0" Header="Show Close Button On:" Name="CloseButtonComboBox" SelectedIndex="0" VerticalAlignment="Top" IsEditable="False">
+                                    <Fluent:ComboBox.ToolTip>
+                                        <Fluent:ScreenTip Title="Close Button Mode" Text="Set Close Button Mode" />
+                                    </Fluent:ComboBox.ToolTip>
+                                    <ComboBoxItem>All Documents</ComboBoxItem>
+                                    <ComboBoxItem>Selected Document</ComboBoxItem>
+                                </Fluent:ComboBox>
+                            </Grid>
+                        </GroupBox>
+                        <GroupBox Height="47" Margin="8,4,8,0" Name="SpellCheckGroupBox" VerticalAlignment="Top">
+                            <GroupBox.Header>
+                                <StackPanel Orientation="Horizontal" Margin="0,-1,0,0">
+                                    <Image RenderOptions.BitmapScalingMode="Fant" Height="16" Width="16" Source="../../Images/Tools/spellcheck16.png" />
+                                    <TextBlock Text="Spell Check" Margin="4,0,0,0" />
+                                </StackPanel>
+                            </GroupBox.Header>
+                            <Grid>
+                                <Fluent:CheckBox HorizontalAlignment="Left" Margin="-1,0,0,0" Foreground="Black" Name="SpellCheckBox" Header="Spell Checking" IsChecked="True" VerticalAlignment="Top">
+                                    <Fluent:CheckBox.ToolTip>
+                                        <Fluent:ScreenTip Title="Spell Checking" Text="Enable/Disable Spell Checking" />
+                                    </Fluent:CheckBox.ToolTip>
+                                </Fluent:CheckBox>
+                                <Label Margin="0,-2,0,0" HorizontalAlignment="Right" Width="96" Height="26" VerticalAlignment="Top">e.g heelo (hello)</Label>
+                            </Grid>
+                        </GroupBox>
+                        <GroupBox Height="47" Margin="8,4,8,0" Name="DefaultFontGroupBox" VerticalAlignment="Top">
+                            <GroupBox.Header>
+                                <StackPanel Orientation="Horizontal" Margin="0,-1,0,0">
+                                    <Image RenderOptions.BitmapScalingMode="Fant" Height="16" Width="16" Source="../../Images/Format/bold16.png" />
+                                    <TextBlock Text="Default Font" Margin="4,0,0,0" />
+                                </StackPanel>
+                            </GroupBox.Header>
+                            <Grid>
+                                <Fluent:ComboBox Header="Font Face:" ResizeMode="Vertical" ItemsSource="{x:Static Fonts.SystemFontFamilies}" Margin="-1,0,118,0" Name="FontFaceComboBox" SelectedIndex="0" VerticalAlignment="Top" IsEditable="False">
+                                    <Fluent:ComboBox.ToolTip>
+                                        <Fluent:ScreenTip Title="Default Font Face" Text="Set Default Font Face" />
+                                    </Fluent:ComboBox.ToolTip>
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding}" FontFamily="{Binding}" FontSize="14" Height="16"/>
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </Fluent:ComboBox>
+                                <Fluent:Spinner HorizontalAlignment="Right" Format="0 px" Minimum="2" Maximum="256" Header="Font Size:" Margin="0,0,0,0" Name="FontSizeTextBox" VerticalAlignment="Top" Width="118">
+                                    <Fluent:Spinner.ToolTip>
+                                        <Fluent:ScreenTip Title="Default Font Size" Text="Set Default Font Size" />
+                                    </Fluent:Spinner.ToolTip>
+                                </Fluent:Spinner>
+                            </Grid>
+                        </GroupBox>
+                        <GroupBox Margin="8,4,8,0" Height="47" IsEnabled="True" VerticalAlignment="Top">
+                            <GroupBox.Header>
+                                <StackPanel Orientation="Horizontal" Margin="0,-1,0,0">
+                                    <Image RenderOptions.BitmapScalingMode="Fant" Height="16" Width="16" Source="../../Images/Common/ok16.png" />
+                                    <TextBlock Text="Tab Placement" Margin="4,0,0,0" />
+                                </StackPanel>
+                            </GroupBox.Header>
+                            <Grid>
+                                <Fluent:ComboBox Name="TabPlacementComboBox" SelectedIndex="0" Header="Mode:" Margin="-1,0,0,0" IsEditable="False" VerticalAlignment="Top">
+                                    <Fluent:ComboBox.ToolTip>
+                                        <Fluent:ScreenTip Title="Measurement" Text="Set Measurement Mode" />
+                                    </Fluent:ComboBox.ToolTip>
+                                    <ComboBoxItem Content="Top"/>
+                                    <ComboBoxItem Content="Left"/>
+                                    <ComboBoxItem Content="Right"/>
+                                    <ComboBoxItem Content="Bottom"/>
+                                </Fluent:ComboBox>
+                            </Grid>
+                        </GroupBox>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+            <TabItem Width="128" Height="40" Background="Transparent" BorderBrush="Transparent">
+                <TabItem.ToolTip>
+                    <Fluent:ScreenTip Title="Templates Options" Text="Set templates options" Image="../../Images/Tools/templates48.png" />
+                </TabItem.ToolTip>
+                <TabItem.Header>
+                    <DockPanel>
+                        <Image RenderOptions.BitmapScalingMode="NearestNeighbor" Source="../../Images/Tools/templates32.png" Width="32" Height="32" />
+                        <TextBlock Margin="4,0,0,0" VerticalAlignment="Center" Text="Templates" />
+                    </DockPanel>
+                </TabItem.Header>
+                <Grid>
+                    <ListBox Margin="8,35,107,6" Name="TemplatesListBox" Background="#7BFFFFFF" BorderBrush="#7BFFFFFF" />
+                    <Fluent:Button HorizontalAlignment="Right" Header="Add" Icon="../../Images/Common/add16.png" SizeDefinition="Middle" Margin="0,8,6,0" Name="AddTemplateButton" VerticalAlignment="Top" Width="96">
+                        <Fluent:Button.ToolTip>
+                            <Fluent:ScreenTip Title="Add" Text="Add Template" Image="../../Images/Common/add48.png" />
+                        </Fluent:Button.ToolTip>
+                    </Fluent:Button>
+                    <Fluent:Button IsEnabled="False" SizeDefinition="Middle" Icon="../../Images/Common/remove16.png" Header="Remove" HorizontalAlignment="Right" Margin="0,35,6,0" Name="RemoveTemplateButton" VerticalAlignment="Top" Width="96">
+                        <Fluent:Button.ToolTip>
+                            <Fluent:ScreenTip Title="Remove" Text="Remove Template" Image="../../Images/Common/remove48.png" />
+                        </Fluent:Button.ToolTip>
+                    </Fluent:Button>
+                    <Fluent:Button Header="Open Folder" Icon="../../Images/Tools/openfolder16.png" SizeDefinition="Middle" HorizontalAlignment="Right" Margin="0,0,6,6" Name="TemplatesFolderButton" VerticalAlignment="Bottom" Width="96">
+                        <Fluent:Button.ToolTip>
+                            <Fluent:ScreenTip Title="Open Folder" Text="Open the Templates Folder" Image="../../Images/Tools/openfolder48.png" />
+                        </Fluent:Button.ToolTip>
+                    </Fluent:Button>
+                    <TextBlock x:Name="TemplatesFolderTextBlock" Margin="10,10,208,0" TextWrapping="Wrap" Text="Templates Folder" VerticalAlignment="Top"/>
+                    <Fluent:Button Header="Browse" Icon="../../Images/Tools/openfolder16.png" SizeDefinition="Middle" HorizontalAlignment="Right" Margin="0,8,107,0" Name="SetTemplatesFolderButton" VerticalAlignment="Top" Width="96">
+                        <Fluent:Button.ToolTip>
+                            <Fluent:ScreenTip Title="Browse" Text="Select where to look for Templates" Image="../../Images/Tools/openfolder48.png" />
+                        </Fluent:Button.ToolTip>
+                    </Fluent:Button>
+                </Grid>
+            </TabItem>
+            <TabItem Width="128" Height="40" Background="Transparent" BorderBrush="Transparent">
+                <TabItem.ToolTip>
+                    <Fluent:ScreenTip Title="Plugins Options" Text="Set plugins options" Image="../../Images/Tools/plugins48.png" />
+                </TabItem.ToolTip>
+                <TabItem.Header>
+                    <DockPanel>
+                        <Image RenderOptions.BitmapScalingMode="NearestNeighbor" Source="../../Images/Tools/plugins32.png" Width="32" Height="32" />
+                        <TextBlock Margin="4,0,0,0" VerticalAlignment="Center" Text="Plugins" />
+                    </DockPanel>
+                </TabItem.Header>
+                <Grid>
+                    <ListBox Margin="8,28,107,6" Name="PluginsListBox" Background="#7BFFFFFF" BorderBrush="#7BFFFFFF" />
+                    <Fluent:Button HorizontalAlignment="Right" SizeDefinition="Middle" Icon="../../Images/Common/add16.png" Header="Add" Margin="0,28,6,0" Name="PluginAddButton" VerticalAlignment="Top" Width="96">
+                        <Fluent:Button.ToolTip>
+                            <Fluent:ScreenTip Title="Add" Text="Add Plugin" Image="../../Images/Common/add48.png" />
+                        </Fluent:Button.ToolTip>
+                    </Fluent:Button>
+                    <Fluent:Button HorizontalAlignment="Right" SizeDefinition="Middle" Icon="../../Images/Common/remove16.png" Header="Remove" Margin="0,55,6,0" Name="PluginRemoveButton" VerticalAlignment="Top" Width="96" IsEnabled="False">
+                        <Fluent:Button.ToolTip>
+                            <Fluent:ScreenTip Title="Remove" Text="Remove Plugin" Image="../../Images/Common/remove48.png" />
+                        </Fluent:Button.ToolTip>
+                    </Fluent:Button>
+                    <Fluent:CheckBox Header="Enable Plugins" Foreground="Black" HorizontalAlignment="Left" Margin="6,4,0,0" Name="PluginsCheckBox" VerticalAlignment="Top" IsChecked="False">
+                        <Fluent:CheckBox.ToolTip>
+                            <Fluent:ScreenTip Title="Enable Plugins" Text="Enable/Disable Plugins" />
+                        </Fluent:CheckBox.ToolTip>
+                    </Fluent:CheckBox>
+                    <Fluent:Button Header="Open Folder" SizeDefinition="Middle" Icon="../../Images/Tools/openfolder16.png" HorizontalAlignment="Right" Margin="0,0,6,6" Name="PluginsFolderButton" VerticalAlignment="Bottom" Width="96">
+                        <Fluent:Button.ToolTip>
+                            <Fluent:ScreenTip Title="Open Folder" Text="Open Plugins Folder" Image="../../Images/Tools/openfolder48.png" />
+                        </Fluent:Button.ToolTip>
+                    </Fluent:Button>
+                </Grid>
+            </TabItem>
+            <TabItem Width="128" Height="40" Visibility="Collapsed" BorderBrush="#7BFFFFFF">
+                <TabItem.Header>
+                    <DockPanel>
+                        <TextBlock Margin="4,0,0,0" VerticalAlignment="Center" Text="Advanced" />
+                    </DockPanel>
+                </TabItem.Header>
+                <Grid>
+                    <Label Content="Coming soon." Margin="7,6" Name="Label6" FontSize="48" />
+                </Grid>
+            </TabItem>
+        </TabControl>
+    </Grid>
+</Window>

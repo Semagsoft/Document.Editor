@@ -1,0 +1,20 @@
+﻿Document.Editor
+
+
+winexe
+VB
+.vb
+P:\.Net Projects\Source Code\Document.Editor\Document.Editor\obj\Debug\
+Document.Editor
+none
+false
+
+P:\.Net Projects\Source Code\Document.Editor\Document.Editor\App.xaml
+21-1694143477
+9223494538
+36650755321
+26-1140002380
+Dialogs\Insert\ChartDialog.xaml;Dialogs\MessageBoxDialog.xaml;Misc\FluentAddons\FluentEmoticonGallery.xaml;Misc\FluentAddons\FluentSymbolGallery.xaml;Dialogs\Format\LineSpacingDialog.xaml;Dialogs\Help\AboutDialog.xaml;Dialogs\Insert\DateDialog.xaml;Dialogs\Insert\InsertLineDialog.xaml;Dialogs\Insert\LinkDialog.xaml;Dialogs\Insert\ShapeDialog.xaml;Dialogs\Insert\TableDialog.xaml;Dialogs\Insert\TimeDialog.xaml;Dialogs\Insert\VideoDialog.xaml;Dialogs\LoadFileDialog.xaml;Dialogs\StartupDialog.xaml;Dialogs\Tools\SpellCheckDialog.xaml;Misc\FluentAddons\FluentTableGrid.xaml;MainWindow.xaml;Dialogs\SaveFileDialog.xaml;Dialogs\Tools\OptionsDialog.xaml;Dialogs\Tools\TranslateDialog.xaml;
+
+True
+

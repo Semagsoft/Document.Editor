@@ -1,0 +1,404 @@
+﻿<UserControl x:Class="FluentTableGrid" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"  xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:Fluent="clr-namespace:Fluent;assembly=Fluent" mc:Ignorable="d" >
+    <Fluent:GalleryGroupContainer Name="TableGrid" Header="Insert Table" MaxItemsInRow="10" Orientation="Horizontal" >
+        <Grid Name="TableGrid1X1" Background="White" Height="19" Width="19">
+            <Border Name="TableGrid1X1_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid1X1_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid1X2" Height="19" Width="19" Background="White">
+            <Border Name="TableGrid1X2_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid1X2_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid1X3" Height="19" Width="19" Background="White">
+            <Border Name="TableGrid1X3_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid1X3_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid1X4" Height="19" Width="19" Background="White">
+            <Border Name="TableGrid1X4_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid1X4_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid1X5" Height="19" Width="19" Background="White">
+            <Border Name="TableGrid1X5_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid1X5_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid1X6" Height="19" Width="19" Background="White">
+            <Border Name="TableGrid1X6_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid1X6_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid1X7" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid1X7_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid1X7_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid1X8" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid1X8_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid1X8_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid1X9" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid1X9_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid1X9_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid1X10" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid1X10_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid1X10_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid2X1" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid2X1_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid2X1_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid2X2" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid2X2_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid2X2_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid2X3" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid2X3_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid2X3_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid2X4" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid2X4_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid2X4_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid2X5" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid2X5_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid2X5_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid2X6" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid2X6_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid2X6_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid2X7" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid2X7_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid2X7_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid2X8" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid2X8_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid2X8_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid2X9" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid2X9_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid2X9_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid2X10" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid2X10_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid2X10_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid3X1" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid3X1_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid3X1_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid3X2" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid3X2_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid3X2_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid3X3" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid3X3_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid3X3_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid3X4" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid3X4_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid3X4_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid3X5" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid3X5_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid3X5_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid3X6" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid3X6_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid3X6_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid3X7" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid3X7_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid3X7_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid3X8" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid3X8_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid3X8_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid3X9" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid3X9_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid3X9_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid3X10" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid3X10_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid3X10_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid4X1" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid4X1_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid4X1_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid4X2" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid4X2_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid4X2_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid4X3" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid4X3_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid4X3_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid4X4" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid4X4_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid4X4_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid4X5" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid4X5_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid4X5_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid4X6" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid4X6_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid4X6_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid4X7" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid4X7_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid4X7_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid4X8" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid4X8_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid4X8_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid4X9" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid4X9_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid4X9_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid4X10" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid4X10_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid4X10_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid5X1" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid5X1_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid5X1_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid5X2" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid5X2_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid5X2_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid5X3" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid5X3_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid5X3_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid5X4" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid5X4_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid5X4_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid5X5" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid5X5_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid5X5_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid5X6" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid5X6_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid5X6_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid5X7" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid5X7_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid5X7_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid5X8" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid5X8_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid5X8_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid5X9" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid5X9_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid5X9_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid5X10" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid5X10_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid5X10_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid6X1" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid6X1_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid6X1_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid6X2" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid6X2_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid6X2_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid6X3" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid6X3_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid6X3_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid6X4" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid6X4_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid6X4_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid6X5" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid6X5_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid6X5_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid6X6" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid6X6_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid6X6_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid6X7" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid6X7_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid6X7_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid6X8" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid6X8_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid6X8_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid6X9" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid6X9_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid6X9_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid6X10" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid6X10_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid6X10_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid7X1" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid7X1_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid7X1_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid7X2" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid7X2_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid7X2_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid7X3" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid7X3_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid7X3_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid7X4" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid7X4_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid7X4_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid7X5" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid7X5_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid7X5_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid7X6" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid7X6_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid7X6_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid7X7" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid7X7_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid7X7_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid7X8" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid7X8_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid7X8_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid7X9" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid7X9_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid7X9_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid7X10" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid7X10_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid7X10_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid8X1" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid8X1_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid8X1_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid8X2" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid8X2_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid8X2_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid8X3" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid8X3_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid8X3_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid8X4" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid8X4_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid8X4_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid8X5" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid8X5_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid8X5_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid8X6" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid8X6_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid8X6_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid8X7" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid8X7_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid8X7_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid8X8" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid8X8_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid8X8_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid8X9" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid8X9_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid8X9_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+        <Grid Name="TableGrid8X10" Height="19" Width="19" Background="White" Tag="Insert Table" Margin="0">
+            <Border Name="TableGrid8X10_Border1" BorderThickness="1" Margin="1">
+                <Border Name="TableGrid8X10_Border2" BorderThickness="1" BorderBrush="Black" />
+            </Border>
+        </Grid>
+    </Fluent:GalleryGroupContainer>
+</UserControl>

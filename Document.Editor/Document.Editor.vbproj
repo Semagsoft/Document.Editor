@@ -1,0 +1,938 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{94ACCA65-318A-4174-9EC6-B708C085F8CA}</ProjectGuid>
+    <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{F184B08F-C81C-45F6-A57F-5ABD9991F28F}</ProjectTypeGuids>
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>Document.Editor</RootNamespace>
+    <AssemblyName>Document.Editor</AssemblyName>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <MyType>Custom</MyType>
+    <OptionExplicit>On</OptionExplicit>
+    <OptionCompare>Binary</OptionCompare>
+    <OptionStrict>Off</OptionStrict>
+    <OptionInfer>On</OptionInfer>
+    <IsWebBootstrapper>false</IsWebBootstrapper>
+    <TargetZone>Custom</TargetZone>
+    <GenerateManifests>true</GenerateManifests>
+    <ApplicationManifest>My Project\app.manifest</ApplicationManifest>
+    <ApplicationIcon>app.ico</ApplicationIcon>
+    <ManifestCertificateThumbprint>55B3F461BFE217BBD39B1FA087E1338E0C64DA17</ManifestCertificateThumbprint>
+    <ManifestKeyFile>Document.Editor_TemporaryKey.pfx</ManifestKeyFile>
+    <SignManifests>false</SignManifests>
+    <SignAssembly>false</SignAssembly>
+    <AssemblyOriginatorKeyFile>
+    </AssemblyOriginatorKeyFile>
+    <FileUpgradeFlags>
+    </FileUpgradeFlags>
+    <UpgradeBackupLocation>
+    </UpgradeBackupLocation>
+    <OldToolsVersion>3.5</OldToolsVersion>
+    <TargetFrameworkProfile>
+    </TargetFrameworkProfile>
+    <ExpressionBlendVersion>12.0.51020.0</ExpressionBlendVersion>
+    <PublishUrl>publish\</PublishUrl>
+    <Install>true</Install>
+    <InstallFrom>Disk</InstallFrom>
+    <UpdateEnabled>true</UpdateEnabled>
+    <UpdateMode>Background</UpdateMode>
+    <UpdateInterval>1</UpdateInterval>
+    <UpdateIntervalUnits>Weeks</UpdateIntervalUnits>
+    <UpdatePeriodically>true</UpdatePeriodically>
+    <UpdateRequired>false</UpdateRequired>
+    <MapFileExtensions>false</MapFileExtensions>
+    <UpdateUrl>http://documenteditor.codeplex.com/releases/clickonce/</UpdateUrl>
+    <SupportUrl>http://documenteditor.codeplex.com</SupportUrl>
+    <ErrorReportUrl>http://documenteditor.codeplex.com</ErrorReportUrl>
+    <ProductName>Document.Editor</ProductName>
+    <PublisherName>Semagsoft</PublisherName>
+    <MinimumRequiredVersion>2010.12.20.0</MinimumRequiredVersion>
+    <OpenBrowserOnPublish>false</OpenBrowserOnPublish>
+    <ApplicationRevision>0</ApplicationRevision>
+    <ApplicationVersion>2016.5.0.0</ApplicationVersion>
+    <UseApplicationTrust>true</UseApplicationTrust>
+    <CreateDesktopShortcut>true</CreateDesktopShortcut>
+    <PublishWizardCompleted>true</PublishWizardCompleted>
+    <BootstrapperEnabled>true</BootstrapperEnabled>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x64' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DefineDebug>true</DefineDebug>
+    <DefineTrace>true</DefineTrace>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DocumentationFile>
+    </DocumentationFile>
+    <Optimize>true</Optimize>
+    <NoWarn>41999,42016,42017,42018,42019,42020,42021,42022,42032,42036,42314,42353,42354,42355</NoWarn>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <WarningLevel>0</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x64' ">
+    <DefineTrace>true</DefineTrace>
+    <OutputPath>bin\Release\</OutputPath>
+    <DocumentationFile>
+    </DocumentationFile>
+    <Optimize>true</Optimize>
+    <NoWarn>41999,42016,42017,42018,42019,42020,42021,42022,42032,42036,42314,42353,42354,42355</NoWarn>
+    <PlatformTarget>x64</PlatformTarget>
+    <WarningLevel>0</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DefineDebug>true</DefineDebug>
+    <DefineTrace>true</DefineTrace>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DocumentationFile>
+    </DocumentationFile>
+    <Optimize>true</Optimize>
+    <NoWarn>41999,42016,42017,42018,42019,42020,42021,42022,42032,42036,42314,42353,42354,42355</NoWarn>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x86</PlatformTarget>
+    <WarningLevel>0</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
+    <DefineTrace>true</DefineTrace>
+    <OutputPath>bin\Release\</OutputPath>
+    <DocumentationFile>
+    </DocumentationFile>
+    <Optimize>true</Optimize>
+    <NoWarn>41999,42016,42017,42018,42019,42020,42021,42022,42032,42036,42314,42353,42354,42355</NoWarn>
+    <PlatformTarget>x86</PlatformTarget>
+    <WarningLevel>0</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <OutputPath>bin\Debug\</OutputPath>
+    <NoWarn>42353,42354,42355</NoWarn>
+    <Optimize>true</Optimize>
+    <RemoveIntegerChecks>true</RemoveIntegerChecks>
+    <WarningLevel>0</WarningLevel>
+    <DebugType>Full</DebugType>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <OutputPath>bin\Release\</OutputPath>
+    <NoWarn>42353,42354,42355</NoWarn>
+    <Optimize>false</Optimize>
+    <WarningLevel>0</WarningLevel>
+    <RemoveIntegerChecks>false</RemoveIntegerChecks>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="AODL">
+      <HintPath>..\..\..\Toolkits\AODL_1.4.0.3.bin\AODL 1.4.0.3.bin\AODL.dll</HintPath>
+    </Reference>
+    <Reference Include="CookComputing.XmlRpcV2">
+      <HintPath>..\..\..\Toolkits\xml-rpc.net.2.4.0\bin\CookComputing.XmlRpcV2.dll</HintPath>
+    </Reference>
+    <Reference Include="DocumentFormat.OpenXml">
+      <HintPath>..\..\..\Toolkits\DocumentFormat.OpenXml.dll</HintPath>
+    </Reference>
+    <Reference Include="Fluent, Version=3.2.0.0, Culture=neutral, PublicKeyToken=3e436e32a8c5546f, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\Toolkits\WPF\Fluent.Ribbon.3.6.0.221\NET 4.5\Release\Fluent.dll</HintPath>
+    </Reference>
+    <Reference Include="Ionic.Zip.Reduced">
+      <HintPath>..\..\..\Toolkits\Ionic.Zip.Reduced.dll</HintPath>
+    </Reference>
+    <Reference Include="ReachFramework" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Printing" />
+    <Reference Include="System.Speech" />
+    <Reference Include="System.Windows.Controls.DataVisualization.Toolkit">
+      <HintPath>..\..\..\Toolkits\WPF\DataVisualizationDemos\Toolkit\WPF4\System.Windows.Controls.DataVisualization.Toolkit.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Windows.Interactivity">
+      <HintPath>..\..\..\Toolkits\WPF\Fluent.Ribbon.3.6.0.221\NET 4.5\Release\System.Windows.Interactivity.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Xaml" />
+    <Reference Include="System.XML" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="WindowsBase">
+      <RequiredTargetFramework>3.0</RequiredTargetFramework>
+    </Reference>
+    <Reference Include="PresentationCore">
+      <RequiredTargetFramework>3.0</RequiredTargetFramework>
+    </Reference>
+    <Reference Include="PresentationFramework">
+      <RequiredTargetFramework>3.0</RequiredTargetFramework>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="WPFToolkit">
+      <HintPath>..\..\..\Toolkits\WPF\ExtendedWPFToolkit_Binaries_3_5\WPFToolkit.dll</HintPath>
+    </Reference>
+    <Reference Include="Xceed.Wpf.AvalonDock">
+      <HintPath>..\..\..\Toolkits\WPF\Xceed.Wpf.AvalonDock.dll</HintPath>
+    </Reference>
+    <Reference Include="Xceed.Wpf.AvalonDock.Themes.Aero">
+      <HintPath>..\..\..\Toolkits\WPF\Xceed.Wpf.AvalonDock.Themes.Aero.dll</HintPath>
+    </Reference>
+    <Reference Include="Xceed.Wpf.AvalonDock.Themes.Expression">
+      <HintPath>..\..\..\Toolkits\WPF\Xceed.Wpf.AvalonDock.Themes.Expression.dll</HintPath>
+    </Reference>
+    <Reference Include="Xceed.Wpf.AvalonDock.Themes.Metro">
+      <HintPath>..\..\..\Toolkits\WPF\Xceed.Wpf.AvalonDock.Themes.Metro.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <ApplicationDefinition Include="App.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </ApplicationDefinition>
+    <Compile Include="Dialogs\Format\LineSpacingDialog.xaml.vb">
+      <DependentUpon>LineSpacingDialog.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Dialogs\Insert\ChartDialog.xaml.vb">
+      <DependentUpon>ChartDialog.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Dialogs\Insert\DateDialog.xaml.vb">
+      <DependentUpon>DateDialog.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Dialogs\Insert\InsertLineDialog.xaml.vb">
+      <DependentUpon>InsertLineDialog.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Dialogs\Insert\LinkDialog.xaml.vb">
+      <DependentUpon>LinkDialog.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Dialogs\Insert\ShapeDialog.xaml.vb">
+      <DependentUpon>ShapeDialog.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Dialogs\Insert\TableDialog.xaml.vb">
+      <DependentUpon>TableDialog.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Dialogs\Insert\TimeDialog.xaml.vb">
+      <DependentUpon>TimeDialog.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Dialogs\Insert\VideoDialog.xaml.vb">
+      <DependentUpon>VideoDialog.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Dialogs\StartupDialog.xaml.vb">
+      <DependentUpon>StartupDialog.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Dialogs\Tools\SpellCheckDialog.xaml.vb">
+      <DependentUpon>SpellCheckDialog.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Dialogs\Tools\TranslateDialog.xaml.vb">
+      <DependentUpon>TranslateDialog.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Languages.vb" />
+    <Compile Include="Dialogs\MessageBoxDialog.xaml.vb">
+      <DependentUpon>MessageBoxDialog.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Misc\FluentAddons\FluentEmoticonGallery.xaml.vb">
+      <DependentUpon>FluentEmoticonGallery.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Misc\FluentAddons\FluentSymbolGallery.xaml.vb">
+      <DependentUpon>FluentSymbolGallery.xaml</DependentUpon>
+    </Compile>
+    <Page Include="Dialogs\Insert\ChartDialog.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Dialogs\MessageBoxDialog.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Misc\FluentAddons\FluentEmoticonGallery.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Misc\FluentAddons\FluentSymbolGallery.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Resource Include="Images\Contextual\color32.png" />
+    <Resource Include="Images\Insert\datemore48.png" />
+    <Resource Include="Images\Insert\timemore48.png" />
+    <Resource Include="Images\View\zoomin16.png" />
+    <Resource Include="Images\View\resetzoom16.png" />
+    <Resource Include="Images\View\zoomout16.png" />
+    <Resource Include="Images\View\ruler16.png" />
+    <Resource Include="Images\View\statusbar16.png" />
+    <Resource Include="Images\View\fullscreen16.png" />
+    <Resource Include="Images\Format\clearformatting16.png" />
+    <Resource Include="Images\Navigation\pagedown16.png" />
+    <Resource Include="Images\Navigation\linedown16.png" />
+    <Resource Include="Images\Navigation\pageleft16.png" />
+    <Resource Include="Images\Navigation\pageright16.png" />
+    <Resource Include="Images\Navigation\lineright16.png" />
+    <Resource Include="Images\Navigation\lineleft16.png" />
+    <Resource Include="Images\Navigation\pageup16.png" />
+    <Resource Include="Images\Navigation\lineup16.png" />
+    <Resource Include="Images\Tools\correctall48.png" />
+    <Resource Include="Images\Tools\nextspellingerror48.png" />
+    <Resource Include="Images\Tools\previousspellingerror48.png" />
+    <Resource Include="Images\Tools\startup16.png" />
+    <Resource Include="Images\Tools\theme16.png" />
+    <Resource Include="Images\Document\recent16.png" />
+    <Resource Include="Images\Tools\templates48.png" />
+    <Resource Include="Images\Common\remove48.png" />
+    <Resource Include="Images\Tools\openfolder16.png" />
+    <Resource Include="Images\Tools\openfolder48.png" />
+    <Resource Include="Images\Tools\reset16.png" />
+    <Resource Include="Images\Tools\reset48.png" />
+    <Resource Include="Images\Tools\clear48.png" />
+    <Resource Include="Images\Document\Export\connect16.png" />
+    <Resource Include="Images\Document\Export\disconnect16.png" />
+    <Resource Include="Images\Contextual\color16.png" />
+    <Resource Include="Images\Insert\Object\button16.png" />
+    <Resource Include="Images\Insert\Object\radiobutton16.png" />
+    <Resource Include="Images\Insert\Object\checkbox16.png" />
+    <Resource Include="Images\Insert\Object\textblock16.png" />
+    <Resource Include="Images\Insert\Object\properties16.png" />
+    <Resource Include="Images\Tab\tools48.png" />
+    <Resource Include="Images\PageLayout\backgroundcolor32.png" />
+    <Resource Include="Images\Document\print32.png" />
+    <Resource Include="Images\Common\error32.png" />
+    <Resource Include="Images\Common\info32.png" />
+    <Resource Include="Images\Common\question32.png" />
+    <Resource Include="Images\Tab\rtf32.png" />
+    <Resource Include="Images\Format\Lists\discbullet32.png" />
+    <Resource Include="Images\Format\Lists\boxbullet32.png" />
+    <Resource Include="Images\Format\Lists\circlebullet32.png" />
+    <Resource Include="Images\Format\Lists\squarebullet32.png" />
+    <Resource Include="Images\Format\Lists\decimallist32.png" />
+    <Resource Include="Images\Format\Lists\upperlatin32.png" />
+    <Resource Include="Images\Format\Lists\lowerlatin32.png" />
+    <Resource Include="Images\Format\Lists\upperroman32.png" />
+    <Resource Include="Images\Format\Lists\lowerroman32.png" />
+    <Resource Include="Images\Insert\Emoticons\angel16.png" />
+    <Resource Include="Images\Insert\Emoticons\angry16.png" />
+    <Resource Include="Images\Insert\Emoticons\cool16.png" />
+    <Resource Include="Images\Insert\Emoticons\crying16.png" />
+    <Resource Include="Images\Insert\Emoticons\devilish16.png" />
+    <Resource Include="Images\Insert\Emoticons\embarrassed16.png" />
+    <Resource Include="Images\Insert\Emoticons\kiss16.png" />
+    <Resource Include="Images\Insert\Emoticons\laugh16.png" />
+    <Resource Include="Images\Insert\Emoticons\monkey16.png" />
+    <Resource Include="Images\Insert\Emoticons\plain16.png" />
+    <Resource Include="Images\Insert\Emoticons\raspberry16.png" />
+    <Resource Include="Images\Insert\Emoticons\sad16.png" />
+    <Resource Include="Images\Insert\Emoticons\sick16.png" />
+    <Resource Include="Images\Insert\Emoticons\smilebig16.png" />
+    <Resource Include="Images\Insert\Emoticons\smile16.png" />
+    <Resource Include="Images\Insert\Emoticons\smirk16.png" />
+    <Resource Include="Images\Insert\Emoticons\surprise16.png" />
+    <Resource Include="Images\Insert\Emoticons\tired16.png" />
+    <Resource Include="Images\Insert\Emoticons\uncertain16.png" />
+    <Resource Include="Images\Insert\Emoticons\wink16.png" />
+    <Resource Include="Images\Insert\Emoticons\worried16.png" />
+    <Resource Include="Images\Insert\Emoticons\angel32.png" />
+    <Resource Include="Images\Insert\Emoticons\angry32.png" />
+    <Resource Include="Images\Insert\Emoticons\cool32.png" />
+    <Resource Include="Images\Insert\Emoticons\crying32.png" />
+    <Resource Include="Images\Insert\Emoticons\devilish32.png" />
+    <Resource Include="Images\Insert\Emoticons\embarrassed32.png" />
+    <Resource Include="Images\Insert\Emoticons\kiss32.png" />
+    <Resource Include="Images\Insert\Emoticons\laugh32.png" />
+    <Resource Include="Images\Insert\Emoticons\monkey32.png" />
+    <Resource Include="Images\Insert\Emoticons\plain32.png" />
+    <Resource Include="Images\Insert\Emoticons\raspberry32.png" />
+    <Resource Include="Images\Insert\Emoticons\sad32.png" />
+    <Resource Include="Images\Insert\Emoticons\sick32.png" />
+    <Resource Include="Images\Insert\Emoticons\smilebig32.png" />
+    <Resource Include="Images\Insert\Emoticons\smile32.png" />
+    <Resource Include="Images\Insert\Emoticons\smirk32.png" />
+    <Resource Include="Images\Insert\Emoticons\surprise32.png" />
+    <Resource Include="Images\Insert\Emoticons\tired32.png" />
+    <Resource Include="Images\Insert\Emoticons\uncertain32.png" />
+    <Resource Include="Images\Insert\Emoticons\wink32.png" />
+    <Resource Include="Images\Insert\Emoticons\worried32.png" />
+    <Resource Include="Images\Insert\Emoticons\smile48.png" />
+    <Resource Include="Images\Tools\ignorespellingerror16.png" />
+    <Resource Include="Images\Tools\ignorespellingerror48.png" />
+    <Resource Include="Images\Insert\chart32.png" />
+    <Resource Include="Images\Insert\chart16.png" />
+    <Resource Include="Images\Insert\chart48.png" />
+    <Resource Include="Dialogs\Insert\chart16.ico" />
+    <Resource Include="Images\PageLayout\backgroundimage16.png" />
+    <Resource Include="Images\PageLayout\backgroundimage32.png" />
+    <Resource Include="Images\PageLayout\backgroundimage48.png" />
+    <Resource Include="Images\Format\doubleunderline16.png" />
+    <Resource Include="Images\Format\doublestrikethrough16.png" />
+    <Resource Include="Images\Contextual\image32.png" />
+    <Resource Include="Images\Insert\Emoticons\angel64.png" />
+    <Resource Include="Images\Insert\Emoticons\angry64.png" />
+    <Resource Include="Images\Insert\Emoticons\cool64.png" />
+    <Resource Include="Images\Insert\Emoticons\crying64.png" />
+    <Resource Include="Images\Insert\Emoticons\devilish64.png" />
+    <Resource Include="Images\Insert\Emoticons\embarrassed64.png" />
+    <Resource Include="Images\Insert\Emoticons\kiss64.png" />
+    <Resource Include="Images\Insert\Emoticons\laugh64.png" />
+    <Resource Include="Images\Insert\Emoticons\monkey64.png" />
+    <Resource Include="Images\Insert\Emoticons\plain64.png" />
+    <Resource Include="Images\Insert\Emoticons\raspberry64.png" />
+    <Resource Include="Images\Insert\Emoticons\sad64.png" />
+    <Resource Include="Images\Insert\Emoticons\sick64.png" />
+    <Resource Include="Images\Insert\Emoticons\smile64.png" />
+    <Resource Include="Images\Insert\Emoticons\smilebig64.png" />
+    <Resource Include="Images\Insert\Emoticons\smirk64.png" />
+    <Resource Include="Images\Insert\Emoticons\surprise64.png" />
+    <Resource Include="Images\Insert\Emoticons\tired64.png" />
+    <Resource Include="Images\Insert\Emoticons\uncertain64.png" />
+    <Resource Include="Images\Insert\Emoticons\wink64.png" />
+    <Resource Include="Images\Insert\Emoticons\worried64.png" />
+    <Resource Include="Images\Format\increasefont16.png" />
+    <Resource Include="Images\Format\decreasefont16.png" />
+    <Resource Include="Images\Edit\select16.png" />
+    <Content Include="Templates\Basic Document %288.5 x 11%29.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Templates\Wide Page %2811 x 8.5%29.xaml">
+      <SubType>Designer</SubType>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Templates\Wide Page %2811 x 8.5%29.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Resource Include="Images\Tools\options16.png" />
+    <Resource Include="Images\PageLayout\pagemargins32.png" />
+    <Resource Include="Images\PageLayout\pagesize32.png" />
+    <Resource Include="Images\Edit\lowercase32.png" />
+    <Resource Include="Images\Edit\uppercase32.png" />
+    <Resource Include="Images\Edit\lowercase16.png" />
+    <Resource Include="Images\Edit\uppercase16.png" />
+    <Resource Include="Images\Tab\home48.png" />
+    <Resource Include="Images\Edit\pasteimage16.png" />
+    <Resource Include="Images\Edit\pasteimage48.png" />
+    <Resource Include="Images\Edit\lowercase48.png" />
+    <Resource Include="Images\Edit\uppercase48.png" />
+    <Resource Include="Images\Edit\cutline48.png" />
+    <Resource Include="Images\Edit\cutparagraph48.png" />
+    <Resource Include="Images\Edit\copyline48.png" />
+    <Resource Include="Images\Edit\copyparagraph48.png" />
+    <Resource Include="Images\Edit\deleteline48.png" />
+    <Resource Include="Images\Edit\deleteparagraph48.png" />
+    <Resource Include="Images\Edit\selectline48.png" />
+    <Resource Include="Images\Edit\selectparagraph48.png" />
+    <Resource Include="Images\Format\clearformatting32.png" />
+    <Resource Include="Images\Format\clearformatting48.png" />
+    <Resource Include="Images\PageLayout\pagemargins48.png" />
+    <Content Include="Templates\Basic Document %288.5 x 11%29.xaml">
+      <SubType>Designer</SubType>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Resource Include="Images\Tools\spellcheck16.png" />
+    <Resource Include="Images\Tools\speech16.png" />
+    <Resource Include="Images\Tools\translate16.png" />
+    <Resource Include="Images\Tools\definitions16.png" />
+    <Resource Include="Images\Help\help16.png" />
+    <Resource Include="Images\Tab\tools16.png" />
+    <Resource Include="Images\Tools\plugins16.png" />
+    <Content Include="Templates\Business card %283.5 x 2%29.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Templates\Postcard %285 x 3.5%29.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Templates\Postcard %285 x 3.5%29.xaml">
+      <SubType>Designer</SubType>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Templates\Business card %283.5 x 2%29.xaml">
+      <SubType>Designer</SubType>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Resource Include="Images\Document\exitapp16.png" />
+    <Resource Include="Images\Document\exitapp48.png" />
+    <Resource Include="Images\Document\new48.png" />
+    <Resource Include="Images\Document\open48.png" />
+    <Resource Include="Images\Document\recent48.png" />
+    <Resource Include="Images\Document\recent32.png" />
+    <Resource Include="Images\Document\revert16.png" />
+    <Resource Include="Images\Document\revert48.png" />
+    <Resource Include="Images\Document\Close\close16.png" />
+    <Resource Include="Images\Document\Close\close48.png" />
+    <Resource Include="Images\Document\Close\closeallbutthis16.png" />
+    <Resource Include="Images\Document\Close\closeallbutthis48.png" />
+    <Resource Include="Images\Document\Close\closeall16.png" />
+    <Resource Include="Images\Document\Close\closeall48.png" />
+    <Resource Include="Images\Document\save48.png" />
+    <Resource Include="Images\Document\save16.png" />
+    <Resource Include="Images\Document\saveas16.png" />
+    <Resource Include="Images\Document\saveas48.png" />
+    <Resource Include="Images\Document\savecopy48.png" />
+    <Resource Include="Images\Document\savecopy16.png" />
+    <Resource Include="Images\Document\saveall16.png" />
+    <Resource Include="Images\Document\saveall48.png" />
+    <Resource Include="Images\Document\import32.png" />
+    <Resource Include="Images\Document\Export\export32.png" />
+    <Resource Include="Images\Document\Export\archive48.png" />
+    <Resource Include="Images\Document\Export\image16.png" />
+    <Resource Include="Images\Document\Export\image48.png" />
+    <Resource Include="Images\Document\Export\wordpress16.png" />
+    <Resource Include="Images\Document\Export\wordpress48.png" />
+    <Resource Include="Images\Document\Export\xps16.png" />
+    <Resource Include="Images\Document\Export\xps48.png" />
+    <Resource Include="Images\Document\Export\email16.png" />
+    <Resource Include="Images\Document\Export\email48.png" />
+    <Resource Include="Images\Document\Export\ftp16.png" />
+    <Resource Include="Images\Document\Export\ftp48.png" />
+    <Resource Include="Images\Document\Export\audio16.png" />
+    <Resource Include="Images\Document\Export\audio48.png" />
+    <Resource Include="Images\Document\properties32.png" />
+    <Resource Include="Images\Format\fontcolor16.png" />
+    <Resource Include="Images\Format\fontcolor48.png" />
+    <Resource Include="Images\Document\statistics16.png" />
+    <Resource Include="Images\Document\statistics48.png" />
+    <Resource Include="Images\Document\readonly16.png" />
+    <Resource Include="Images\Document\printer32.png" />
+    <Resource Include="Images\Document\print16.png" />
+    <Resource Include="Images\Document\print48.png" />
+    <Resource Include="Images\Document\pagesetup16.png" />
+    <Resource Include="Images\Document\pagesetup48.png" />
+    <Resource Include="Images\Document\printpreview16.png" />
+    <Resource Include="Images\Document\printpreview48.png" />
+    <Resource Include="Images\Edit\undo32.png" />
+    <Resource Include="Images\Edit\undo48.png" />
+    <Resource Include="Images\Edit\redo32.png" />
+    <Resource Include="Images\Edit\redo48.png" />
+    <Resource Include="Images\Edit\copyparagraph16.png" />
+    <Resource Include="Images\Edit\copyline16.png" />
+    <Resource Include="Images\PageLayout\backgroundcolor16.png" />
+    <Resource Include="Images\PageLayout\backgroundcolor48.png" />
+    <Resource Include="Images\Document\readonly48.png" />
+    <Resource Include="Images\Edit\cut16.png" />
+    <Resource Include="Images\Edit\cut32.png" />
+    <Resource Include="Images\Edit\cut48.png" />
+    <Resource Include="Images\Edit\copy16.png" />
+    <Resource Include="Images\Edit\copy32.png" />
+    <Resource Include="Images\Edit\copy48.png" />
+    <Resource Include="Images\Edit\cutparagraph16.png" />
+    <Resource Include="Images\Edit\deleteparagraph16.png" />
+    <Resource Include="Images\Edit\cutline16.png" />
+    <Resource Include="Images\Edit\deleteline16.png" />
+    <Resource Include="Images\Edit\goto16.png" />
+    <Resource Include="Images\Edit\goto32.png" />
+    <Resource Include="Images\Edit\goto48.png" />
+    <Resource Include="Images\Edit\redo16.png" />
+    <Resource Include="Images\Edit\selectparagraph16.png" />
+    <Resource Include="Images\Edit\selectline16.png" />
+    <Resource Include="Images\Edit\undo16.png" />
+    <Resource Include="Images\Edit\paste16.png" />
+    <Resource Include="Images\Edit\paste32.png" />
+    <Resource Include="Images\Edit\paste48.png" />
+    <Resource Include="Images\Edit\delete16.png" />
+    <Resource Include="Images\Edit\delete32.png" />
+    <Resource Include="Images\Edit\delete48.png" />
+    <Resource Include="Images\Edit\selectall16.png" />
+    <Resource Include="Images\Edit\selectall32.png" />
+    <Resource Include="Images\Edit\selectall48.png" />
+    <Resource Include="Images\Edit\find16.png" />
+    <Resource Include="Images\Edit\find32.png" />
+    <Resource Include="Images\Edit\find48.png" />
+    <Resource Include="Images\Edit\findreplace16.png" />
+    <Resource Include="Images\Edit\findreplace32.png" />
+    <Resource Include="Images\Edit\findreplace48.png" />
+    <Resource Include="Images\View\ruler32.png" />
+    <Resource Include="Images\View\statusbar32.png" />
+    <Resource Include="Images\View\ruler48.png" />
+    <Resource Include="Images\View\statusbar48.png" />
+    <Resource Include="Images\View\zoomin32.png" />
+    <Resource Include="Images\View\resetzoom32.png" />
+    <Resource Include="Images\View\zoomout32.png" />
+    <Resource Include="Images\View\zoomin48.png" />
+    <Resource Include="Images\View\zoomout48.png" />
+    <Resource Include="Images\View\resetzoom48.png" />
+    <Resource Include="Images\Insert\object16.png" />
+    <Resource Include="Images\Insert\object32.png" />
+    <Resource Include="Images\Insert\object48.png" />
+    <Resource Include="Images\Insert\image16.png" />
+    <Resource Include="Images\Insert\image32.png" />
+    <Resource Include="Images\Insert\image48.png" />
+    <Resource Include="Images\Insert\link16.png" />
+    <Resource Include="Images\Insert\link32.png" />
+    <Resource Include="Images\Insert\link48.png" />
+    <Resource Include="Images\Insert\textfile16.png" />
+    <Resource Include="Images\Insert\textfile32.png" />
+    <Resource Include="Images\Insert\textfile48.png" />
+    <Resource Include="Images\Insert\table16.png" />
+    <Resource Include="Images\Insert\table32.png" />
+    <Resource Include="Images\Insert\table48.png" />
+    <Resource Include="Images\Insert\video16.png" />
+    <Resource Include="Images\Insert\video32.png" />
+    <Resource Include="Images\Insert\video48.png" />
+    <Resource Include="Images\Insert\symbol16.png" />
+    <Resource Include="Images\Insert\symbol32.png" />
+    <Resource Include="Images\Insert\symbol48.png" />
+    <Resource Include="Images\Insert\time16.png" />
+    <Resource Include="Images\Insert\time32.png" />
+    <Resource Include="Images\Insert\time48.png" />
+    <Resource Include="Images\Insert\date16.png" />
+    <Resource Include="Images\Insert\date32.png" />
+    <Resource Include="Images\Insert\date48.png" />
+    <Resource Include="Images\Insert\shape48.png" />
+    <Resource Include="Images\Insert\horizontalline16.png" />
+    <Resource Include="Images\Insert\horizontalline32.png" />
+    <Resource Include="Images\Insert\horizontalline48.png" />
+    <Resource Include="Images\Insert\header48.png" />
+    <Resource Include="Images\Insert\footer48.png" />
+    <Resource Include="Images\Insert\datemore16.png" />
+    <Resource Include="Images\Insert\timemore16.png" />
+    <Resource Include="Images\Format\fontfacecolor48.png" />
+    <Resource Include="Images\Format\bold16.png" />
+    <Resource Include="Images\Format\bold48.png" />
+    <Resource Include="Images\Format\italic16.png" />
+    <Resource Include="Images\Format\italic48.png" />
+    <Resource Include="Images\Format\underline16.png" />
+    <Resource Include="Images\Format\underline48.png" />
+    <Resource Include="Images\Format\strikethrough16.png" />
+    <Resource Include="Images\Format\strikethrough48.png" />
+    <Resource Include="Images\Format\superscript48.png" />
+    <Resource Include="Images\Format\subscript48.png" />
+    <Resource Include="Images\Format\indentmore16.png" />
+    <Resource Include="Images\Format\indentmore48.png" />
+    <Resource Include="Images\Format\indentless16.png" />
+    <Resource Include="Images\Format\indentless48.png" />
+    <Resource Include="Images\Format\bulletlist16.png" />
+    <Resource Include="Images\Format\bulletlist48.png" />
+    <Resource Include="Images\Format\numberlist16.png" />
+    <Resource Include="Images\Format\numberlist48.png" />
+    <Resource Include="Images\Format\left16.png" />
+    <Resource Include="Images\Format\left48.png" />
+    <Resource Include="Images\Format\center16.png" />
+    <Resource Include="Images\Format\center48.png" />
+    <Resource Include="Images\Format\right16.png" />
+    <Resource Include="Images\Format\right48.png" />
+    <Resource Include="Images\Format\justify16.png" />
+    <Resource Include="Images\Format\justify48.png" />
+    <Resource Include="Images\Format\linespacing16.png" />
+    <Resource Include="Images\Format\linespacing48.png" />
+    <Resource Include="Images\Format\ltr48.png" />
+    <Resource Include="Images\Format\rtl16.png" />
+    <Resource Include="Images\Format\rtl48.png" />
+    <Resource Include="Images\Format\ltr32.png" />
+    <Resource Include="Images\Format\rtl32.png" />
+    <Resource Include="Images\Navigation\linedown32.png" />
+    <Resource Include="Images\Navigation\lineleft32.png" />
+    <Resource Include="Images\Navigation\lineright32.png" />
+    <Resource Include="Images\Navigation\lineup32.png" />
+    <Resource Include="Images\Navigation\pagedown32.png" />
+    <Resource Include="Images\Navigation\pageleft32.png" />
+    <Resource Include="Images\Navigation\pageright32.png" />
+    <Resource Include="Images\Navigation\pageup32.png" />
+    <Resource Include="Images\Navigation\linedown48.png" />
+    <Resource Include="Images\Navigation\lineleft48.png" />
+    <Resource Include="Images\Navigation\lineright48.png" />
+    <Resource Include="Images\Navigation\lineup48.png" />
+    <Resource Include="Images\Navigation\pagedown48.png" />
+    <Resource Include="Images\Navigation\pageleft48.png" />
+    <Resource Include="Images\Navigation\pageright48.png" />
+    <Resource Include="Images\Navigation\pageup48.png" />
+    <Resource Include="Images\Tools\spellcheck32.png" />
+    <Resource Include="Images\Tools\spellcheck48.png" />
+    <Resource Include="Images\Tools\speech32.png" />
+    <Resource Include="Images\Tools\speech48.png" />
+    <Resource Include="Images\Tools\translate32.png" />
+    <Resource Include="Images\Tools\translate48.png" />
+    <Resource Include="Images\Tools\definitions32.png" />
+    <Resource Include="Images\Tools\definitions48.png" />
+    <Resource Include="Images\Tools\options32.png" />
+    <Resource Include="Images\Tools\options48.png" />
+    <Resource Include="Images\Tools\plugins32.png" />
+    <Resource Include="Images\Help\onlinehelp16.png" />
+    <Resource Include="Images\Help\onlinehelp32.png" />
+    <Resource Include="Images\Help\onlinehelp48.png" />
+    <Resource Include="Images\Help\reportbug16.png" />
+    <Resource Include="Images\Help\reportbug32.png" />
+    <Resource Include="Images\Help\reportbug48.png" />
+    <Resource Include="Images\Help\donate16.png" />
+    <Resource Include="Images\Help\donate32.png" />
+    <Resource Include="Images\Help\donate48.png" />
+    <Resource Include="Images\Tools\plugins48.png" />
+    <Resource Include="Images\Help\website16.png" />
+    <Resource Include="Images\Help\website32.png" />
+    <Resource Include="Images\Help\website48.png" />
+    <Resource Include="Images\Help\about16.png" />
+    <Resource Include="Images\Help\about32.png" />
+    <Resource Include="Images\Help\about48.png" />
+    <Resource Include="Images\Format\ltr16.png" />
+    <Resource Include="Images\Tab\close8.png" />
+    <Resource Include="Images\Tab\rtf16.png" />
+    <Resource Include="Images\Tab\txt16.png" />
+    <Resource Include="Images\Tab\html16.png" />
+    <Resource Include="Images\Tab\rtf48.png" />
+    <Resource Include="Images\Tab\html48.png" />
+    <Resource Include="Images\Tab\xaml16.png" />
+    <Resource Include="Images\Tab\xaml48.png" />
+    <Resource Include="Images\Format\subscript32.png" />
+    <Resource Include="Images\Format\superscript32.png" />
+    <Resource Include="Images\Format\superscript16.png" />
+    <Resource Include="Images\Format\subscript16.png" />
+    <Resource Include="Images\Tab\xaml32.png" />
+    <Resource Include="Images\Common\ok16.png" />
+    <Resource Include="Images\Common\cancel16.png" />
+    <Resource Include="Images\Tab\txt48.png" />
+    <Resource Include="Images\Common\add16.png" />
+    <Resource Include="Images\Common\remove16.png" />
+    <Resource Include="Images\Help\license16.png" />
+    <Resource Include="Images\Help\checkforupdates16.png" />
+    <Resource Include="Images\Help\license48.png" />
+    <Resource Include="Images\Help\checkforupdates48.png" />
+    <Resource Include="Images\Common\ok48.png" />
+    <Resource Include="Images\Common\cancel48.png" />
+    <Resource Include="Images\Common\add48.png" />
+    <Resource Include="Images\Help\back16.png" />
+    <Resource Include="app.ico" />
+    <Resource Include="Images\editor.png" />
+    <Resource Include="Images\View\fullscreen48.png" />
+    <Resource Include="Images\Tools\correctall16.png" />
+    <Resource Include="Images\Tools\nextspellingerror16.png" />
+    <Resource Include="Images\Tools\previousspellingerror16.png" />
+    <Resource Include="Images\View\verticalruler32.png" />
+    <Resource Include="Images\Tab\home16.png" />
+    <Resource Include="Images\Tab\edit16.png" />
+    <Page Include="Dialogs\Format\LineSpacingDialog.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Dialogs\Help\AboutDialog.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Dialogs\Insert\DateDialog.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Dialogs\Insert\InsertLineDialog.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Dialogs\Insert\LinkDialog.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Dialogs\Insert\ShapeDialog.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Dialogs\Insert\TableDialog.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Dialogs\Insert\TimeDialog.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Dialogs\Insert\VideoDialog.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Dialogs\LoadFileDialog.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Dialogs\StartupDialog.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Dialogs\Tools\SpellCheckDialog.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Misc\FluentAddons\FluentTableGrid.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="MainWindow.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Dialogs\SaveFileDialog.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Dialogs\Tools\OptionsDialog.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Compile Include="App.xaml.vb">
+      <DependentUpon>App.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Resource Include="Dialogs\Insert\table.ico" />
+    <Resource Include="Images\Insert\header32.png" />
+    <Resource Include="Images\Insert\footer16.png" />
+    <Resource Include="Images\Insert\footer32.png" />
+    <Resource Include="Images\Insert\header16.png" />
+    <Resource Include="Images\Tools\templates32.png" />
+    <Resource Include="Images\Document\Export\blogger16.png" />
+    <Resource Include="Dialogs\Insert\time16.ico" />
+    <Resource Include="Images\Document\Export\twitter16.png" />
+    <Resource Include="Images\Document\Export\twitter32.png" />
+    <Resource Include="Dialogs\Insert\date16.ico" />
+    <Resource Include="Dialogs\Insert\video16.ico" />
+    <Resource Include="Dialogs\Insert\horizontalline16.ico" />
+    <Resource Include="Images\Insert\shape32.png" />
+    <Resource Include="Images\Insert\shape16.png" />
+    <Resource Include="Dialogs\Insert\shape16.ico" />
+    <Resource Include="Images\View\fullscreen32.png" />
+    <Resource Include="Images\Format\fontfacecolor16.png" />
+    <Resource Include="Dialogs\Tools\translate16.ico" />
+    <Resource Include="Images\Format\linespacing32.png" />
+    <Resource Include="Dialogs\Format\linespacing16.ico" />
+    <Resource Include="Dialogs\Tools\spellcheck16.ico" />
+    <Resource Include="Images\Document\Export\export16.png" />
+    <Resource Include="Images\Document\Export\archive16.png" />
+    <Content Include="Plugins\HelloWorld.vb">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Compile Include="DocEditor\DocumentEditor.vb" />
+    <Compile Include="DocEditor\FlowDocumenttoOpenDocument.vb" />
+    <Compile Include="DocEditor\FlowDocumenttoOpenXML.vb" />
+    <Compile Include="DocEditor\OpenDocumenttoFlowDocument.vb" />
+    <Compile Include="DocEditor\OpenXMLtoFlowDocument.vb" />
+    <Compile Include="Misc\FluentAddons\FluentTableGrid.xaml.vb">
+      <DependentUpon>FluentTableGrid.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="MainWindow.xaml.vb">
+      <DependentUpon>MainWindow.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Page Include="Dialogs\Tools\TranslateDialog.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
+    <Import Include="Microsoft.VisualBasic" />
+    <Import Include="System" />
+    <Import Include="System.Collections" />
+    <Import Include="System.Collections.Generic" />
+    <Import Include="System.Diagnostics" />
+    <Import Include="System.Windows" />
+    <Import Include="System.Windows.Controls" />
+    <Import Include="System.Windows.Data" />
+    <Import Include="System.Windows.Documents" />
+    <Import Include="System.Windows.Input" />
+    <Import Include="System.Windows.Shapes" />
+    <Import Include="System.Windows.Media" />
+    <Import Include="System.Windows.Media.Imaging" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Dialogs\Help\AboutDialog.xaml.vb">
+      <DependentUpon>AboutDialog.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Dialogs\LoadFileDialog.xaml.vb">
+      <DependentUpon>LoadFileDialog.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Plugins\Plugins.vb" />
+    <Compile Include="DocEditor\DocumentTab.vb" />
+    <Compile Include="Misc\AppHelper.vb" />
+    <Compile Include="My Project\AssemblyInfo.vb">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="My Project\MyExtensions\MyWpfExtension.vb">
+      <VBMyExtensionTemplateID>Microsoft.VisualBasic.WPF.MyExtension</VBMyExtensionTemplateID>
+      <VBMyExtensionTemplateVersion>1.0.0.0</VBMyExtensionTemplateVersion>
+    </Compile>
+    <Compile Include="My Project\Resources.Designer.vb">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+    <Compile Include="My Project\Settings.Designer.vb">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+    </Compile>
+    <Compile Include="Dialogs\SaveFileDialog.xaml.vb">
+      <DependentUpon>SaveFileDialog.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Dialogs\Tools\OptionsDialog.xaml.vb">
+      <DependentUpon>OptionsDialog.xaml</DependentUpon>
+    </Compile>
+    <EmbeddedResource Include="My Project\Resources.resx">
+      <Generator>VbMyResourcesResXFileCodeGenerator</Generator>
+      <CustomToolNamespace>My.Resources</CustomToolNamespace>
+      <LastGenOutput>Resources.Designer.vb</LastGenOutput>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <None Include="app.config" />
+    <None Include="My Project\app.manifest">
+      <SubType>Designer</SubType>
+    </None>
+    <None Include="My Project\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.vb</LastGenOutput>
+    </None>
+    <AppDesigner Include="My Project\" />
+  </ItemGroup>
+  <ItemGroup>
+    <BootstrapperPackage Include="Microsoft.Net.Client.3.5">
+      <Visible>False</Visible>
+      <ProductName>.NET Framework 3.5 SP1 Client Profile</ProductName>
+      <Install>false</Install>
+    </BootstrapperPackage>
+    <BootstrapperPackage Include="Microsoft.Net.Framework.2.0">
+      <Visible>False</Visible>
+      <ProductName>.NET Framework 2.0 %28x86%29</ProductName>
+      <Install>false</Install>
+    </BootstrapperPackage>
+    <BootstrapperPackage Include="Microsoft.Net.Framework.3.0">
+      <Visible>False</Visible>
+      <ProductName>.NET Framework 3.0 %28x86%29</ProductName>
+      <Install>false</Install>
+    </BootstrapperPackage>
+    <BootstrapperPackage Include="Microsoft.Net.Framework.3.5">
+      <Visible>False</Visible>
+      <ProductName>.NET Framework 3.5</ProductName>
+      <Install>false</Install>
+    </BootstrapperPackage>
+    <BootstrapperPackage Include="Microsoft.Net.Framework.3.5.SP1">
+      <Visible>False</Visible>
+      <ProductName>.NET Framework 3.5 SP1</ProductName>
+      <Install>true</Install>
+    </BootstrapperPackage>
+    <BootstrapperPackage Include="Microsoft.Windows.Installer.4.5">
+      <Visible>False</Visible>
+      <ProductName>Windows Installer 4.5</ProductName>
+      <Install>true</Install>
+    </BootstrapperPackage>
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Dialogs\Insert\object.ico" />
+    <Resource Include="Dialogs\Insert\link.ico" />
+    <None Include="Resources\License_en.txt" />
+    <Resource Include="Images\Document\new32.png" />
+    <Resource Include="Images\Document\new16.png" />
+    <Resource Include="Images\Document\open16.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Dialogs\Help\about.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Dialogs\Tools\options.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\Tools\clear16.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\DocEdLib\DocEdLib.csproj">
+      <Project>{68808e84-334d-47d5-adcb-f6624232bbfb}</Project>
+      <Name>DocEdLib</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.VisualBasic.targets" />
+</Project>

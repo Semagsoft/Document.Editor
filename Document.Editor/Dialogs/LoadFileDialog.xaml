@@ -1,0 +1,9 @@
+﻿<Window x:Class="LoadFileDialog" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Loading" Height="140" Width="320" WindowStyle="ToolWindow" WindowStartupLocation="CenterScreen" ShowInTaskbar="False" ResizeMode="NoResize">
+    <Window.Effect>
+        <DropShadowEffect Color="White" ShadowDepth="0" />
+    </Window.Effect>
+    <Grid Background="#7BFFFFFF">
+        <Label Name="Label1" HorizontalContentAlignment="Center" FontSize="16" VerticalContentAlignment="Center" Background="#3FFFFFFF">Loading Document(s)</Label>
+    </Grid>
+</Window>

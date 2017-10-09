@@ -1,0 +1,6 @@
+﻿<Application x:Class="Application" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    StartupUri="MainWindow.xaml" ShutdownMode="OnLastWindowClose">
+    <Application.Resources>
+        <ResourceDictionary Source="pack://application:,,,/Fluent;Component/Themes/Windows8/Generic.xaml" />
+    </Application.Resources>
+</Application>

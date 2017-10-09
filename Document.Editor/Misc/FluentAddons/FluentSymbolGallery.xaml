@@ -1,0 +1,15 @@
+﻿<UserControl x:Class="SymbolPanel" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"  xmlns:Fluent="clr-namespace:Fluent;assembly=Fluent" mc:Ignorable="d" >
+    <Fluent:Gallery Name="TableGrid" ScrollViewer.VerticalScrollBarVisibility="Hidden" Orientation="Horizontal" GroupBy="Tag" Selectable="False">
+        <TextBlock Name="DollarButton" Text="$" Height="16" Width="16" Tag="Currency" />
+        <TextBlock Name="CentButton" Text="¢" Height="16" Width="16" Tag="Currency" />
+        <TextBlock Name="PoundButton" Text="£" Height="16" Width="16" Tag="Currency" />
+        <TextBlock Name="YenButton" Text="¥" Height="16" Width="16" Tag="Currency" />
+        <TextBlock Name="EuroButton" Text="€" Height="16" Width="16" Tag="Currency" />
+        <TextBlock Name="CopyrightButton" Text="©" Height="16" Width="16" Tag="Misc" />
+        <TextBlock Name="RegisteredTrademarkButton" Text="®" Height="16" Width="16" Tag="Misc" />
+        <TextBlock Name="TrademarkButton" Text="™" Height="16" Width="16" Tag="Misc" />
+        <TextBlock Name="SuperscriptOneButton" Text="¹" Height="16" Width="16" />
+        <TextBlock Name="SuperscriptTwoButton" Text="²" Height="16" Width="16" />
+        <TextBlock Name="SuperscriptThreeButton" Text="³" Height="16" Width="16" />
+    </Fluent:Gallery>
+</UserControl>

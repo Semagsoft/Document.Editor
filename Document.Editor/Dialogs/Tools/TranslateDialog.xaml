@@ -1,0 +1,102 @@
+﻿<Window x:Class="TranslateDialog" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:Fluent="clr-namespace:Fluent;assembly=Fluent"
+    Title="Translate" Height="320" Width="480" Icon="translate16.ico" ShowInTaskbar="False" WindowStartupLocation="CenterOwner" ResizeMode="CanResize">
+    <Grid Background="#7BFFFFFF">
+        <Fluent:Button SizeDefinition="Middle" Icon="../../Images/Common/cancel16.png" Header="Cancel" Name="CancelButton" Margin="0,0,10,10" HorizontalAlignment="Right" VerticalAlignment="Bottom" IsCancel="True">
+            <Fluent:Button.ToolTip>
+                <Fluent:ScreenTip Title="Cancel" Text="Cancel and Close the Dialog" Image="../../Images/Common/cancel48.png" />
+            </Fluent:Button.ToolTip>
+        </Fluent:Button>
+        <Fluent:Button SizeDefinition="Middle" Icon="../../Images/Common/ok16.png" Header="OK" Name="OKButton" IsEnabled="false" HorizontalAlignment="Right" Margin="0,0,77,10" VerticalAlignment="Bottom">
+            <Fluent:Button.ToolTip>
+                <Fluent:ScreenTip Title="OK" Text="Close the Dialog and Translate" Image="../../Images/Common/ok48.png" />
+            </Fluent:Button.ToolTip>
+        </Fluent:Button>
+        <Grid Name="Grid1" Margin="0,0,0,44" Background="#3FFFFFFF" Opacity="1">
+            <Fluent:ComboBox Header="From:" SelectedIndex="8" Margin="10,10,0,0" Name="FromBox" VerticalAlignment="Top" HorizontalAlignment="Left" Width="160">
+                <ComboBoxItem Content="Arabic" Tag="ar" />
+                <ComboBoxItem Content="Bulgarian" Tag="bg" />
+                <ComboBoxItem Content="Catalan" Tag="ca" />
+                <ComboBoxItem Content="Chinese (Simplified)" Tag="zh-CHS" />
+                <ComboBoxItem Content="Chinese (Traditional)" Tag="zh-CHT" />
+                <ComboBoxItem Content="Czech" Tag="cs" />
+                <ComboBoxItem Content="Danish" Tag="da" />
+                <ComboBoxItem Content="Dutch" Tag="nl" />
+                <ComboBoxItem Content="English" Tag="en" />
+                <ComboBoxItem Content="Estonian" Tag="et" />
+                <ComboBoxItem Content="Persian (Farsi)" Tag="fa" />
+                <ComboBoxItem Content="Finnish" Tag="fi" />
+                <ComboBoxItem Content="French" Tag="fr" />
+                <ComboBoxItem Content="German" Tag="de" />
+                <ComboBoxItem Content="Greek" Tag="el" />
+                <ComboBoxItem Content="Haitian Creole" Tag="ht" />
+                <ComboBoxItem Content="Hebrew" Tag="he" />
+                <ComboBoxItem Content="Hindi" Tag="hi" />
+                <ComboBoxItem Content="Hungarian" Tag="hu" />
+                <ComboBoxItem Content="Indonesian" Tag="id" />
+                <ComboBoxItem Content="Italian" Tag="it" />
+                <ComboBoxItem Content="Japanese" Tag="ja" />
+                <ComboBoxItem Content="Korean" Tag="ko" />
+                <ComboBoxItem Content="Latvian" Tag="lv" />
+                <ComboBoxItem Content="Lithuanian" Tag="lt" />
+                <ComboBoxItem Content="Hmong Daw" Tag="mww" />
+                <ComboBoxItem Content="Norwegian" Tag="no" />
+                <ComboBoxItem Content="Polish" Tag="pl" />
+                <ComboBoxItem Content="Portuguese" Tag="pt" />
+                <ComboBoxItem Content="Romanian" Tag="ro" />
+                <ComboBoxItem Content="Russian" Tag="ru" />
+                <ComboBoxItem Content="Slovak" Tag="sk" />
+                <ComboBoxItem Content="Slovenian" Tag="sl" />
+                <ComboBoxItem Content="Spanish" Tag="es" />
+                <ComboBoxItem Content="Swedish" Tag="sv" />
+                <ComboBoxItem Content="Thai" Tag="th" />
+                <ComboBoxItem Content="Turkish" Tag="tr" />
+                <ComboBoxItem Content="Ukrainian" Tag="uk" />
+                <ComboBoxItem Content="Vietnamese" Tag="vi" />
+            </Fluent:ComboBox>
+            <Fluent:ComboBox Header="To:" Width="160" SelectedIndex="0" Margin="172,10,0,0" Name="ToBox" VerticalAlignment="Top" HorizontalAlignment="Left">
+                <ComboBoxItem Content="Arabic" Tag="ar" />
+                <ComboBoxItem Content="Bulgarian" Tag="bg" />
+                <ComboBoxItem Content="Catalan" Tag="ca" />
+                <ComboBoxItem Content="Chinese (Simplified)" Tag="zh-CHS" />
+                <ComboBoxItem Content="Chinese (Traditional)" Tag="zh-CHT" />
+                <ComboBoxItem Content="Czech" Tag="cs" />
+                <ComboBoxItem Content="Danish" Tag="da" />
+                <ComboBoxItem Content="Dutch" Tag="nl" />
+                <ComboBoxItem Content="English" Tag="en" />
+                <ComboBoxItem Content="Estonian" Tag="et" />
+                <ComboBoxItem Content="Persian (Farsi)" Tag="fa" />
+                <ComboBoxItem Content="Finnish" Tag="fi" />
+                <ComboBoxItem Content="French" Tag="fr" />
+                <ComboBoxItem Content="German" Tag="de" />
+                <ComboBoxItem Content="Greek" Tag="el" />
+                <ComboBoxItem Content="Haitian Creole" Tag="ht" />
+                <ComboBoxItem Content="Hebrew" Tag="he" />
+                <ComboBoxItem Content="Hindi" Tag="hi" />
+                <ComboBoxItem Content="Hungarian" Tag="hu" />
+                <ComboBoxItem Content="Indonesian" Tag="id" />
+                <ComboBoxItem Content="Italian" Tag="it" />
+                <ComboBoxItem Content="Japanese" Tag="ja" />
+                <ComboBoxItem Content="Korean" Tag="ko" />
+                <ComboBoxItem Content="Latvian" Tag="lv" />
+                <ComboBoxItem Content="Lithuanian" Tag="lt" />
+                <ComboBoxItem Content="Hmong Daw" Tag="mww" />
+                <ComboBoxItem Content="Norwegian" Tag="no" />
+                <ComboBoxItem Content="Polish" Tag="pl" />
+                <ComboBoxItem Content="Portuguese" Tag="pt" />
+                <ComboBoxItem Content="Romanian" Tag="ro" />
+                <ComboBoxItem Content="Russian" Tag="ru" />
+                <ComboBoxItem Content="Slovak" Tag="sk" />
+                <ComboBoxItem Content="Slovenian" Tag="sl" />
+                <ComboBoxItem Content="Spanish" Tag="es" />
+                <ComboBoxItem Content="Swedish" Tag="sv" />
+                <ComboBoxItem Content="Thai" Tag="th" />
+                <ComboBoxItem Content="Turkish" Tag="tr" />
+                <ComboBoxItem Content="Ukrainian" Tag="uk" />
+                <ComboBoxItem Content="Vietnamese" Tag="vi" />
+            </Fluent:ComboBox>
+            <Fluent:Button SizeDefinition="Middle" Header="Translate" Margin="334,10,10,0" Name="TranslateButton" VerticalAlignment="Top" BorderBrush="#7BFFFFFF" HorizontalAlignment="Stretch" />
+            <Label Content="Preview:" Height="23" HorizontalAlignment="Left" Margin="10,37,0,0" Name="Label3" VerticalAlignment="Top" />
+            <Label Margin="10,65,10,0" Name="TranslatedText" />
+        </Grid>
+    </Grid>
+</Window>

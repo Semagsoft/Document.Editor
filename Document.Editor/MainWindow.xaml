@@ -1,0 +1,2099 @@
+﻿<Fluent:RibbonWindow x:Class="MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:p="clr-namespace:Document.Editor" xmlns:Fluent="clr-namespace:Fluent;assembly=Fluent" xmlns:avalonDock="http://schemas.xceed.com/wpf/xaml/avalondock"
+    WindowStartupLocation="Manual" Icon="app.ico" Left="{Binding Source={x:Static p:MySettings.Default}, Path=MainWindow_Left, Mode=OneWay}" Top="{Binding Source={x:Static p:MySettings.Default}, Path=MainWindow_Top, Mode=OneWay}" HorizontalContentAlignment="Left" MinWidth="128" Width="{Binding Source={x:Static p:MySettings.Default}, Path=MainWindow_Width, Mode=OneWay}" Height="{Binding Source={x:Static p:MySettings.Default}, Path=MainWindow_Height, Mode=OneWay}">
+    <Window.TaskbarItemInfo>
+        <TaskbarItemInfo/>
+    </Window.TaskbarItemInfo>
+    <Window.Resources>
+        <DrawingImage x:Key="OpenOverlay">
+            <DrawingImage.Drawing>
+                <ImageDrawing Rect="0,0,16,16" ImageSource="pack://application:,,,/Images/Document/open16.png" />
+            </DrawingImage.Drawing>
+        </DrawingImage>
+        <DrawingImage x:Key="SaveOverlay">
+            <DrawingImage.Drawing>
+                <ImageDrawing Rect="0,0,16,16" ImageSource="pack://application:,,,/Images/Document/save16.png" />
+            </DrawingImage.Drawing>
+        </DrawingImage>
+    </Window.Resources>
+    <Grid Name="MainGrid">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="22" />
+        </Grid.RowDefinitions>
+        <Fluent:Ribbon x:Name="MainBar" Title="Document.Editor" Grid.Row="0">
+            <Fluent:Ribbon.Menu>
+                <Fluent:Backstage Name="BackStageMenu">
+                    <Fluent:BackstageTabControl Name="BackStage">
+                        <Fluent:BackstageTabItem>
+                            <Fluent:BackstageTabItem.Header>
+                                <StackPanel Orientation="Horizontal" Margin="-14,0,0,0">
+                                    <Image Source="Images/Document/new32.png" Height="32" Width="32" />
+                                    <TextBlock Text="New" VerticalAlignment="Center" Margin="4,0,0,0" />
+                                </StackPanel>
+                            </Fluent:BackstageTabItem.Header>
+                            <StackPanel Name="NewMenuItem">
+                                <TextBlock Text="New" FontSize="36" Foreground="Black" Height="48" Margin="32,32" />
+                                <Fluent:Button Name="NewButton" Header="New" Height="48">
+                                    <Fluent:Button.Icon>
+                                        <Image Height="16" Width="16" Source="pack://application:,,,/Images/Document/new16.png" />
+                                    </Fluent:Button.Icon>
+                                    <Fluent:Button.ToolTip>
+                                        <Fluent:ScreenTip Title="New (Ctrl + N)" Image="Images\Document\new48.png" Text="New document" />
+                                    </Fluent:Button.ToolTip>
+                                </Fluent:Button>
+                                <Fluent:SeparatorTabItem Header="Templates" />
+                            </StackPanel>
+                        </Fluent:BackstageTabItem>
+                        <Fluent:Button Name="OpenMenuItem" Header="Open">
+                            <Fluent:Button.Icon>
+                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Document/open16.png" />
+                            </Fluent:Button.Icon>
+                            <Fluent:Button.ToolTip>
+                                <Fluent:ScreenTip Title="Open (Ctrl + O)" Image="Images\Document\open48.png" Text="Open document"/>
+                            </Fluent:Button.ToolTip>
+                        </Fluent:Button>
+                        <Fluent:BackstageTabItem Name="RecentFilesTabItem">
+                            <Fluent:BackstageTabItem.Header>
+                                <StackPanel Orientation="Horizontal" Margin="-14,0,0,0">
+                                    <Image Height="32" Width="32" Source="Images/Document/recent32.png" />
+                                    <TextBlock Text="Recent Documents" VerticalAlignment="Center" Margin="4,0,0,0" />
+                                </StackPanel>
+                            </Fluent:BackstageTabItem.Header>
+                            <Grid>
+                                <TextBlock Text="Recent Documents" FontSize="36" Foreground="Black" Height="48" Margin="32,32" VerticalAlignment="Top" />
+                                <Fluent:SeparatorTabItem Header="Documents" Margin="0,83,0,0" VerticalAlignment="Top" />
+                                <ScrollViewer Margin="0, 112, 0, 0" VerticalScrollBarVisibility="Auto">
+                                    <StackPanel Name="RecentFilesList" />
+                                </ScrollViewer>
+                            </Grid>
+                        </Fluent:BackstageTabItem>
+                        <Fluent:Button Name="RevertMenuItem" Header="Revert">
+                            <Fluent:Button.Icon>
+                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Document/revert16.png" />
+                            </Fluent:Button.Icon>
+                            <Fluent:Button.ToolTip>
+                                <Fluent:ScreenTip Title="Revert" Image="Images\Document\revert48.png" Text="Revert to file on disk"/>
+                            </Fluent:Button.ToolTip>
+                        </Fluent:Button>
+                        <Fluent:Button Name="CloseMenuItem" Header="Close">
+                            <Fluent:Button.Icon>
+                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Document/Close/close16.png" />
+                            </Fluent:Button.Icon>
+                            <Fluent:Button.ToolTip>
+                                <Fluent:ScreenTip Title="Close (Ctrl + W)" Image="Images\Document\Close\close48.png" Text="Close document"/>
+                            </Fluent:Button.ToolTip>
+                        </Fluent:Button>
+                        <Fluent:Button Name="CloseAllButThisMenuItem" Header="Close All But This">
+                            <Fluent:Button.Icon>
+                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Document/Close/closeallbutthis16.png" />
+                            </Fluent:Button.Icon>
+                            <Fluent:Button.ToolTip>
+                                <Fluent:ScreenTip Title="Close All But This" Image="Images\Document\Close\closeallbutthis48.png" Text="Close all documents but this"/>
+                            </Fluent:Button.ToolTip>
+                        </Fluent:Button>
+                        <Fluent:Button Name="CloseAllMenuItem" Header="Close All">
+                            <Fluent:Button.Icon>
+                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Document/Close/closeall16.png" />
+                            </Fluent:Button.Icon>
+                            <Fluent:Button.ToolTip>
+                                <Fluent:ScreenTip Title="Close All" Image="Images\Document\Close\closeall48.png" Text="Close all documents"/>
+                            </Fluent:Button.ToolTip>
+                        </Fluent:Button>
+                        <Fluent:Button Name="SaveMenuItem" Header="Save">
+                            <Fluent:Button.Icon>
+                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Document/save16.png" />
+                            </Fluent:Button.Icon>
+                            <Fluent:Button.ToolTip>
+                                <Fluent:ScreenTip Title="Save (Ctrl + S)" Image="Images\Document\save48.png" Text="Save document"/>
+                            </Fluent:Button.ToolTip>
+                        </Fluent:Button>
+                        <Fluent:Button Name="SaveAsMenuItem" Header="Save As">
+                            <Fluent:Button.Icon>
+                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Document/saveas16.png" />
+                            </Fluent:Button.Icon>
+                            <Fluent:Button.ToolTip>
+                                <Fluent:ScreenTip Title="Save As" Image="Images\Document\saveas48.png" Text="Save document as"/>
+                            </Fluent:Button.ToolTip>
+                        </Fluent:Button>
+                        <Fluent:Button Name="SaveCopyMenuItem" Header="Save Copy">
+                            <Fluent:Button.Icon>
+                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Document/savecopy16.png" />
+                            </Fluent:Button.Icon>
+                            <Fluent:Button.ToolTip>
+                                <Fluent:ScreenTip Title="Save Copy" Image="Images\Document\savecopy48.png" Text="Save copy of document"/>
+                            </Fluent:Button.ToolTip>
+                        </Fluent:Button>
+                        <Fluent:Button Name="SaveAllMenuItem" Header="Save All">
+                            <Fluent:Button.Icon>
+                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Document/saveall16.png" />
+                            </Fluent:Button.Icon>
+                            <Fluent:Button.ToolTip>
+                                <Fluent:ScreenTip Title="Save All" Image="Images\Document\saveall48.png" Text="Save all documents"/>
+                            </Fluent:Button.ToolTip>
+                        </Fluent:Button>
+                        <Fluent:BackstageTabItem>
+                            <Fluent:BackstageTabItem.Header>
+                                <StackPanel Orientation="Horizontal" Margin="-14,0,0,0">
+                                    <Image Height="32" Width="32" Source="Images/Document/import32.png" />
+                                    <TextBlock Text="Import" VerticalAlignment="Center" Margin="4,0,0,0" />
+                                </StackPanel>
+                            </Fluent:BackstageTabItem.Header>
+                            <TabControl Margin="20,5,20,5" Name="ImportTab" Style="{DynamicResource InnerBackstageTabControlStyle}">
+                                <Fluent:SeparatorTabItem Header="Internet" />
+                                <TabItem>
+                                    <TabItem.Header>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Image Height="16" Width="16" Source="pack://application:,,,/Images/Document/Export/ftp16.png" />
+                                            <TextBlock Margin="4,0,0,0" Text="FTP" />
+                                        </StackPanel>
+                                    </TabItem.Header>
+                                    <TabItem.ToolTip>
+                                        <Fluent:ScreenTip Title="FTP" Text="Import document from FTP server" Image="Images/Document/Export/ftp48.png" />
+                                    </TabItem.ToolTip>
+                                    <Grid>
+                                        <Fluent:SeparatorTabItem Header="FTP" Margin="16,16" VerticalAlignment="Top" />
+                                        <ScrollViewer Margin="0, 61, -20, -5" VerticalScrollBarVisibility="Auto">
+                                            <StackPanel>
+                                                <Fluent:TextBox Name="ImportFTPHostBox" Header="Host:" Margin="5,2,5,2" CanAddToQuickAccessToolBar="False" />
+                                                <Fluent:TextBox Name="ImportFTPUsernameBox" Header="Username:" Margin="5,2,5,2" CanAddToQuickAccessToolBar="False" />
+                                                <Fluent:TextBox Name="ImportFTPPasswordBox" Header="Password:" Margin="5,2,5,2" CanAddToQuickAccessToolBar="False" />
+                                                <Fluent:Button Name="ImportFTPConnect" Header="Connect" ToolTip="Connect to server" Icon="Images/Document/Export/connect16.png" IsEnabled="False" CanAddToQuickAccessToolBar="False" />
+                                                <ListBox Name="ImportFTPListBox" Height="360" Margin="5,2,5,2" />
+                                                <Fluent:Button Name="ImportFTPImportButton" Header="Import" Icon="Images/Common/ok16.png" IsEnabled="False" CanAddToQuickAccessToolBar="False" />
+                                            </StackPanel>
+                                        </ScrollViewer>
+                                    </Grid>
+                                </TabItem>
+                                <Fluent:SeparatorTabItem Header="File System" />
+                                <TabItem>
+                                    <TabItem.Header>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Image Height="16" Width="16" Source="pack://application:,,,/Images/Document/Export/archive16.png" />
+                                            <TextBlock Margin="4,0,0,0" Text="Archive" />
+                                        </StackPanel>
+                                    </TabItem.Header>
+                                    <TabItem.ToolTip>
+                                        <Fluent:ScreenTip Title="Archive" Image="Images\Document\Export\archive48.png" Text="Import documents from archive"/>
+                                    </TabItem.ToolTip>
+                                    <StackPanel>
+                                        <Fluent:SeparatorTabItem Header="Archive" Margin="16,16" />
+                                        <Fluent:TextBox Name="ZipImportPasswordBox" Header="Password:" Margin="5,2,5,2" ToolTip="Password if there is one, otherwise can be left blank" CanAddToQuickAccessToolBar="False" />
+                                        <Fluent:Button Name="ImportArchiveMenuItem" Header="Import" CanAddToQuickAccessToolBar="False">
+                                            <Fluent:Button.Icon>
+                                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Common/ok16.png" />
+                                            </Fluent:Button.Icon>
+                                            <Fluent:Button.ToolTip>
+                                                <Fluent:ScreenTip Title="Import" Image="Images\Common\ok48.png" Text="Import documents from archive"/>
+                                            </Fluent:Button.ToolTip>
+                                        </Fluent:Button>
+                                    </StackPanel>
+                                </TabItem>
+                                <TabItem>
+                                    <TabItem.Header>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Image Height="16" Width="16" Source="pack://application:,,,/Images/Document/Export/image16.png" />
+                                            <TextBlock Margin="4,0,0,0" Text="Image" />
+                                        </StackPanel>
+                                    </TabItem.Header>
+                                    <TabItem.ToolTip>
+                                        <Fluent:ScreenTip Title="Image" Image="Images\Document\Export\image48.png" Text="Import an image"/>
+                                    </TabItem.ToolTip>
+                                    <StackPanel>
+                                        <Fluent:SeparatorTabItem Header="Image" Margin="16,16" />
+                                        <Fluent:Button Name="ImportImageMenuItem" Header="Image">
+                                            <Fluent:Button.Icon>
+                                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Document/Export/image16.png" />
+                                            </Fluent:Button.Icon>
+                                            <Fluent:Button.ToolTip>
+                                                <Fluent:ScreenTip Title="Image" Image="Images\Document\Export\image48.png" Text="Import an image"/>
+                                            </Fluent:Button.ToolTip>
+                                        </Fluent:Button>
+                                    </StackPanel>
+                                </TabItem>
+                            </TabControl>
+                        </Fluent:BackstageTabItem>
+                        <Fluent:BackstageTabItem Name="ExportMenuItem">
+                            <Fluent:BackstageTabItem.Header>
+                                <StackPanel Orientation="Horizontal" Margin="-14,0,0,0">
+                                    <Image Height="32" Width="32" Source="Images/Document/Export/export32.png" />
+                                    <TextBlock Text="Export" VerticalAlignment="Center" Margin="4,0,0,0" />
+                                </StackPanel>
+                            </Fluent:BackstageTabItem.Header>
+                            <TabControl Margin="20,5,20,5" Name="ExportTab" Style="{DynamicResource InnerBackstageTabControlStyle}">
+                                <Fluent:SeparatorTabItem Header="Internet" />
+                                <TabItem>
+                                    <TabItem.Header>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Image Height="16" Width="16" Source="pack://application:,,,/Images/Document/Export/wordpress16.png" />
+                                            <TextBlock Margin="4,0,0,0" Text="Wordpress" />
+                                        </StackPanel>
+                                    </TabItem.Header>
+                                    <TabItem.ToolTip>
+                                        <Fluent:ScreenTip Title="Wordpress" Image="Images\Document\Export\wordpress48.png" Text="Export text to Wordpress post"/>
+                                    </TabItem.ToolTip>
+                                    <StackPanel>
+                                        <Fluent:SeparatorTabItem Header="Wordpress" Margin="16,16" />
+                                        <Fluent:TextBox Name="ExportWordpressBlogBox" Header="Blog:" Margin="5,2,5,2" CanAddToQuickAccessToolBar="False" />
+                                        <Fluent:TextBox Name="ExportWordpressTitleBox" Header="Title:" Margin="5,2,5,2" CanAddToQuickAccessToolBar="False" />
+                                        <Fluent:TextBox Name="ExportWordpressUsernameBox" Header="Username:" Margin="5,2,5,2" CanAddToQuickAccessToolBar="False" />
+                                        <Fluent:TextBox Name="ExportWordpressPasswordBox" Header="Password:" Margin="5,2,5,2" CanAddToQuickAccessToolBar="False" />
+                                        <Fluent:Button Name="ExportWordpressExportButton" Header="Export" Icon="Images/Common/ok16.png" CanAddToQuickAccessToolBar="False">
+                                            <Fluent:Button.ToolTip>
+                                                <Fluent:ScreenTip Title="Export" Text="Export Document to Wordpress" Image="Images/Common/ok48.png" />
+                                            </Fluent:Button.ToolTip>
+                                        </Fluent:Button>
+                                    </StackPanel>
+                                </TabItem>
+                                <TabItem>
+                                    <TabItem.Header>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Image Height="16" Width="16" Source="pack://application:,,,/Images/Document/Export/email16.png" />
+                                            <TextBlock Margin="4,0,0,0" Text="Email" />
+                                        </StackPanel>
+                                    </TabItem.Header>
+                                    <TabItem.ToolTip>
+                                        <Fluent:ScreenTip Title="Email" Image="Images\Document\Export\email48.png" Text="Export document to email"/>
+                                    </TabItem.ToolTip>
+                                    <StackPanel>
+                                        <Fluent:SeparatorTabItem Header="Email" Margin="16,16" />
+                                        <Fluent:ComboBox Name="ExportEmailSMTPBox" Header="SMTP:" SelectedIndex="0" Style="{DynamicResource ComboBoxBackstageStyle}" Height="23" Margin="5,2,5,2" CanAddToQuickAccessToolBar="False">
+                                            <ComboBoxItem Content="smtp.gmail.com" />
+                                        </Fluent:ComboBox>
+                                        <Fluent:Spinner Name="ExportEmailPortBox" Header="Port:" Format="0" Value="587" Margin="5,2,5,2" CanAddToQuickAccessToolBar="False" />
+                                        <Fluent:TextBox Name="ExportEmailFromBox" Header="From:" Margin="5,2,5,2" CanAddToQuickAccessToolBar="False" />
+                                        <Fluent:TextBox Name="ExportEmailToBox" Header="To:" Margin="5,2,5,2" CanAddToQuickAccessToolBar="False" />
+                                        <Fluent:TextBox Name="ExportEmailSubjectBox" Header="Subject:" Margin="5,2,5,2" CanAddToQuickAccessToolBar="False" />
+                                        <TextBlock Text="Body:" Margin="5,2,5,2" />
+                                        <TextBox Name="ExportEmailBodyBox" Height="332" Margin="5,2,5,2" />
+                                        <Fluent:TextBox Name="ExportEmailPasswordBox" Header="Password:" Margin="5,2,5,2" CanAddToQuickAccessToolBar="False" />
+                                        <Fluent:Button Name="ExportEmailExportButton" Icon="Images/Common/ok16.png" Header="Export" IsEnabled="False" CanAddToQuickAccessToolBar="False">
+                                            <Fluent:Button.ToolTip>
+                                                <Fluent:ScreenTip Title="Export" Text="Export Document to Email" Image="Images/Common/ok48.png" />
+                                            </Fluent:Button.ToolTip>
+                                        </Fluent:Button>
+                                    </StackPanel>
+                                </TabItem>
+                                <TabItem>
+                                    <TabItem.Header>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Image Height="16" Width="16" Source="pack://application:,,,/Images/Document/Export/ftp16.png" />
+                                            <TextBlock Margin="4,0,0,0" Text="FTP" />
+                                        </StackPanel>
+                                    </TabItem.Header>
+                                    <TabItem.ToolTip>
+                                        <Fluent:ScreenTip Title="FTP" Image="Images\Document\Export\ftp48.png" Text="Export document to FTP server"/>
+                                    </TabItem.ToolTip>
+                                    <StackPanel>
+                                        <Fluent:SeparatorTabItem Header="FTP" Margin="16,16" />
+                                        <Fluent:TextBox Name="ExportFTPHostBox" Header="Host:" Margin="5,2,5,2" CanAddToQuickAccessToolBar="False" />
+                                        <Fluent:TextBox Name="ExportFTPUsernameBox" Header="Username:" Margin="5,2,5,2" CanAddToQuickAccessToolBar="False" />
+                                        <Fluent:TextBox Name="ExportFTPPasswordBox" Header="Password:" Margin="5,2,5,2" CanAddToQuickAccessToolBar="False" />
+                                        <StackPanel Name="ExportFTPUploadPanel" Visibility="Collapsed">
+                                            <TextBlock Text="Uploading..." />
+                                            <ProgressBar IsIndeterminate="True" Height="16" />
+                                        </StackPanel>
+                                        <Fluent:Button Name="ExportFTPExportButton" Header="Export" Icon="Images/Common/ok16.png" IsEnabled="False" CanAddToQuickAccessToolBar="False">
+                                            <Fluent:Button.ToolTip>
+                                                <Fluent:ScreenTip Title="Export" Text="Export Document to FTP" Image="Images\Common\ok48.png" />
+                                            </Fluent:Button.ToolTip>
+                                        </Fluent:Button>
+                                    </StackPanel>
+                                </TabItem>
+                                <Fluent:SeparatorTabItem Header="File System" />
+                                <TabItem>
+                                    <TabItem.Header>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Image Height="16" Width="16" Source="pack://application:,,,/Images/Document/Export/xps16.png" />
+                                            <TextBlock Margin="4,0,0,0" Text="XPS" />
+                                        </StackPanel>
+                                    </TabItem.Header>
+                                    <TabItem.ToolTip>
+                                        <Fluent:ScreenTip Title="XPS" Image="Images\Document\Export\xps48.png" Text="Export document to XPS"/>
+                                    </TabItem.ToolTip>
+                                    <StackPanel>
+                                        <Fluent:SeparatorTabItem Header="XPS" Margin="16,16" />
+                                        <Fluent:Button Name="ExportXPSMenuItem" Header="XPS">
+                                            <Fluent:Button.Icon>
+                                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Document/Export/xps16.png" />
+                                            </Fluent:Button.Icon>
+                                            <Fluent:Button.ToolTip>
+                                                <Fluent:ScreenTip Title="XPS" Image="Images\Document\Export\xps48.png" Text="Export document to XPS"/>
+                                            </Fluent:Button.ToolTip>
+                                        </Fluent:Button>
+                                    </StackPanel>
+                                </TabItem>
+                                <TabItem>
+                                    <TabItem.Header>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Image Height="16" Width="16" Source="pack://application:,,,/Images/Document/Export/archive16.png" />
+                                            <TextBlock Margin="4,0,0,0" Text="Archive" />
+                                        </StackPanel>
+                                    </TabItem.Header>
+                                    <TabItem.ToolTip>
+                                        <Fluent:ScreenTip Title="Archive" Image="Images\Document\Export\archive48.png" Text="Export document to archive"/>
+                                    </TabItem.ToolTip>
+                                    <StackPanel>
+                                        <Fluent:SeparatorTabItem Header="Archive" Margin="16,16" />
+                                        <Fluent:ComboBox Name="ZipCompressionComboBox" Header="Compression:" SelectedIndex="0" Height="23" Margin="5,2,5,2" ToolTip="Compression" CanAddToQuickAccessToolBar="False">
+                                            <TextBlock Text="Default" />
+                                            <TextBlock Text="Best Compression" />
+                                            <TextBlock Text="Best Speed" />
+                                            <TextBlock Text="Custom" />
+                                        </Fluent:ComboBox>
+                                        <Slider Name="ZipCompressionSlider" ToolTip="Compression Level" Visibility="Collapsed" Maximum="9" TickPlacement="BottomRight" SmallChange="1" IsSnapToTickEnabled="True" Margin="5,2,5,2" />
+                                        <Fluent:ComboBox Name="ZipEncryptionComboBox" Header="Encryption:" SelectedIndex="0" Height="23" Margin="5,2,5,2" ToolTip="Encryption" CanAddToQuickAccessToolBar="False">
+                                            <TextBlock Text="None" />
+                                            <TextBlock Text="Pkzip Weak" />
+                                            <TextBlock Text="Aes 128" />
+                                            <TextBlock Text="Aes 256" />
+                                        </Fluent:ComboBox>
+                                        <Fluent:TextBox Name="ZipExportPasswordBox" Header="Password:" ToolTip="Set a password for the Archive" Margin="5,2,5,2" CanAddToQuickAccessToolBar="False" />
+                                        <Fluent:Button Name="ExportArchiveMenuItem" Header="Export" CanAddToQuickAccessToolBar="False">
+                                            <Fluent:Button.Icon>
+                                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Common/ok16.png" />
+                                            </Fluent:Button.Icon>
+                                            <Fluent:Button.ToolTip>
+                                                <Fluent:ScreenTip Title="Export" Image="Images\Common\ok48.png" Text="Export document to archive"/>
+                                            </Fluent:Button.ToolTip>
+                                        </Fluent:Button>
+                                    </StackPanel>
+                                </TabItem>
+                                <TabItem>
+                                    <TabItem.Header>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Image Height="16" Width="16" Source="pack://application:,,,/Images/Document/Export/image16.png" />
+                                            <TextBlock Margin="4,0,0,0" Text="Image" />
+                                        </StackPanel>
+                                    </TabItem.Header>
+                                    <TabItem.ToolTip>
+                                        <Fluent:ScreenTip Title="Image" Image="Images\Document\Export\image48.png" Text="Export to image"/>
+                                    </TabItem.ToolTip>
+                                    <StackPanel>
+                                        <Fluent:SeparatorTabItem Header="Image" Margin="16,16" />
+                                        <Fluent:Button Name="ExportImageMenuItem" Header="Image">
+                                            <Fluent:Button.Icon>
+                                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Document/Export/image16.png" />
+                                            </Fluent:Button.Icon>
+                                            <Fluent:Button.ToolTip>
+                                                <Fluent:ScreenTip Title="Image" Image="Images\Document\Export\image48.png" Text="Export to image"/>
+                                            </Fluent:Button.ToolTip>
+                                        </Fluent:Button>
+                                    </StackPanel>
+                                </TabItem>
+                                <TabItem>
+                                    <TabItem.Header>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Image Height="16" Width="16" Source="pack://application:,,,/Images/Document/Export/audio16.png" />
+                                            <TextBlock Margin="4,0,0,0" Text="Sound" />
+                                        </StackPanel>
+                                    </TabItem.Header>
+                                    <TabItem.ToolTip>
+                                        <Fluent:ScreenTip Title="Sound" Image="Images\Document\Export\audio48.png" Text="Export text to sound"/>
+                                    </TabItem.ToolTip>
+                                    <StackPanel>
+                                        <Fluent:SeparatorTabItem Header="Sound" Margin="16,16" />
+                                        <Fluent:Button Name="ExportSoundMenuItem" Header="Sound">
+                                            <Fluent:Button.Icon>
+                                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Document/Export/audio16.png" />
+                                            </Fluent:Button.Icon>
+                                            <Fluent:Button.ToolTip>
+                                                <Fluent:ScreenTip Title="Sound" Image="Images\Document\Export\audio48.png" Text="Export text to sound"/>
+                                            </Fluent:Button.ToolTip>
+                                        </Fluent:Button>
+                                    </StackPanel>
+                                </TabItem>
+                            </TabControl>
+                        </Fluent:BackstageTabItem>
+                        <Fluent:BackstageTabItem Name="PropertiesMenuItem">
+                            <Fluent:BackstageTabItem.Header>
+                                <StackPanel Orientation="Horizontal" Margin="-14,0,0,0">
+                                    <Image Height="32" Width="32" Source="Images/Document/properties32.png" />
+                                    <TextBlock Text="Properties" VerticalAlignment="Center" Margin="4,0,0,0" />
+                                </StackPanel>
+                            </Fluent:BackstageTabItem.Header>
+                            <TabControl Name="PropertiesTabControl" Margin="20,5,20,5" Style="{DynamicResource InnerBackstageTabControlStyle}">
+                                <Fluent:SeparatorTabItem Header="Information" />
+                                <TabItem>
+                                    <TabItem.Header>
+                                        <StackPanel Orientation="Horizontal">
+                                            <StackPanel Orientation="Horizontal">
+                                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Document/statistics16.png" />
+                                                <TextBlock Margin="4,0,0,0" Text="Statistics" />
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </TabItem.Header>
+                                    <TabItem.ToolTip>
+                                        <Fluent:ScreenTip Title="Statistics" Text="View document Statistics" Image="Images/Document/statistics48.png" />
+                                    </TabItem.ToolTip>
+                                    <StackPanel>
+                                        <Fluent:SeparatorTabItem Header="Statistics" Margin="16,16" />
+                                        <TextBlock Name="StatisticsCharacterCountTextBlock" Text="Character Count" Margin="5,2,5,2" />
+                                        <TextBlock Name="StatisticsWordCountTextBlock" Text="Word Count" Margin="5,2,5,2" />
+                                        <TextBlock Name="StatisticsLineCountTextBlock" Text="Line Count" Margin="5,2,5,2" />
+                                        <TextBlock Name="StatisticsParagraphCountTextBlock" Text="Paragraph Count" Margin="5,2,5,2" />
+                                    </StackPanel>
+                                </TabItem>
+                                <Fluent:SeparatorTabItem Header="Attributes" />
+                                <TabItem>
+                                    <TabItem.Header>
+                                        <StackPanel Orientation="Horizontal">
+                                            <StackPanel Orientation="Horizontal">
+                                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Document/readonly16.png" />
+                                                <TextBlock Margin="4,0,0,0" Text="Read-only" />
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </TabItem.Header>
+                                    <TabItem.ToolTip>
+                                        <Fluent:ScreenTip Title="Read-only" Image="Images/Document/readonly48.png" Text="Set/Unset Read-only on document" />
+                                    </TabItem.ToolTip>
+                                    <StackPanel>
+                                        <Fluent:SeparatorTabItem Header="Read-only" Margin="16,16" />
+                                        <Fluent:CheckBox Name="ReadOnlyMenuItem" Header="Read-only" Icon="Images/Document/readonly16.png" Margin="5,2,5,2" CanAddToQuickAccessToolBar="False">
+                                            <Fluent:CheckBox.ToolTip>
+                                                <Fluent:ScreenTip Title="Read-only" Image="Images/Document/readonly48.png" Text="Set/Unset Read-only on document" />
+                                            </Fluent:CheckBox.ToolTip>
+                                        </Fluent:CheckBox>
+                                    </StackPanel>
+                                </TabItem>
+                            </TabControl>
+                        </Fluent:BackstageTabItem>
+                        <Fluent:BackstageTabItem Name="PrintTab">
+                            <Fluent:BackstageTabItem.Header>
+                                <StackPanel Orientation="Horizontal" Margin="-14,0,0,0">
+                                    <Image Height="32" Width="32" Source="Images/Document/printer32.png" />
+                                    <TextBlock Text="Print" VerticalAlignment="Center" Margin="4,0,0,0" />
+                                </StackPanel>
+                            </Fluent:BackstageTabItem.Header>
+                            <Grid Name="PrintPanel" HorizontalAlignment="Stretch" ClipToBounds="True">
+                                <StackPanel>
+                                    <Fluent:Button Name="PrintMenuItem" Header="Print" Style="{DynamicResource ButtonBackstageStyle}" Margin="32,32,0,0" HorizontalAlignment="Left">
+                                        <Fluent:Button.LargeIcon>
+                                            <Image Height="32" Width="32" Source="pack://application:,,,/Images/Document/print32.png" />
+                                        </Fluent:Button.LargeIcon>
+                                        <Fluent:Button.Icon>
+                                            <Image Height="16" Width="16" Source="pack://application:,,,/Images/Document/print16.png" />
+                                        </Fluent:Button.Icon>
+                                        <Fluent:Button.ToolTip>
+                                            <Fluent:ScreenTip Title="Print (Ctrl + P)" Image="Images\Document\print48.png" Text="Print document"/>
+                                        </Fluent:Button.ToolTip>
+                                    </Fluent:Button>
+                                    <Fluent:Button Name="PageSetupMenuItem" Header="Page Setup" Margin="20,2,0,0" Width="112" HorizontalAlignment="Left">
+                                        <Fluent:Button.Icon>
+                                            <Image Height="16" Width="16" Source="pack://application:,,,/Images/Document/pagesetup16.png" />
+                                        </Fluent:Button.Icon>
+                                        <Fluent:Button.ToolTip>
+                                            <Fluent:ScreenTip Title="Page Setup" Image="Images\Document\pagesetup48.png" Text="Page setup"/>
+                                        </Fluent:Button.ToolTip>
+                                    </Fluent:Button>
+                                </StackPanel>
+                                <DocumentViewer Name="PrintPreview" BorderBrush="LightGray" BorderThickness="1,0,0,0" Background="White" Margin="146,-34,0,0">
+                                    <DocumentViewer.Resources>
+                                        <Style TargetType="ContentControl">
+                                            <Style.Triggers>
+                                                <Trigger Property="Name" Value="PART_FindToolBarHost">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                </Trigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </DocumentViewer.Resources>
+                                </DocumentViewer>
+                            </Grid>
+                        </Fluent:BackstageTabItem>
+                        <Fluent:Button Name="ExitMenuItem" Header="Exit">
+                            <Fluent:Button.Icon>
+                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Document/exitapp16.png" />
+                            </Fluent:Button.Icon>
+                            <Fluent:Button.ToolTip>
+                                <Fluent:ScreenTip Title="Exit (Alt + F4)" Image="Images\Document\exitapp48.png" Text="Close Document.Editor"/>
+                            </Fluent:Button.ToolTip>
+                        </Fluent:Button>
+                    </Fluent:BackstageTabControl>
+                </Fluent:Backstage>
+            </Fluent:Ribbon.Menu>
+            <Fluent:Ribbon.QuickAccessItems>
+                <Fluent:QuickAccessMenuItem Target="{Binding ElementName=NewButton}" IsChecked="False">
+                    <Fluent:QuickAccessMenuItem.Icon>
+                        <Image Height="16" Width="16" Source="pack://application:,,,/Images/Document/new16.png" />
+                    </Fluent:QuickAccessMenuItem.Icon>
+                </Fluent:QuickAccessMenuItem>
+                <Fluent:QuickAccessMenuItem Target="{Binding ElementName=OpenMenuItem}" IsChecked="False">
+                    <Fluent:QuickAccessMenuItem.Icon>
+                        <Image Height="16" Width="16" Source="pack://application:,,,/Images/Document/open16.png" />
+                    </Fluent:QuickAccessMenuItem.Icon>
+                </Fluent:QuickAccessMenuItem>
+                <Fluent:QuickAccessMenuItem Target="{Binding ElementName=SaveMenuItem}" IsChecked="True">
+                    <Fluent:QuickAccessMenuItem.Icon>
+                        <Image Height="16" Width="16" Source="pack://application:,,,/Images/Document/save16.png" />
+                    </Fluent:QuickAccessMenuItem.Icon>
+                </Fluent:QuickAccessMenuItem>
+                <Fluent:QuickAccessMenuItem Target="{Binding ElementName=PrintMenuItem}" IsChecked="False">
+                    <Fluent:QuickAccessMenuItem.Icon>
+                        <Image Height="16" Width="16" Source="pack://application:,,,/Images/Document/print16.png" />
+                    </Fluent:QuickAccessMenuItem.Icon>
+                </Fluent:QuickAccessMenuItem>
+                <Fluent:QuickAccessMenuItem Target="{Binding ElementName=UndoButton}" IsChecked="True">
+                    <Fluent:QuickAccessMenuItem.Icon>
+                        <Image Height="16" Width="16" Source="pack://application:,,,/Images/Edit/undo16.png" />
+                    </Fluent:QuickAccessMenuItem.Icon>
+                </Fluent:QuickAccessMenuItem>
+                <Fluent:QuickAccessMenuItem Target="{Binding ElementName=RedoButton}" IsChecked="True">
+                    <Fluent:QuickAccessMenuItem.Icon>
+                        <Image Height="16" Width="16" Source="pack://application:,,,/Images/Edit/redo16.png" />
+                    </Fluent:QuickAccessMenuItem.Icon>
+                </Fluent:QuickAccessMenuItem>
+            </Fluent:Ribbon.QuickAccessItems>
+            <Fluent:RibbonTabItem Name="HomeTabItem" Fluent:KeyTip.Keys="M" ReduceOrder="FontGroup, FontGroup, FontGroup, ParagraphGroup, ParagraphGroup, ParagraphGroup, StylesGroup, StylesGroup, StylesGroup, EditingGroup, EditingGroup, EditingGroup, ClipboardGroup, ClipboardGroup">
+                <Fluent:RibbonTabItem.Header>
+                    <Image Height="16" Width="16" Source="Images/Tab/home16.png" Margin="-1,-1,0,0" />
+                </Fluent:RibbonTabItem.Header>
+                <Fluent:RibbonTabItem.ToolTip>
+                    <Fluent:ScreenTip Title="Home" Text="Common Commands" Image="Images/Tab/home48.png" />
+                </Fluent:RibbonTabItem.ToolTip>
+                <Fluent:RibbonGroupBox Visibility="Collapsed">
+                    <Fluent:Button Name="UndoButton" Header="Undo" SizeDefinition="Large">
+                        <Fluent:Button.LargeIcon>
+                            <Image Height="32" Width="32" Source="pack://application:,,,/Images/Edit/undo32.png" />
+                        </Fluent:Button.LargeIcon>
+                        <Fluent:Button.Icon>
+                            <Image Height="16" Width="16" Source="pack://application:,,,/Images/Edit/undo16.png" />
+                        </Fluent:Button.Icon>
+                        <Fluent:Button.ToolTip>
+                            <Fluent:ScreenTip Title="Undo (Ctrl + Z)" Image="Images\Edit\undo48.png" Text="Undo"/>
+                        </Fluent:Button.ToolTip>
+                    </Fluent:Button>
+                    <Fluent:Button Name="RedoButton" Header="Redo" SizeDefinition="Large">
+                        <Fluent:Button.LargeIcon>
+                            <Image Height="32" Width="32" Source="pack://application:,,,/Images/Edit/redo32.png" />
+                        </Fluent:Button.LargeIcon>
+                        <Fluent:Button.Icon>
+                            <Image Height="16" Width="16" Source="pack://application:,,,/Images/Edit/redo16.png" />
+                        </Fluent:Button.Icon>
+                        <Fluent:Button.ToolTip>
+                            <Fluent:ScreenTip Title="Redo (Ctrl + Y)" Image="Images\Edit\redo48.png" Text="redo"/>
+                        </Fluent:Button.ToolTip>
+                    </Fluent:Button>
+                </Fluent:RibbonGroupBox>
+                <Fluent:RibbonGroupBox Name="ClipboardGroup" Header="Clipboard" CanAddToQuickAccessToolBar="False">
+                    <Fluent:RibbonGroupBox.Icon>
+                        <Image Height="16" Width="16" Source="pack://application:,,,/Images/Tab/edit16.png" />
+                    </Fluent:RibbonGroupBox.Icon>
+                    <Fluent:SplitButton Name="PasteButton" Header="Paste" SizeDefinition="Large">
+                        <Fluent:SplitButton.LargeIcon>
+                            <Image Height="32" Width="32" Source="pack://application:,,,/Images/Edit/paste32.png" />
+                        </Fluent:SplitButton.LargeIcon>
+                        <Fluent:SplitButton.Icon>
+                            <Image Height="16" Width="16" Source="pack://application:,,,/Images/Edit/paste16.png" />
+                        </Fluent:SplitButton.Icon>
+                        <Fluent:SplitButton.ToolTip>
+                            <Fluent:ScreenTip Title="Paste (Ctrl + V)" Image="Images\Edit\paste48.png" Text="Add content on the Clipboard to your document."/>
+                        </Fluent:SplitButton.ToolTip>
+                        <Fluent:Gallery ScrollViewer.VerticalScrollBarVisibility="Hidden"
+                                        Orientation="Vertical"
+                                        GroupBy="Tag"
+                                        Selectable="False">
+                            <Fluent:MenuItem Name="PasteTextButton" Header="Paste Text" Tag="Paste Options">
+                                <Fluent:MenuItem.Icon>
+                                    <Image Height="16" Width="16" Source="pack://application:,,,/Images/Edit/paste16.png" />
+                                </Fluent:MenuItem.Icon>
+                                <Fluent:MenuItem.ToolTip>
+                                    <Fluent:ScreenTip Title="Paste Text" Text="Paste text only" Image="Images/Edit/paste48.png" />
+                                </Fluent:MenuItem.ToolTip>
+                            </Fluent:MenuItem>
+                            <Fluent:MenuItem Name="PasteImageMenuItem" Header="Pase Image" Tag="Paste Options">
+                                <Fluent:MenuItem.Icon>
+                                    <Image Height="16" Width="16" Source="pack://application:,,,/Images/Edit/pasteimage16.png" />
+                                </Fluent:MenuItem.Icon>
+                                <Fluent:MenuItem.ToolTip>
+                                    <Fluent:ScreenTip Title="Paste Image" Text="Paste image from clipboard" Image="Images/Edit/pasteimage48.png" />
+                                </Fluent:MenuItem.ToolTip>
+                            </Fluent:MenuItem>
+                        </Fluent:Gallery>
+                    </Fluent:SplitButton>
+                    <Fluent:SplitButton Name="CutButton" Header="Cut" SizeDefinition="Middle,Middle,Small">
+                        <Fluent:SplitButton.LargeIcon>
+                            <Image Height="32" Width="32" Source="pack://application:,,,/Images/Edit/cut32.png" />
+                        </Fluent:SplitButton.LargeIcon>
+                        <Fluent:SplitButton.Icon>
+                            <Image Height="16" Width="16" Source="pack://application:,,,/Images/Edit/cut16.png" />
+                        </Fluent:SplitButton.Icon>
+                        <Fluent:SplitButton.ToolTip>
+                            <Fluent:ScreenTip Title="Cut (Ctrl + X)" Image="Images\Edit\cut48.png" Text="Remove the selection and put it on the Clipboard so you can paste it somewhere else."/>
+                        </Fluent:SplitButton.ToolTip>
+                        <Fluent:MenuItem Name="CutParagraphMenuItem" Header="Cut Paragraph">
+                            <Fluent:MenuItem.Icon>
+                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Edit/cutparagraph16.png" />
+                            </Fluent:MenuItem.Icon>
+                            <Fluent:MenuItem.ToolTip>
+                                <Fluent:ScreenTip Title="Cut Paragraph" Text="Cut current paragraph" Image="Images/Edit/cutparagraph48.png" />
+                            </Fluent:MenuItem.ToolTip>
+                        </Fluent:MenuItem>
+                        <Fluent:MenuItem Name="CutLineMenuItem" Header="Cut Line">
+                            <Fluent:MenuItem.Icon>
+                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Edit/cutline16.png" />
+                            </Fluent:MenuItem.Icon>
+                            <Fluent:MenuItem.ToolTip>
+                                <Fluent:ScreenTip Title="Cut Line" Text="Cut current line" Image="Images/Edit/cutline48.png" />
+                            </Fluent:MenuItem.ToolTip>
+                        </Fluent:MenuItem>
+                    </Fluent:SplitButton>
+                    <Fluent:SplitButton Name="CopyButton" Header="Copy" SizeDefinition="Middle,Middle,Small">
+                        <Fluent:SplitButton.LargeIcon>
+                            <Image Height="32" Width="32" Source="pack://application:,,,/Images/Edit/copy32.png" />
+                        </Fluent:SplitButton.LargeIcon>
+                        <Fluent:SplitButton.Icon>
+                            <Image Height="16" Width="16" Source="pack://application:,,,/Images/Edit/copy16.png" />
+                        </Fluent:SplitButton.Icon>
+                        <Fluent:SplitButton.ToolTip>
+                            <Fluent:ScreenTip Title="Copy (Ctrl + C)" Image="Images\Edit\copy48.png" Text="Put a copy of the selection on the Clipboard so you can paste it somewhere else."/>
+                        </Fluent:SplitButton.ToolTip>
+                        <Fluent:MenuItem Name="CopyParagraphMenuItem" Header="Copy Paragraph">
+                            <Fluent:MenuItem.Icon>
+                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Edit/copyparagraph16.png" />
+                            </Fluent:MenuItem.Icon>
+                            <Fluent:MenuItem.ToolTip>
+                                <Fluent:ScreenTip Title="Copy Paragraph" Text="Copy current paragraph" Image="Images/Edit/copyparagraph48.png" />
+                            </Fluent:MenuItem.ToolTip>
+                        </Fluent:MenuItem>
+                        <Fluent:MenuItem Name="CopyLineMenuItem" Header="Copy Line">
+                            <Fluent:MenuItem.Icon>
+                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Edit/copyline16.png" />
+                            </Fluent:MenuItem.Icon>
+                            <Fluent:MenuItem.ToolTip>
+                                <Fluent:ScreenTip Title="Copy Line" Text="Copy current line" Image="Images/Edit/copyline48.png" />
+                            </Fluent:MenuItem.ToolTip>
+                        </Fluent:MenuItem>
+                    </Fluent:SplitButton>
+                    <Fluent:Button Visibility="Collapsed" Header="Format Painter" />
+                    <Fluent:SplitButton Name="DeleteButton" Header="Delete" SizeDefinition="Middle,Middle,Small">
+                        <Fluent:SplitButton.LargeIcon>
+                            <Image Height="32" Width="32" Source="pack://application:,,,/Images/Edit/delete32.png" />
+                        </Fluent:SplitButton.LargeIcon>
+                        <Fluent:SplitButton.Icon>
+                            <Image Height="16" Width="16" Source="pack://application:,,,/Images/Edit/delete16.png" />
+                        </Fluent:SplitButton.Icon>
+                        <Fluent:SplitButton.ToolTip>
+                            <Fluent:ScreenTip Title="Delete (Del)" Image="Images\Edit\delete48.png" Text="Delete selected"/>
+                        </Fluent:SplitButton.ToolTip>
+                        <Fluent:MenuItem Name="DeleteParagraphMenuItem" Header="Delete Paragraph">
+                            <Fluent:MenuItem.Icon>
+                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Edit/deleteparagraph16.png" />
+                            </Fluent:MenuItem.Icon>
+                            <Fluent:MenuItem.ToolTip>
+                                <Fluent:ScreenTip Title="Delete Paragraph" Text="Delete current paragraph" Image="Images/Edit/deleteparagraph48.png" />
+                            </Fluent:MenuItem.ToolTip>
+                        </Fluent:MenuItem>
+                        <Fluent:MenuItem Name="DeleteLineMenuItem" Header="Delete Line">
+                            <Fluent:MenuItem.Icon>
+                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Edit/deleteline16.png" />
+                            </Fluent:MenuItem.Icon>
+                            <Fluent:MenuItem.ToolTip>
+                                <Fluent:ScreenTip Title="Delete Line" Text="Delete current line" Image="Images/Edit/deleteline48.png" />
+                            </Fluent:MenuItem.ToolTip>
+                        </Fluent:MenuItem>
+                    </Fluent:SplitButton>
+                </Fluent:RibbonGroupBox>
+                <Fluent:RibbonGroupBox Name="FontGroup" Header="Font" CanAddToQuickAccessToolBar="False">
+                    <StackPanel Grid.Row="0" Orientation="Horizontal">
+                        <Grid ClipToBounds="True">
+                            <Fluent:ComboBox Name="FontComboBox" ResizeMode="Vertical" Width="100" ItemsSource="{x:Static Fonts.SystemFontFamilies}" Margin="-9,0,0,0" CanAddToQuickAccessToolBar="False">
+                                <Fluent:ComboBox.ToolTip>
+                                    <Fluent:ScreenTip Title="Font" Text="Pick a new font for your text." />
+                                </Fluent:ComboBox.ToolTip>
+                                <Fluent:ComboBox.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <VirtualizingStackPanel />
+                                    </ItemsPanelTemplate>
+                                </Fluent:ComboBox.ItemsPanel>
+                                <Fluent:ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding}" FontFamily="{Binding}" FontSize="15" Height="20"/>
+                                    </DataTemplate>
+                                </Fluent:ComboBox.ItemTemplate>
+                            </Fluent:ComboBox>
+                        </Grid>
+                        <Grid ClipToBounds="True">
+                            <Fluent:ComboBox Name="FontSizeComboBox" Width="54" CanAddToQuickAccessToolBar="False" Margin="-9,0,0,0">
+                                <Fluent:ComboBox.ToolTip>
+                                    <Fluent:ScreenTip Title="Font Size" Text="Change the size of your text." />
+                                </Fluent:ComboBox.ToolTip>
+                            </Fluent:ComboBox>
+                        </Grid>
+                        <StackPanel Height="30" Orientation="Horizontal">
+                            <Fluent:Button Name="IncreaseFontButton" SizeDefinition="Small">
+                                <Fluent:Button.Icon>
+                                    <Image Height="16" Width="16" Source="pack://application:,,,/Images/Format/increasefont16.png" />
+                                </Fluent:Button.Icon>
+                                <Fluent:Button.ToolTip>
+                                    <Fluent:ScreenTip Title="Increase Font Size" Text="Make your text a bit bigger" />
+                                </Fluent:Button.ToolTip>
+                            </Fluent:Button>
+                            <Fluent:Button Name="DecreaseFontButton" SizeDefinition="Small" Margin="-2,0,0,0">
+                                <Fluent:Button.Icon>
+                                    <Image Height="16" Width="16" Source="pack://application:,,,/Images/Format/decreasefont16.png" />
+                                </Fluent:Button.Icon>
+                                <Fluent:Button.ToolTip>
+                                    <Fluent:ScreenTip Title="Decrease Font Size" Text="Make your text a bit smaller" />
+                                </Fluent:Button.ToolTip>
+                            </Fluent:Button>
+                            <Separator Height="32" />
+                            <Fluent:Button Name="UppercaseMenuItem" Header="Uppercase" SizeDefinition="Small">
+                                <Fluent:Button.LargeIcon>
+                                    <Image Height="32" Width="32" Source="pack://application:,,,/Images/Edit/uppercase32.png" />
+                                </Fluent:Button.LargeIcon>
+                                <Fluent:Button.Icon>
+                                    <Image Height="16" Width="16" Source="pack://application:,,,/Images/Edit/uppercase16.png" />
+                                </Fluent:Button.Icon>
+                                <Fluent:Button.ToolTip>
+                                    <Fluent:ScreenTip Title="Uppercase" Text="Set uppercase" Image="Images/Edit/uppercase48.png" />
+                                </Fluent:Button.ToolTip>
+                            </Fluent:Button>
+                            <Fluent:Button Name="LowercaseMenuItem" Header="Lowercase" SizeDefinition="Small">
+                                <Fluent:Button.LargeIcon>
+                                    <Image Height="32" Width="32" Source="pack://application:,,,/Images/Edit/lowercase32.png" />
+                                </Fluent:Button.LargeIcon>
+                                <Fluent:Button.Icon>
+                                    <Image Height="16" Width="16" Source="pack://application:,,,/Images/Edit/lowercase16.png" />
+                                </Fluent:Button.Icon>
+                                <Fluent:Button.ToolTip>
+                                    <Fluent:ScreenTip Title="Lowercase" Text="Set lowercase" Image="Images/Edit/lowercase48.png" />
+                                </Fluent:Button.ToolTip>
+                            </Fluent:Button>
+                            <Separator Height="32" />
+                            <Fluent:Button Name="ClearFormattingButton" Header="Clear All Formatting" SizeDefinition="Small">
+                                <Fluent:Button.Icon>
+                                    <Image Height="16" Width="16" Source="pack://application:,,,/Images/Format/clearformatting16.png" />
+                                </Fluent:Button.Icon>
+                                <Fluent:Button.ToolTip>
+                                    <Fluent:ScreenTip Title="Clear Formatting" Image="Images\Format\clearformatting48.png" Text="Remove all formatting from the selection, leaving only the normal, unformatted text."/>
+                                </Fluent:Button.ToolTip>
+                            </Fluent:Button>
+                        </StackPanel>
+                    </StackPanel>
+                    <StackPanel Height="30" Grid.Row="1" VerticalAlignment="Center" Orientation="Horizontal" Margin="0,0,0,0">
+                        <Fluent:ToggleButton Name="BoldButton" SizeDefinition="Small">
+                            <Fluent:ToggleButton.Icon>
+                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Format/bold16.png" />
+                            </Fluent:ToggleButton.Icon>
+                            <Fluent:ToggleButton.ToolTip>
+                                <Fluent:ScreenTip Title="Bold (Ctrl + B)" Image="Images\Format\bold48.png" Text="Toggle bold"/>
+                            </Fluent:ToggleButton.ToolTip>
+                        </Fluent:ToggleButton>
+                        <Fluent:ToggleButton Name="ItalicButton" SizeDefinition="Small">
+                            <Fluent:ToggleButton.Icon>
+                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Format/italic16.png" />
+                            </Fluent:ToggleButton.Icon>
+                            <Fluent:ToggleButton.ToolTip>
+                                <Fluent:ScreenTip Title="Italic (Ctrl + I)" Image="Images\Format\italic48.png" Text="Toggle italic"/>
+                            </Fluent:ToggleButton.ToolTip>
+                        </Fluent:ToggleButton>
+                        <Fluent:SplitButton Name="UnderlineButton" SizeDefinition="Small">
+                            <Fluent:SplitButton.Icon>
+                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Format/underline16.png" />
+                            </Fluent:SplitButton.Icon>
+                            <Fluent:SplitButton.ToolTip>
+                                <Fluent:ScreenTip Title="Underline (Ctrl + U)" Image="Images\Format\underline48.png" Text="Toggle underline"/>
+                            </Fluent:SplitButton.ToolTip>
+                            <Fluent:Gallery GroupBy="Tag">
+                                <Image Name="DoubleUnderlineButton" Width="16" Height="16" Source="pack://application:,,,/Images/Format/doubleunderline16.png" Tag="Styles" />
+                            </Fluent:Gallery>
+                        </Fluent:SplitButton>
+                        <Fluent:SplitButton Name="StrikethroughButton" SizeDefinition="Small">
+                            <Fluent:SplitButton.Icon>
+                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Format/strikethrough16.png" />
+                            </Fluent:SplitButton.Icon>
+                            <Fluent:SplitButton.ToolTip>
+                                <Fluent:ScreenTip Title="Strikethrough" Image="Images\Format\strikethrough48.png" Text="Toggle strikethrough"/>
+                            </Fluent:SplitButton.ToolTip>
+                            <Fluent:Gallery GroupBy="Tag">
+                                <Image Name="DoubleStrikethroughButton" Height="16" Width="16" Source="pack://application:,,,/Images/Format/doublestrikethrough16.png" Tag="Styles" />
+                            </Fluent:Gallery>
+                        </Fluent:SplitButton>
+                        <Fluent:ToggleButton Name="SubscriptButton" Header="Subscript" SizeDefinition="Small">
+                            <Fluent:ToggleButton.Icon>
+                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Format/subscript16.png" />
+                            </Fluent:ToggleButton.Icon>
+                            <Fluent:ToggleButton.ToolTip>
+                                <Fluent:ScreenTip Title="Subscript" Image="Images\Format\subscript48.png" Text="Toggle subscript"/>
+                            </Fluent:ToggleButton.ToolTip>
+                        </Fluent:ToggleButton>
+                        <Fluent:ToggleButton Name="SuperscriptButton" Header="Superscript" SizeDefinition="Small">
+                            <Fluent:ToggleButton.Icon>
+                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Format/superscript16.png" />
+                            </Fluent:ToggleButton.Icon>
+                            <Fluent:ToggleButton.ToolTip>
+                                <Fluent:ScreenTip Title="Superscript" Image="Images\Format\superscript48.png" Text="Toggle superscript"/>
+                            </Fluent:ToggleButton.ToolTip>
+                        </Fluent:ToggleButton>
+                        <Separator Height="32" />
+                        <Fluent:DropDownButton Name="FontColorButton" SizeDefinition="Small">
+                            <Fluent:DropDownButton.Icon>
+                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Format/fontfacecolor16.png" />
+                            </Fluent:DropDownButton.Icon>
+                            <Fluent:DropDownButton.ToolTip>
+                                <Fluent:ScreenTip Title="Font Color" Image="Images\Format\fontfacecolor48.png" Text="Set font color"/>
+                            </Fluent:DropDownButton.ToolTip>
+                            <Fluent:ColorGallery x:Name="FontColorGallery" IsAutomaticColorButtonVisible="False" Mode="StandardColors" IsNoColorButtonVisible="False" />
+                        </Fluent:DropDownButton>
+                        <Fluent:DropDownButton Name="HighlightColorButton" SizeDefinition="Small">
+                            <Fluent:DropDownButton.Icon>
+                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Format/fontcolor16.png" />
+                            </Fluent:DropDownButton.Icon>
+                            <Fluent:DropDownButton.ToolTip>
+                                <Fluent:ScreenTip Title="Highlight Color" Image="Images\Format\fontcolor48.png" Text="Set highlight color"/>
+                            </Fluent:DropDownButton.ToolTip>
+                            <Fluent:ColorGallery x:Name="HighlightColorGallery" IsAutomaticColorButtonVisible="False" Mode="HighlightColors" IsNoColorButtonVisible="False" />
+                        </Fluent:DropDownButton>
+                        <Separator Height="32" />
+                        <Fluent:Button Name="LeftToRightButton" SizeDefinition="Small">
+                            <Fluent:Button.Icon>
+                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Format/ltr16.png" />
+                            </Fluent:Button.Icon>
+                            <Fluent:Button.ToolTip>
+                                <Fluent:ScreenTip Title="Left To Right" Image="Images\Format\ltr48.png" Text="Left to right"/>
+                            </Fluent:Button.ToolTip>
+                        </Fluent:Button>
+                        <Fluent:Button Name="RightToLeftButton" SizeDefinition="Small">
+                            <Fluent:Button.Icon>
+                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Format/rtl16.png" />
+                            </Fluent:Button.Icon>
+                            <Fluent:Button.ToolTip>
+                                <Fluent:ScreenTip Title="Right To Left" Image="Images\Format\rtl48.png" Text="Right to left"/>
+                            </Fluent:Button.ToolTip>
+                        </Fluent:Button>
+                    </StackPanel>
+                </Fluent:RibbonGroupBox>
+                <Fluent:RibbonGroupBox Name="ParagraphGroup" Header="Paragraph" CanAddToQuickAccessToolBar="False">
+                    <StackPanel Height="30" Grid.Row="0" Orientation="Horizontal">
+                        <Fluent:SplitButton Name="BulletListButton" IsCheckable="True" SizeDefinition="Small">
+                            <Fluent:SplitButton.Icon>
+                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Format/bulletlist16.png" />
+                            </Fluent:SplitButton.Icon>
+                            <Fluent:SplitButton.ToolTip>
+                                <Fluent:ScreenTip Title="Bullet List (Ctrl + Shift + L)" Image="Images\Format\bulletlist48.png" Text="Toggle bullet list"/>
+                            </Fluent:SplitButton.ToolTip>
+                            <Fluent:Gallery ScrollViewer.VerticalScrollBarVisibility="Hidden" GroupBy="Tag" Selectable="False">
+                                <Image Name="DiskBulletButton" Height="32" Width="32" Source="Images/Format/Lists/discbullet32.png" Tag="Styles" />
+                                <Image Name="CircleBulletButton" Height="32" Width="32" Source="Images/Format/Lists/circlebullet32.png" Tag="Styles" />
+                                <Image Name="BoxBulletButton" Height="32" Width="32" Source="Images/Format/Lists/boxbullet32.png" Tag="Styles" />
+                                <Image Name="SquareBulletButton" Height="32" Width="32" Source="Images/Format/Lists/squarebullet32.png" Tag="Styles" />
+                            </Fluent:Gallery>
+                        </Fluent:SplitButton>
+                        <Fluent:SplitButton Name="NumberListButton" IsCheckable="True" SizeDefinition="Small">
+                            <Fluent:SplitButton.Icon>
+                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Format/numberlist16.png" />
+                            </Fluent:SplitButton.Icon>
+                            <Fluent:SplitButton.ToolTip>
+                                <Fluent:ScreenTip Title="Number List (Ctrl + Shift + N)" Image="Images\Format\numberlist48.png" Text="Toggle number list"/>
+                            </Fluent:SplitButton.ToolTip>
+                            <Fluent:Gallery ScrollViewer.VerticalScrollBarVisibility="Hidden" GroupBy="Tag" Selectable="False">
+                                <Image Name="DecimalListButton" Height="32" Width="32" Source="Images/Format/Lists/decimallist32.png" Tag="Styles" />
+                                <Image Name="UpperLatinListButton" Height="32" Width="32" Source="Images/Format/Lists/upperlatin32.png" Tag="Styles" />
+                                <Image Name="LowerLatinListButton" Height="32" Width="32" Source="Images/Format/Lists/lowerlatin32.png" Tag="Styles" />
+                                <Image Name="UpperRomanListButton" Height="32" Width="32" Source="Images/Format/Lists/upperroman32.png" Tag="Styles" />
+                                <Image Name="LowerRomanListButton" Height="32" Width="32" Source="Images/Format/Lists/lowerroman32.png" Tag="Styles" />
+                            </Fluent:Gallery>
+                        </Fluent:SplitButton>
+                        <Separator Height="32" />
+                        <Fluent:Button Name="IndentLessButton" SizeDefinition="Small">
+                            <Fluent:Button.Icon>
+                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Format/indentless16.png" />
+                            </Fluent:Button.Icon>
+                            <Fluent:Button.ToolTip>
+                                <Fluent:ScreenTip Title="Indent Less (Shift + TAB)" Image="Images\Format\indentless48.png" Text="Indent less"/>
+                            </Fluent:Button.ToolTip>
+                        </Fluent:Button>
+                        <Fluent:Button Name="IndentMoreButton" SizeDefinition="Small">
+                            <Fluent:Button.Icon>
+                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Format/indentmore16.png" />
+                            </Fluent:Button.Icon>
+                            <Fluent:Button.ToolTip>
+                                <Fluent:ScreenTip Title="Indent More (TAB)" Image="Images\Format\indentmore48.png" Text="Indent more"/>
+                            </Fluent:Button.ToolTip>
+                        </Fluent:Button>
+                    </StackPanel>
+                    <StackPanel Height="30" Grid.Row="1" VerticalAlignment="Center" Orientation="Horizontal">
+                        <Fluent:ToggleButton Name="AlignLeftButton" SizeDefinition="Small">
+                            <Fluent:ToggleButton.Icon>
+                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Format/left16.png" />
+                            </Fluent:ToggleButton.Icon>
+                            <Fluent:ToggleButton.ToolTip>
+                                <Fluent:ScreenTip Title="Align Left (Ctrl + L)" Image="Images\Format\left48.png" Text="Align left"/>
+                            </Fluent:ToggleButton.ToolTip>
+                        </Fluent:ToggleButton>
+                        <Fluent:ToggleButton Name="AlignCenterButton" SizeDefinition="Small">
+                            <Fluent:ToggleButton.Icon>
+                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Format/center16.png" />
+                            </Fluent:ToggleButton.Icon>
+                            <Fluent:ToggleButton.ToolTip>
+                                <Fluent:ScreenTip Title="Align Center (Ctrl + E)" Image="Images\Format\center48.png" Text="Align center"/>
+                            </Fluent:ToggleButton.ToolTip>
+                        </Fluent:ToggleButton>
+                        <Fluent:ToggleButton Name="AlignRightButton" SizeDefinition="Small">
+                            <Fluent:ToggleButton.Icon>
+                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Format/right16.png" />
+                            </Fluent:ToggleButton.Icon>
+                            <Fluent:ToggleButton.ToolTip>
+                                <Fluent:ScreenTip Title="Align Right (Ctrl + R)" Image="Images\Format\right48.png" Text="Align right"/>
+                            </Fluent:ToggleButton.ToolTip>
+                        </Fluent:ToggleButton>
+                        <Fluent:ToggleButton Name="AlignJustifyButton" SizeDefinition="Small">
+                            <Fluent:ToggleButton.Icon>
+                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Format/justify16.png" />
+                            </Fluent:ToggleButton.Icon>
+                            <Fluent:ToggleButton.ToolTip>
+                                <Fluent:ScreenTip Title="Align Justify (Ctrl + J)" Image="Images\Format\justify48.png" Text="Align justify"/>
+                            </Fluent:ToggleButton.ToolTip>
+                        </Fluent:ToggleButton>
+                        <Separator Height="32" />
+                        <Fluent:DropDownButton Name="LinespacingButton" SizeDefinition="Small">
+                            <Fluent:DropDownButton.Icon>
+                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Format/linespacing16.png" />
+                            </Fluent:DropDownButton.Icon>
+                            <Fluent:DropDownButton.ToolTip>
+                                <Fluent:ScreenTip Title="Line Spacing" Image="Images\Format\linespacing48.png" Text="Line spacing"/>
+                            </Fluent:DropDownButton.ToolTip>
+                            <Fluent:MenuItem Name="LineSpacing1Point0" Header="1.0" />
+                            <Fluent:MenuItem Name="LineSpacing1Point15" Header="1.15" />
+                            <Fluent:MenuItem Name="LineSpacing1Point5" Header="1.5" />
+                            <Fluent:MenuItem Name="LineSpacing2Point0" Header="2.0" />
+                            <Fluent:MenuItem Name="LineSpacing2Point5" Header="2.5" />
+                            <Fluent:MenuItem Name="LineSpacing3Point0" Header="3.0" />
+                            <Separator />
+                            <Fluent:MenuItem Name="CustomLineSpacingMenuItem" Header="Custom" />
+                        </Fluent:DropDownButton>
+                    </StackPanel>
+                </Fluent:RibbonGroupBox>
+                <Fluent:RibbonGroupBox Name="StylesGroup" Header="Styles" CanAddToQuickAccessToolBar="False">
+                    <Fluent:InRibbonGallery Name="StylesGallery" Orientation="Horizontal" MaxItemsInRow="5" MaxItemsInDropDownRow="5" SizeDefinition="Large, Large, Large">
+                        <Fluent:GalleryItem Name="Styles_Normal" Height="58" Width="64">
+                            <Grid>
+                                <TextBlock FontFamily="Calibri" FontSize="14" Text="AaBbCcDd" HorizontalAlignment="Left"  VerticalAlignment="Center" Margin="0,-16,0,0" />
+                                <TextBlock Text="Normal" HorizontalAlignment="Center" VerticalAlignment="Bottom" />
+                            </Grid>
+                        </Fluent:GalleryItem>
+                        <Fluent:GalleryItem Name="Styles_NoSpacing" Height="58" Width="64">
+                            <Grid>
+                                <TextBlock FontFamily="Calibri" FontSize="14" Text="AaBbCcDd" HorizontalAlignment="Left"  VerticalAlignment="Center" Margin="0,-16,0,0" />
+                                <TextBlock Text="No Spacing" HorizontalAlignment="Center" VerticalAlignment="Bottom" />
+                            </Grid>
+                        </Fluent:GalleryItem>
+                        <Fluent:GalleryItem Name="Styles_Heading1" Height="58" Width="64">
+                            <Grid>
+                                <TextBlock FontFamily="Calibri" FontSize="19" Foreground="#2e74b5" Text="AaBbCcDd" HorizontalAlignment="Left"  VerticalAlignment="Center" Margin="0,-16,0,0" />
+                                <TextBlock Text="Heading 1" HorizontalAlignment="Center" VerticalAlignment="Bottom" />
+                            </Grid>
+                        </Fluent:GalleryItem>
+                        <Fluent:GalleryItem Name="Styles_Heading2" Height="58" Width="64">
+                            <Grid>
+                                <TextBlock FontFamily="Calibri" FontSize="16" Foreground="#2e74b5" Text="AaBbCcDd" HorizontalAlignment="Left"  VerticalAlignment="Center" Margin="0,-16,0,0" />
+                                <TextBlock Text="Heading 2" HorizontalAlignment="Center" VerticalAlignment="Bottom" />
+                            </Grid>
+                        </Fluent:GalleryItem>
+                        <Fluent:GalleryItem Name="Styles_Heading3" Height="58" Width="64">
+                            <Grid>
+                                <TextBlock FontFamily="Calibri" FontSize="15" Foreground="#1f4d78" Text="AaBbCcDd" HorizontalAlignment="Left"  VerticalAlignment="Center" Margin="0,-16,0,0" />
+                                <TextBlock Text="Heading 3" HorizontalAlignment="Center" VerticalAlignment="Bottom" />
+                            </Grid>
+                        </Fluent:GalleryItem>
+                        <!--<Fluent:GalleryItem Name="Styles_Heading4" Height="58" Width="64">
+                            <Grid>
+                                <TextBlock FontFamily="Calibri" FontSize="14" FontStyle="Italic" Foreground="#2e74b5" Text="AaBbCcDd" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="0,-16,0,0" />
+                                <TextBlock Text="Heading 4" HorizontalAlignment="Center" VerticalAlignment="Bottom" />
+                            </Grid>
+                        </Fluent:GalleryItem>
+                        <Fluent:GalleryItem Name="Styles_Heading5" Height="58" Width="64">
+                            <Grid>
+                                <TextBlock FontFamily="Calibri" FontSize="14" Foreground="#2e74b5" Text="AaBbCcDd" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="0,-16,0,0" />
+                                <TextBlock Text="Heading 5" HorizontalAlignment="Center" VerticalAlignment="Bottom" />
+                            </Grid>
+                        </Fluent:GalleryItem>
+                        <Fluent:GalleryItem Name="Styles_Heading6" Height="58" Width="64">
+                            <Grid>
+                                <TextBlock FontFamily="Calibri" FontSize="14" Foreground="#1f4d78" Text="AaBbCcDd" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="0,-16,0,0" />
+                                <TextBlock Text="Heading 6" HorizontalAlignment="Center" VerticalAlignment="Bottom" />
+                            </Grid>
+                        </Fluent:GalleryItem>
+                        <Fluent:GalleryItem Name="Styles_Heading7" Height="58" Width="64">
+                            <Grid>
+                                <TextBlock FontFamily="Calibri" FontSize="14" FontStyle="Italic" Foreground="#1f4d78" Text="AaBbCcDd" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="0,-16,0,0" />
+                                <TextBlock Text="Heading 7" HorizontalAlignment="Center" VerticalAlignment="Bottom" />
+                            </Grid>
+                        </Fluent:GalleryItem>
+                        <Fluent:GalleryItem Name="Styles_Heading8" Height="58" Width="64">
+                            <Grid>
+                                <TextBlock FontFamily="Calibri" FontSize="13.5" Text="AaBbCcDd" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="0,-16,0,0" />
+                                <TextBlock Text="Heading 8" HorizontalAlignment="Center" VerticalAlignment="Bottom" />
+                            </Grid>
+                        </Fluent:GalleryItem>
+                        <Fluent:GalleryItem Name="Styles_Heading9" Height="58" Width="64">
+                            <Grid>
+                                <TextBlock FontFamily="Calibri" FontSize="13.5" FontStyle="Italic" Text="AaBbCcDd" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="0,-16,0,0" />
+                                <TextBlock Text="Heading 9" HorizontalAlignment="Center" VerticalAlignment="Bottom" />
+                            </Grid>
+                        </Fluent:GalleryItem>-->
+                        <Fluent:GalleryItem Name="Styles_Title" Height="58" Width="64">
+                            <Grid>
+                                <TextBlock FontSize="28" Text="AaBbCcDd" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="0,-16,0,0" />
+                                <TextBlock Text="Title" HorizontalAlignment="Center" VerticalAlignment="Bottom" />
+                            </Grid>
+                        </Fluent:GalleryItem>
+                        <Fluent:GalleryItem Name="Styles_Subtitle" Height="58" Width="64">
+                            <Grid>
+                                <TextBlock Text="AaBbCcDd" FontSize="14" HorizontalAlignment="Left"  VerticalAlignment="Center" Margin="0,-16,0,0" />
+                                <TextBlock Text="Subtitle" HorizontalAlignment="Center" VerticalAlignment="Bottom" />
+                            </Grid>
+                        </Fluent:GalleryItem>
+                    </Fluent:InRibbonGallery>
+                </Fluent:RibbonGroupBox>
+                <Fluent:RibbonGroupBox Name="EditingGroup" Header="Editing">
+                    <Fluent:SplitButton Name="FindButton" Header="Find" SizeDefinition="Middle, Middle, Middle">
+                        <Fluent:SplitButton.LargeIcon>
+                            <Image Height="32" Width="32" Source="pack://application:,,,/Images/Edit/find32.png" />
+                        </Fluent:SplitButton.LargeIcon>
+                        <Fluent:SplitButton.Icon>
+                            <Image Height="16" Width="16" Source="pack://application:,,,/Images/Edit/find16.png" />
+                        </Fluent:SplitButton.Icon>
+                        <Fluent:SplitButton.ToolTip>
+                            <Fluent:ScreenTip Title="Find (Ctrl + F)" Image="Images\Edit\find48.png" Text="Find text"/>
+                        </Fluent:SplitButton.ToolTip>
+                        <Fluent:MenuItem Name="GoToButton" Header="Go To">
+                            <Fluent:MenuItem.Icon>
+                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Edit/goto16.png" />
+                            </Fluent:MenuItem.Icon>
+                            <Fluent:MenuItem.ToolTip>
+                                <Fluent:ScreenTip Title="Go To (Ctrl + G)" Image="Images\Edit\goto48.png" Text="Go to line"/>
+                            </Fluent:MenuItem.ToolTip>
+                        </Fluent:MenuItem>
+                    </Fluent:SplitButton>
+                    <Fluent:Button Name="ReplaceButton" Header="Replace" SizeDefinition="Middle, Middle, Middle">
+                        <Fluent:Button.Icon>
+                            <Image Height="16" Width="16" Source="pack://application:,,,/Images/Edit/findreplace16.png" />
+                        </Fluent:Button.Icon>
+                        <Fluent:Button.ToolTip>
+                            <Fluent:ScreenTip Title="Replace (Ctrl + H)" Text="Replace text" Image="Images\Edit\findreplace48.png"/>
+                        </Fluent:Button.ToolTip>
+                    </Fluent:Button>
+                    <Fluent:DropDownButton Header="Select" SizeDefinition="Middle, Middle, Middle">
+                        <Fluent:DropDownButton.Icon>
+                            <Image Height="16" Width="16" Source="pack://application:,,,/Images/Edit/select16.png" />
+                        </Fluent:DropDownButton.Icon>
+                        <Fluent:MenuItem Name="SelectAllButton" Header="Select All">
+                            <Fluent:MenuItem.Icon>
+                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Edit/selectall16.png" />
+                            </Fluent:MenuItem.Icon>
+                            <Fluent:MenuItem.ToolTip>
+                                <Fluent:ScreenTip Title="Select All (Ctrl + A)" Image="Images\Edit\selectall48.png" Text="Select all"/>
+                            </Fluent:MenuItem.ToolTip>
+                        </Fluent:MenuItem>
+                        <Fluent:MenuItem Name="SelectParagraphMenuItem" Header="Select Paragraph">
+                            <Fluent:MenuItem.Icon>
+                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Edit/selectparagraph16.png" />
+                            </Fluent:MenuItem.Icon>
+                            <Fluent:MenuItem.ToolTip>
+                                <Fluent:ScreenTip Title="Select Paragraph" Text="Select current paragraph" Image="Images/Edit/selectparagraph48.png" />
+                            </Fluent:MenuItem.ToolTip>
+                        </Fluent:MenuItem>
+                        <Fluent:MenuItem Name="SelectLineMenuItem" Header="Select Line">
+                            <Fluent:MenuItem.Icon>
+                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Edit/selectline16.png" />
+                            </Fluent:MenuItem.Icon>
+                            <Fluent:MenuItem.ToolTip>
+                                <Fluent:ScreenTip Title="Select Line" Text="Select current line" Image="Images/Edit/selectline48.png" />
+                            </Fluent:MenuItem.ToolTip>
+                        </Fluent:MenuItem>
+                    </Fluent:DropDownButton>
+                </Fluent:RibbonGroupBox>
+                <Fluent:RibbonGroupBox Name="PluginsGroup" Header="Plugins" />
+            </Fluent:RibbonTabItem>
+            <Fluent:RibbonTabItem Name="InsertTab" Fluent:KeyTip.Keys="I" ReduceOrder="Insert_IllustrationGroup, Insert_IllustrationGroup, Insert_MiscGroup, Insert_MiscGroup">
+                <Fluent:RibbonTabItem.Header>
+                    <Image Height="16" Width="16" Source="Images/Common/add16.png" Margin="-1,-1,0,0" />
+                </Fluent:RibbonTabItem.Header>
+                <Fluent:RibbonTabItem.ToolTip>
+                    <Fluent:ScreenTip Title="Insert" Text="Insert Commands" Image="Images/Common/add48.png" />
+                </Fluent:RibbonTabItem.ToolTip>
+                <Fluent:RibbonGroupBox Name="Insert_TablesGroup" Header="Tables" CanAddToQuickAccessToolBar="False">
+                    <Fluent:DropDownButton Name="TableButton" Icon="pack://application:,,,/Images/Insert/table16.png" Header="Table">
+                        <Fluent:DropDownButton.LargeIcon>
+                            <Image Height="32" Width="32" Source="pack://application:,,,/Images/Insert/table32.png" />
+                        </Fluent:DropDownButton.LargeIcon>
+                        <Fluent:DropDownButton.ToolTip>
+                            <Fluent:ScreenTip Title="Table (Insert + T)" Image="Images\Insert\table48.png" Text="Insert table"/>
+                        </Fluent:DropDownButton.ToolTip>
+                        <p:FluentTableGrid x:Name="TableGrid" />
+                        <Separator />
+                        <Fluent:MenuItem Name="InsertTableMenuItem" Header="Insert Table..." Icon="Images/Insert/table16.png" />
+                    </Fluent:DropDownButton>
+                </Fluent:RibbonGroupBox>
+                <Fluent:RibbonGroupBox Name="Insert_DateAndTimeGroup" Header="Date And Time" CanAddToQuickAccessToolBar="False">
+                    <Fluent:SplitButton Name="DateButton" Header="Date">
+                        <Fluent:SplitButton.LargeIcon>
+                            <Image Height="32" Width="32" Source="pack://application:,,,/Images/Insert/date32.png" />
+                        </Fluent:SplitButton.LargeIcon>
+                        <Fluent:SplitButton.Icon>
+                            <Image Height="16" Width="16" Source="pack://application:,,,/Images/Insert/date16.png" />
+                        </Fluent:SplitButton.Icon>
+                        <Fluent:SplitButton.ToolTip>
+                            <Fluent:ScreenTip Title="Date" Image="Images\Insert\date48.png" Text="Insert date"/>
+                        </Fluent:SplitButton.ToolTip>
+                        <Fluent:MenuItem Name="MoreDateMenuItem" Header="More">
+                            <Fluent:MenuItem.Icon>
+                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Insert/datemore16.png" />
+                            </Fluent:MenuItem.Icon>
+                            <Fluent:MenuItem.ToolTip>
+                                <Fluent:ScreenTip Title="More" Text="More date options" Image="Images/Insert/datemore48.png" />
+                            </Fluent:MenuItem.ToolTip>
+                        </Fluent:MenuItem>
+                    </Fluent:SplitButton>
+                    <Fluent:SplitButton Name="TimeButton" Header="Time">
+                        <Fluent:SplitButton.LargeIcon>
+                            <Image Height="32" Width="32" Source="pack://application:,,,/Images/Insert/time32.png" />
+                        </Fluent:SplitButton.LargeIcon>
+                        <Fluent:SplitButton.Icon>
+                            <Image Height="16" Width="16" Source="pack://application:,,,/Images/Insert/time16.png" />
+                        </Fluent:SplitButton.Icon>
+                        <Fluent:SplitButton.ToolTip>
+                            <Fluent:ScreenTip Title="Time" Image="Images\Insert\time48.png" Text="Insert time"/>
+                        </Fluent:SplitButton.ToolTip>
+                        <Fluent:MenuItem Name="MoreTimeMenuItem" Header="More">
+                            <Fluent:MenuItem.Icon>
+                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Insert/timemore16.png" />
+                            </Fluent:MenuItem.Icon>
+                            <Fluent:MenuItem.ToolTip>
+                                <Fluent:ScreenTip Title="More" Text="More time options" Image="Images/Insert/timemore48.png" />
+                            </Fluent:MenuItem.ToolTip>
+                        </Fluent:MenuItem>
+                    </Fluent:SplitButton>
+                </Fluent:RibbonGroupBox>
+                <Fluent:RibbonGroupBox Name="Insert_IllustrationGroup" Header="Illustrations" CanAddToQuickAccessToolBar="False">
+                    <Fluent:Button Name="ImageButton" Icon="pack://application:,,,/Images/Insert/image16.png" Header="Image">
+                        <Fluent:Button.LargeIcon>
+                            <Image Height="32" Width="32" Source="pack://application:,,,/Images/Insert/image32.png" />
+                        </Fluent:Button.LargeIcon>
+                        <Fluent:Button.ToolTip>
+                            <Fluent:ScreenTip Title="Image (Insert + I)" Image="Images\Insert\image48.png" Text="Insert image"/>
+                        </Fluent:Button.ToolTip>
+                    </Fluent:Button>
+                    <Fluent:DropDownButton Name="InsertEmoticonButton" Header="Emoticon">
+                        <Fluent:DropDownButton.LargeIcon>
+                            <Image Height="32" Width="32" Source="pack://application:,,,/Images/Insert/Emoticons/smile32.png" />
+                        </Fluent:DropDownButton.LargeIcon>
+                        <Fluent:DropDownButton.Icon>
+                            <Image Height="16" Width="16" Source="pack://application:,,,/Images/Insert/Emoticons/smile16.png" />
+                        </Fluent:DropDownButton.Icon>
+                        <Fluent:DropDownButton.ToolTip>
+                            <Fluent:ScreenTip Title="Emoticon" Image="Images\Insert\Emoticons\smile48.png" Text="Insert emoticon"/>
+                        </Fluent:DropDownButton.ToolTip>
+                        <p:FluentEmoticonGallery x:Name="EmoticonGrid" />
+                    </Fluent:DropDownButton>
+                    <Fluent:Button Name="ShapeButton" Icon="pack://application:,,,/Images/Insert/shape16.png" Header="Shape">
+                        <Fluent:Button.LargeIcon>
+                            <Image Height="32" Width="32" Source="pack://application:,,,/Images/Insert/shape32.png" />
+                        </Fluent:Button.LargeIcon>
+                        <Fluent:Button.ToolTip>
+                            <Fluent:ScreenTip Title="Shape (Insert + S)" Image="Images\Insert\shape48.png" Text="Insert shape"/>
+                        </Fluent:Button.ToolTip>
+                    </Fluent:Button>
+                    <Fluent:Button Name="ChartButton" Icon="pack://application:,,,/Images/Insert/chart16.png" Header="Chart">
+                        <Fluent:Button.LargeIcon>
+                            <Image Height="32" Width="32" Source="pack://application:,,,/Images/Insert/chart32.png" />
+                        </Fluent:Button.LargeIcon>
+                        <Fluent:Button.ToolTip>
+                            <Fluent:ScreenTip Title="Chart (Insert + C)" Image="Images\Insert\chart48.png" Text="Insert chart"/>
+                        </Fluent:Button.ToolTip>
+                    </Fluent:Button>
+                    <Fluent:Button Name="VideoButton" Header="Video" Icon="pack://application:,,,/Images/Insert/video16.png">
+                        <Fluent:Button.LargeIcon>
+                            <Image Height="32" Width="32" Source="pack://application:,,,/Images/Insert/video32.png" />
+                        </Fluent:Button.LargeIcon>
+                        <Fluent:Button.ToolTip>
+                            <Fluent:ScreenTip Title="Video (Insert + V)" Image="Images\Insert\video48.png" Text="Insert video"/>
+                        </Fluent:Button.ToolTip>
+                    </Fluent:Button>
+                </Fluent:RibbonGroupBox>
+                <Fluent:RibbonGroupBox Name="Insert_MiscGroup" Header="Misc" CanAddToQuickAccessToolBar="False">
+                    <Fluent:DropDownButton Name="ObjectButton" Icon="pack://application:,,,/Images/Insert/object16.png" Header="Object">
+                        <Fluent:DropDownButton.LargeIcon>
+                            <Image Height="32" Width="32" Source="pack://application:,,,/Images/Insert/object32.png" />
+                        </Fluent:DropDownButton.LargeIcon>
+                        <Fluent:DropDownButton.ToolTip>
+                            <Fluent:ScreenTip Title="Object (Insert + O)" Image="Images\Insert\object48.png" Text="Insert object"/>
+                        </Fluent:DropDownButton.ToolTip>
+                        <Fluent:MenuItem Name="InsertObject_Button" Header="Button">
+                            <Fluent:MenuItem.Icon>
+                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Insert/Object/button16.png" />
+                            </Fluent:MenuItem.Icon>
+                        </Fluent:MenuItem>
+                        <Fluent:MenuItem Name="InsertObject_RadioButton" Header="Radio Button">
+                            <Fluent:MenuItem.Icon>
+                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Insert/Object/radiobutton16.png" />
+                            </Fluent:MenuItem.Icon>
+                        </Fluent:MenuItem>
+                        <Fluent:MenuItem Name="InsertObject_CheckBox" Header="Check Box">
+                            <Fluent:MenuItem.Icon>
+                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Insert/Object/checkbox16.png" />
+                            </Fluent:MenuItem.Icon>
+                        </Fluent:MenuItem>
+                        <Fluent:MenuItem Name="InsertObject_TextBlock" Header="Text Block">
+                            <Fluent:MenuItem.Icon>
+                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Insert/Object/textblock16.png" />
+                            </Fluent:MenuItem.Icon>
+                        </Fluent:MenuItem>
+                    </Fluent:DropDownButton>
+                    <Fluent:Button Name="LinkButton" Icon="pack://application:,,,/Images/Insert/link16.png" Header="Link">
+                        <Fluent:Button.LargeIcon>
+                            <Image Height="32" Width="32" Source="pack://application:,,,/Images/Insert/link32.png" />
+                        </Fluent:Button.LargeIcon>
+                        <Fluent:Button.ToolTip>
+                            <Fluent:ScreenTip Title="Link (Insert + L)" Image="Images\Insert\link48.png" Text="Insert link"/>
+                        </Fluent:Button.ToolTip>
+                    </Fluent:Button>
+                    <Fluent:Button Name="InsertFlowDocumentButton" Header="FlowDocument" Icon="pack://application:,,,/Images/Tab/xaml16.png">
+                        <Fluent:Button.LargeIcon>
+                            <Image Height="32" Width="32" Source="pack://application:,,,/Images/Tab/xaml32.png" />
+                        </Fluent:Button.LargeIcon>
+                        <Fluent:Button.ToolTip>
+                            <Fluent:ScreenTip Title="FlowDocument (Insert + F)" Image="Images\Tab\xaml48.png" Text="Insert FlowDocument"/>
+                        </Fluent:Button.ToolTip>
+                    </Fluent:Button>
+                    <Fluent:Button Name="InsertRichTextDocumentButton" Header="Rich Text File" Icon="pack://application:,,,/Images/Tab/rtf16.png">
+                        <Fluent:Button.LargeIcon>
+                            <Image Height="32" Width="32" Source="pack://application:,,,/Images/Tab/rtf32.png" />
+                        </Fluent:Button.LargeIcon>
+                        <Fluent:Button.ToolTip>
+                            <Fluent:ScreenTip Title="Rich Text File" Image="Images\Tab\rtf48.png" Text="Insert Rich Text File"/>
+                        </Fluent:Button.ToolTip>
+                    </Fluent:Button>
+                    <Fluent:Button Name="TextFileButton" Icon="pack://application:,,,/Images/Insert/textfile16.png" Header="Text File">
+                        <Fluent:Button.LargeIcon>
+                            <Image Height="32" Width="32" Source="pack://application:,,,/Images/Insert/textfile32.png" />
+                        </Fluent:Button.LargeIcon>
+                        <Fluent:Button.ToolTip>
+                            <Fluent:ScreenTip Title="Text File (Insert + X)" Image="Images\Insert\textfile48.png" Text="Insert text file"/>
+                        </Fluent:Button.ToolTip>
+                    </Fluent:Button>
+                    <Fluent:Button Visibility="Collapsed" Name="InsertXPSButton" Header="XPS File" />
+                    <Fluent:DropDownButton Name="InsertSymbolButton" Header="Symbol">
+                        <Fluent:DropDownButton.LargeIcon>
+                            <Image Height="32" Width="32" Source="pack://application:,,,/Images/Insert/symbol32.png" />
+                        </Fluent:DropDownButton.LargeIcon>
+                        <Fluent:DropDownButton.Icon>
+                            <Image Height="16" Width="16" Source="pack://application:,,,/Images/Insert/symbol16.png" />
+                        </Fluent:DropDownButton.Icon>
+                        <Fluent:DropDownButton.ToolTip>
+                            <Fluent:ScreenTip Title="Symbol" Image="Images\Insert\symbol48.png" Text="Insert symbol"/>
+                        </Fluent:DropDownButton.ToolTip>
+                        <p:SymbolPanel x:Name="InsertSymbolGallery" />
+                    </Fluent:DropDownButton>
+                    <Fluent:Button Name="HorizontalLineButton" Header="Horizontal Line">
+                        <Fluent:Button.LargeIcon>
+                            <Image Height="32" Width="32" Source="pack://application:,,,/Images/Insert/horizontalline32.png" />
+                        </Fluent:Button.LargeIcon>
+                        <Fluent:Button.Icon>
+                            <Image Height="16" Width="16" Source="pack://application:,,,/Images/Insert/horizontalline16.png" />
+                        </Fluent:Button.Icon>
+                        <Fluent:Button.ToolTip>
+                            <Fluent:ScreenTip Title="Horizontal Line (Insert + H)" Image="Images\Insert\horizontalline48.png" Text="Insert horizontal line"/>
+                        </Fluent:Button.ToolTip>
+                    </Fluent:Button>
+                    <Fluent:Button Name="HeaderButton" Icon="pack://application:,,,/Images/Insert/header16.png" Header="Header">
+                        <Fluent:Button.LargeIcon>
+                            <Image Height="32" Width="32" Source="pack://application:,,,/Images/Insert/header32.png" />
+                        </Fluent:Button.LargeIcon>
+                        <Fluent:Button.ToolTip>
+                            <Fluent:ScreenTip Title="Header" Image="Images\Insert\header48.png" Text="Insert header"/>
+                        </Fluent:Button.ToolTip>
+                    </Fluent:Button>
+                    <Fluent:Button Name="FooterButton" Icon="pack://application:,,,/Images/Insert/footer16.png" Header="Footer">
+                        <Fluent:Button.LargeIcon>
+                            <Image Height="32" Width="32" Source="pack://application:,,,/Images/Insert/footer32.png" />
+                        </Fluent:Button.LargeIcon>
+                        <Fluent:Button.ToolTip>
+                            <Fluent:ScreenTip Title="Footer" Image="Images\Insert\footer48.png" Text="Insert footer"/>
+                        </Fluent:Button.ToolTip>
+                    </Fluent:Button>
+                </Fluent:RibbonGroupBox>
+            </Fluent:RibbonTabItem>
+            <Fluent:RibbonTabItem Name="DesignTab" Header="Design" Fluent:KeyTip.Keys="D">
+                <Fluent:RibbonTabItem.ToolTip>
+                    <Fluent:ScreenTip Title="Design" Text="Design Commands" />
+                </Fluent:RibbonTabItem.ToolTip>
+                <Fluent:RibbonGroupBox Visibility="Collapsed" Header="Document Formatting" CanAddToQuickAccessToolBar="False">
+                    <Fluent:DropDownButton Header="Themes" />
+                </Fluent:RibbonGroupBox>
+                <Fluent:RibbonGroupBox Name="Design_PageBackgroundGroup" Header="Page Background" ToolTip="Page Background" CanAddToQuickAccessToolBar="False">
+                    <Fluent:Button Visibility="Collapsed" Header="Watermark">
+                        <Fluent:Button.LargeIcon>
+                            <Image Height="32" Width="32" Source="pack://application:,,,/Images/PageLayout/backgroundimage32.png" />
+                        </Fluent:Button.LargeIcon>
+                        <Fluent:Button.ToolTip>
+                            <Fluent:ScreenTip Title="Background Image" Image="Images\PageLayout\backgroundimage48.png" Text="Set background image"/>
+                        </Fluent:Button.ToolTip>
+                    </Fluent:Button>
+                    <Fluent:DropDownButton Name="BackgroundColorMenuItem" Header="Page Color">
+                        <Fluent:DropDownButton.LargeIcon>
+                            <Image Height="32" Width="32" Source="pack://application:,,,/Images/PageLayout/backgroundcolor32.png" />
+                        </Fluent:DropDownButton.LargeIcon>
+                        <Fluent:DropDownButton.ToolTip>
+                            <Fluent:ScreenTip Title="Background Color" Image="Images\PageLayout\backgroundcolor48.png" Text="Set background color"/>
+                        </Fluent:DropDownButton.ToolTip>
+                        <Fluent:ColorGallery x:Name="BackgroundColorGallery" IsAutomaticColorButtonVisible="False" Mode="StandardColors" IsNoColorButtonVisible="False" />
+                    </Fluent:DropDownButton>
+                    <Fluent:Button Name="BackgroundImageMenuItem" Header="Image">
+                        <Fluent:Button.LargeIcon>
+                            <Image Height="32" Width="32" Source="pack://application:,,,/Images/PageLayout/backgroundimage32.png" />
+                        </Fluent:Button.LargeIcon>
+                        <Fluent:Button.ToolTip>
+                            <Fluent:ScreenTip Title="Background Image" Image="Images\PageLayout\backgroundimage48.png" Text="Set background image"/>
+                        </Fluent:Button.ToolTip>
+                    </Fluent:Button>
+                </Fluent:RibbonGroupBox>
+                <Fluent:RibbonGroupBox Visibility="Collapsed" Header="Page Border" CanAddToQuickAccessToolBar="False">
+                    <Fluent:DropDownButton Header="Border Color">
+                        <Fluent:DropDownButton.LargeIcon>
+                            <Image Height="32" Width="32" Source="pack://application:,,,/Images/PageLayout/backgroundcolor32.png" />
+                        </Fluent:DropDownButton.LargeIcon>
+                        <Fluent:DropDownButton.ToolTip>
+                            <Fluent:ScreenTip Title="Background Color" Image="Images\PageLayout\backgroundcolor48.png" Text="Set background color"/>
+                        </Fluent:DropDownButton.ToolTip>
+                        <Fluent:ColorGallery IsAutomaticColorButtonVisible="False" Mode="StandardColors" IsNoColorButtonVisible="False" />
+                    </Fluent:DropDownButton>
+                    <Fluent:Button Header="Image">
+                        <Fluent:Button.LargeIcon>
+                            <Image Height="32" Width="32" Source="pack://application:,,,/Images/PageLayout/backgroundimage32.png" />
+                        </Fluent:Button.LargeIcon>
+                        <Fluent:Button.ToolTip>
+                            <Fluent:ScreenTip Title="Border Image" Image="Images\PageLayout\backgroundimage48.png" Text="Set background image"/>
+                        </Fluent:Button.ToolTip>
+                    </Fluent:Button>
+                </Fluent:RibbonGroupBox>
+            </Fluent:RibbonTabItem>
+            <Fluent:RibbonTabItem Name="PageLayoutTab" Header="Page Layout" Fluent:KeyTip.Keys="P">
+                <Fluent:RibbonTabItem.ToolTip>
+                    <Fluent:ScreenTip Title="Page Layout" Text="Page Layout Commands" />
+                </Fluent:RibbonTabItem.ToolTip>
+                <Fluent:RibbonGroupBox Name="PageLayout_PageSetupGroup" Header="Page Setup" CanAddToQuickAccessToolBar="False">
+                    <Fluent:DropDownButton Header="Margins">
+                        <Fluent:DropDownButton.LargeIcon>
+                            <Image Height="32" Width="32" Source="pack://application:,,,/Images/PageLayout/pagemargins32.png" />
+                        </Fluent:DropDownButton.LargeIcon>
+                        <Fluent:DropDownButton.ToolTip>
+                            <Fluent:ScreenTip Title="Margins" Text="Set page margins" Image="Images/Pagelayout/pagemargins48.png" />
+                        </Fluent:DropDownButton.ToolTip>
+                        <Fluent:MenuItem Name="NoneMarginsMenuItem" Header="None (0 x 0 x 0 x 0)" />
+                        <Separator />
+                        <Fluent:MenuItem Name="NormalMarginsMenuItem" Header="Normal (1 x 1 x 1 x 1)" />
+                        <Fluent:MenuItem Name="NarrowMarginsMenuItem" Header="Narrow (0.5 x 0.5 x 0.5 x 0.5)" />
+                        <Separator />
+                        <Fluent:MenuItem Header="Custom">
+                            <Fluent:Spinner Name="LeftMarginBox" Header="Left:" Format="0 px" Minimum="0" Margin="19,0,0,0" />
+                            <Fluent:Spinner Name="TopMarginBox" Header="Top:" Format="0 px" Minimum="0" Margin="18,0,0,0" />
+                            <Fluent:Spinner Name="RightMarginBox" Header="Right:" Format="0 px" Minimum="0" Margin="11,0,0,0" />
+                            <Fluent:Spinner Name="BottomMarginBox"  Header="Bottom:" Format="0 px" Minimum="0" Width="116" />
+                        </Fluent:MenuItem>
+                    </Fluent:DropDownButton>
+                    <Fluent:DropDownButton Header="Size">
+                        <Fluent:DropDownButton.LargeIcon>
+                            <Image Height="32" Width="32" Source="pack://application:,,,/Images/PageLayout/pagesize32.png" />
+                        </Fluent:DropDownButton.LargeIcon>
+                        <Fluent:MenuItem Name="NormalPageSizeMenuItem" Header="Normal (8.5 x 11)" />
+                        <Fluent:MenuItem Name="WidePageSizeMenuItem" Header="Wide (11 x 8.5)" />
+                        <Separator />
+                        <Fluent:MenuItem Header="Custom">
+                            <Fluent:Spinner Name="PageHeightBox" Header="Height:" Format="0 px" Minimum="1" />
+                            <Fluent:Spinner Name="PageWidthBox"  Header="Width:" Format="0 px" Minimum="1" Margin="3,0,0,0" />
+                        </Fluent:MenuItem>
+                    </Fluent:DropDownButton>
+                </Fluent:RibbonGroupBox>
+                <Fluent:RibbonGroupBox Visibility="Collapsed" Header="Paragraph" CanAddToQuickAccessToolBar="False">
+                    <StackPanel Orientation="Vertical">
+                        <TextBlock Text="Indent" />
+                        <Fluent:Spinner Header="Left:">
+                            <Fluent:Spinner.Icon>
+                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Format/indentmore16.png" />
+                            </Fluent:Spinner.Icon>
+                        </Fluent:Spinner>
+                        <Fluent:Spinner Header="Right:">
+                            <Fluent:Spinner.Icon>
+                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Format/indentless16.png" />
+                            </Fluent:Spinner.Icon>
+                        </Fluent:Spinner>
+                    </StackPanel>
+                    <StackPanel Orientation="Vertical">
+                        <TextBlock Text="Spacing" />
+                        <Fluent:Spinner Header="Before" />
+                        <Fluent:Spinner Header="After" />
+                    </StackPanel>
+                </Fluent:RibbonGroupBox>
+                <Fluent:RibbonGroupBox Visibility="Collapsed" Header="Arrange" CanAddToQuickAccessToolBar="False">
+                    
+                </Fluent:RibbonGroupBox>
+            </Fluent:RibbonTabItem>
+            <Fluent:RibbonTabItem Name="NavigationTab" Header="Navigation" Fluent:KeyTip.Keys="N" ReduceOrder="Navigation_PageGroup, Navigation_PageGroup, Navigation_DocumentGroup, Navigation_DocumentGroup">
+                <Fluent:RibbonTabItem.ToolTip>
+                    <Fluent:ScreenTip Title="Navigation" Text="Navigation Commands" />
+                </Fluent:RibbonTabItem.ToolTip>
+                <Fluent:RibbonGroupBox Name="Navigation_LineGroup" Header="Line" CanAddToQuickAccessToolBar="False">
+                    <Fluent:Button Name="LineDownButton" Icon="pack://application:,,,/Images/Navigation/linedown16.png" Header="Line Down">
+                        <Fluent:Button.LargeIcon>
+                            <Image Height="32" Width="32" Source="pack://application:,,,/Images/Navigation/linedown32.png" />
+                        </Fluent:Button.LargeIcon>
+                        <Fluent:Button.ToolTip>
+                            <Fluent:ScreenTip Title="Line Down (Scroll Down)" Image="Images\Navigation\linedown48.png" Text="Line down"/>
+                        </Fluent:Button.ToolTip>
+                    </Fluent:Button>
+                    <Fluent:Button Name="LineUpButton" Icon="pack://application:,,,/Images/Navigation/lineup16.png" Header="Line Up">
+                        <Fluent:Button.LargeIcon>
+                            <Image Height="32" Width="32" Source="pack://application:,,,/Images/Navigation/lineup32.png" />
+                        </Fluent:Button.LargeIcon>
+                        <Fluent:Button.ToolTip>
+                            <Fluent:ScreenTip Title="Line Up (Scroll Up)" Image="Images\Navigation\lineup48.png" Text="Line up"/>
+                        </Fluent:Button.ToolTip>
+                    </Fluent:Button>
+                    <Fluent:Button Name="LineLeftButton" Icon="pack://application:,,,/Images/Navigation/lineleft16.png" Header="Line Left">
+                        <Fluent:Button.LargeIcon>
+                            <Image Height="32" Width="32" Source="pack://application:,,,/Images/Navigation/lineleft32.png" />
+                        </Fluent:Button.LargeIcon>
+                        <Fluent:Button.ToolTip>
+                            <Fluent:ScreenTip Title="Line Left (Scroll Left)" Image="Images\Navigation\lineleft48.png" Text="Line left"/>
+                        </Fluent:Button.ToolTip>
+                    </Fluent:Button>
+                    <Fluent:Button Name="LineRightButton" Icon="pack://application:,,,/Images/Navigation/lineright16.png" Header="Line Right">
+                        <Fluent:Button.LargeIcon>
+                            <Image Height="32" Width="32" Source="pack://application:,,,/Images/Navigation/lineright32.png" />
+                        </Fluent:Button.LargeIcon>
+                        <Fluent:Button.ToolTip>
+                            <Fluent:ScreenTip Title="Line Right (Scroll Right)" Image="Images\Navigation\lineright48.png" Text="Line right"/>
+                        </Fluent:Button.ToolTip>
+                    </Fluent:Button>
+                </Fluent:RibbonGroupBox>
+                <Fluent:RibbonGroupBox Name="Navigation_PageGroup"  Header="Page" CanAddToQuickAccessToolBar="False">
+                    <Fluent:Button Name="PageDownButton" Icon="pack://application:,,,/Images/Navigation/pagedown16.png" Header="Page Down">
+                        <Fluent:Button.LargeIcon>
+                            <Image Height="32" Width="32" Source="pack://application:,,,/Images/Navigation/pagedown32.png" />
+                        </Fluent:Button.LargeIcon>
+                        <Fluent:Button.ToolTip>
+                            <Fluent:ScreenTip Title="Page Down (Page Down)" Image="Images\Navigation\pagedown48.png" Text="Page down"/>
+                        </Fluent:Button.ToolTip>
+                    </Fluent:Button>
+                    <Fluent:Button Name="PageUpButton" Icon="pack://application:,,,/Images/Navigation/pageup16.png" Header="Page Up">
+                        <Fluent:Button.LargeIcon>
+                            <Image Height="32" Width="32" Source="pack://application:,,,/Images/Navigation/pageup32.png" />
+                        </Fluent:Button.LargeIcon>
+                        <Fluent:Button.ToolTip>
+                            <Fluent:ScreenTip Title="Page Up (Page Up)" Image="Images\Navigation\pageup48.png" Text="Page up"/>
+                        </Fluent:Button.ToolTip>
+                    </Fluent:Button>
+                    <Fluent:Button Name="PageLeftButton" Icon="pack://application:,,,/Images/Navigation/pageleft16.png" Header="Page Left">
+                        <Fluent:Button.LargeIcon>
+                            <Image Height="32" Width="32" Source="pack://application:,,,/Images/Navigation/pageleft32.png" />
+                        </Fluent:Button.LargeIcon>
+                        <Fluent:Button.ToolTip>
+                            <Fluent:ScreenTip Title="Page Left" Image="Images\Navigation\pageleft48.png" Text="Page left"/>
+                        </Fluent:Button.ToolTip>
+                    </Fluent:Button>
+                    <Fluent:Button Name="PageRightButton" Icon="pack://application:,,,/Images/Navigation/pageright16.png" Header="Page Right">
+                        <Fluent:Button.LargeIcon>
+                            <Image Height="32" Width="32" Source="pack://application:,,,/Images/Navigation/pageright32.png" />
+                        </Fluent:Button.LargeIcon>
+                        <Fluent:Button.ToolTip>
+                            <Fluent:ScreenTip Title="Page Right" Image="Images\Navigation\pageright48.png" Text="Page right"/>
+                        </Fluent:Button.ToolTip>
+                    </Fluent:Button>
+                </Fluent:RibbonGroupBox>
+                <Fluent:RibbonGroupBox Name="Navigation_DocumentGroup" Header="Document" CanAddToQuickAccessToolBar="False">
+                    <Fluent:Button Name="StartButton" Icon="pack://application:,,,/Images/Navigation/pageup16.png" Header="Start">
+                        <Fluent:Button.LargeIcon>
+                            <Image Height="32" Width="32" Source="pack://application:,,,/Images/Navigation/pageup32.png" />
+                        </Fluent:Button.LargeIcon>
+                        <Fluent:Button.ToolTip>
+                            <Fluent:ScreenTip Title="Start (Home)" Image="Images\Navigation\pageup48.png" Text="Start"/>
+                        </Fluent:Button.ToolTip>
+                    </Fluent:Button>
+                    <Fluent:Button Name="EndButton" Icon="pack://application:,,,/Images/Navigation/pagedown16.png" Header="End">
+                        <Fluent:Button.LargeIcon>
+                            <Image Height="32" Width="32" Source="pack://application:,,,/Images/Navigation/pagedown32.png" />
+                        </Fluent:Button.LargeIcon>
+                        <Fluent:Button.ToolTip>
+                            <Fluent:ScreenTip Title="End (End)" Image="Images\Navigation\pagedown48.png" Text="End"/>
+                        </Fluent:Button.ToolTip>
+                    </Fluent:Button>
+                </Fluent:RibbonGroupBox>
+            </Fluent:RibbonTabItem>
+            <Fluent:RibbonTabItem Name="ReviewTab" Header="Review" Fluent:KeyTip.Keys="R">
+                <Fluent:RibbonTabItem.ToolTip>
+                    <Fluent:ScreenTip Title="Review" Text="Review Commands" />
+                </Fluent:RibbonTabItem.ToolTip>
+                <Fluent:RibbonGroupBox Name="Review_Proofing" Header="Proofing" CanAddToQuickAccessToolBar="False">
+                    <Fluent:SplitButton Name="SpellCheckButton" Header="Spell Check" SizeDefinition="Large, Large, Large">
+                        <Fluent:SplitButton.LargeIcon>
+                            <Image Height="32" Width="32" Source="pack://application:,,,/Images/Tools/spellcheck32.png" />
+                        </Fluent:SplitButton.LargeIcon>
+                        <Fluent:SplitButton.Icon>
+                            <Image Height="16" Width="16" Source="pack://application:,,,/Images/Tools/spellcheck16.png" />
+                        </Fluent:SplitButton.Icon>
+                        <Fluent:SplitButton.ToolTip>
+                            <Fluent:ScreenTip Title="Spell Check" Image="Images\Tools\spellcheck48.png" Text="Spell check"/>
+                        </Fluent:SplitButton.ToolTip>
+                        <Fluent:MenuItem Name="PreviousSpellingErrorMenuItem" Header="Previous">
+                            <Fluent:MenuItem.Icon>
+                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Tools/previousspellingerror16.png" />
+                            </Fluent:MenuItem.Icon>
+                            <Fluent:MenuItem.ToolTip>
+                                <Fluent:ScreenTip Title="Previous" Text="Previous spelling error" Image="Images/Tools/previousspellingerror48.png" />
+                            </Fluent:MenuItem.ToolTip>
+                        </Fluent:MenuItem>
+                        <Fluent:MenuItem Name="NextSpellingErrorMenuItem" Header="Next">
+                            <Fluent:MenuItem.Icon>
+                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Tools/nextspellingerror16.png" />
+                            </Fluent:MenuItem.Icon>
+                            <Fluent:MenuItem.ToolTip>
+                                <Fluent:ScreenTip Title="Next" Text="Next spelling error" Image="Images/Tools/nextspellingerror48.png" />
+                            </Fluent:MenuItem.ToolTip>
+                        </Fluent:MenuItem>
+                        <Separator />
+                        <Fluent:MenuItem Name="IgnoreSpellingErrorMenuItem" Header="Ignore">
+                            <Fluent:MenuItem.Icon>
+                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Tools/ignorespellingerror16.png" />
+                            </Fluent:MenuItem.Icon>
+                            <Fluent:MenuItem.ToolTip>
+                                <Fluent:ScreenTip Title="Ignore" Text="Ignore spelling error" Image="Images/Tools/ignorespellingerror48.png" />
+                            </Fluent:MenuItem.ToolTip>
+                        </Fluent:MenuItem>
+                        <Separator />
+                        <Fluent:MenuItem Name="CorrectAllMenuItem" Header="Correct All">
+                            <Fluent:MenuItem.Icon>
+                                <Image Height="16" Width="16" Source="pack://application:,,,/Images/Tools/correctall16.png" />
+                            </Fluent:MenuItem.Icon>
+                            <Fluent:MenuItem.ToolTip>
+                                <Fluent:ScreenTip Title="Correct All" Text="Correct all spelling error" Image="Images/Tools/correctall48.png" />
+                            </Fluent:MenuItem.ToolTip>
+                        </Fluent:MenuItem>
+                    </Fluent:SplitButton>
+                    <Fluent:Button Name="DefinitionsButton" Header="Definitions">
+                        <Fluent:Button.LargeIcon>
+                            <Image Height="32" Width="32" Source="pack://application:,,,/Images/Tools/definitions32.png" />
+                        </Fluent:Button.LargeIcon>
+                        <Fluent:Button.Icon>
+                            <Image Height="16" Width="16" Source="pack://application:,,,/Images/Tools/definitions16.png" />
+                        </Fluent:Button.Icon>
+                        <Fluent:Button.ToolTip>
+                            <Fluent:ScreenTip Title="Definitions" Image="Images\Tools\definitions48.png" Text="Definitions"/>
+                        </Fluent:Button.ToolTip>
+                    </Fluent:Button>
+                </Fluent:RibbonGroupBox>
+                <Fluent:RibbonGroupBox Name="Review_Language" Header="Language" CanAddToQuickAccessToolBar="False">
+                    <Fluent:Button Name="TranslateButton" Header="Translate">
+                        <Fluent:Button.LargeIcon>
+                            <Image Height="32" Width="32" Source="pack://application:,,,/Images/Tools/translate32.png" />
+                        </Fluent:Button.LargeIcon>
+                        <Fluent:Button.Icon>
+                            <Image Height="16" Width="16" Source="pack://application:,,,/Images/Tools/translate16.png" />
+                        </Fluent:Button.Icon>
+                        <Fluent:Button.ToolTip>
+                            <Fluent:ScreenTip Title="Translate" Image="Images\Tools\translate48.png" Text="Translate selected"/>
+                        </Fluent:Button.ToolTip>
+                    </Fluent:Button>
+                    <Fluent:Button Name="TextToSpeechButton" Header="Speech">
+                        <Fluent:Button.LargeIcon>
+                            <Image Height="32" Width="32" Source="pack://application:,,,/Images/Tools/speech32.png" />
+                        </Fluent:Button.LargeIcon>
+                        <Fluent:Button.Icon>
+                            <Image Height="16" Width="16" Source="pack://application:,,,/Images/Tools/speech16.png" />
+                        </Fluent:Button.Icon>
+                        <Fluent:Button.ToolTip>
+                            <Fluent:ScreenTip Title="Text To Speech" Image="Images\Tools\speech48.png" Text="Text to speech"/>
+                        </Fluent:Button.ToolTip>
+                    </Fluent:Button>
+                </Fluent:RibbonGroupBox>
+            </Fluent:RibbonTabItem>
+            <Fluent:RibbonTabItem Name="ViewTab" Header="View" Fluent:KeyTip.Keys="V">
+                <Fluent:RibbonTabItem.ToolTip>
+                    <Fluent:ScreenTip Title="View" Text="View Commands" />
+                </Fluent:RibbonTabItem.ToolTip>
+                <Fluent:RibbonGroupBox Visibility="Collapsed" Header="Views" CanAddToQuickAccessToolBar="False">
+                    <Fluent:ToggleButton Icon="pack://application:,,,/Images/View/ruler16.png" Header="Print Layout">
+                        <Fluent:ToggleButton.LargeIcon>
+                            <Image Height="32" Width="32" Source="pack://application:,,,/Images/View/ruler32.png" />
+                        </Fluent:ToggleButton.LargeIcon>
+                        <Fluent:ToggleButton.ToolTip>
+                            <Fluent:ScreenTip Title="Ruler" Image="Images\View\ruler48.png" Text="Show/Hide ruler"/>
+                        </Fluent:ToggleButton.ToolTip>
+                    </Fluent:ToggleButton>
+                    <Fluent:ToggleButton Icon="pack://application:,,,/Images/View/statusbar16.png" Header="Web Layout">
+                        <Fluent:ToggleButton.LargeIcon>
+                            <Image Height="32" Width="32" Source="pack://application:,,,/Images/View/statusbar32.png" />
+                        </Fluent:ToggleButton.LargeIcon>
+                        <Fluent:ToggleButton.ToolTip>
+                            <Fluent:ScreenTip Title="Statusbar" Image="Images\View\statusbar48.png" Text="Show/Hide statusbar"/>
+                        </Fluent:ToggleButton.ToolTip>
+                    </Fluent:ToggleButton>
+                </Fluent:RibbonGroupBox>
+                <Fluent:RibbonGroupBox Header="Interface" CanAddToQuickAccessToolBar="False">
+                    <Fluent:ToggleButton Name="HRulerButton" Icon="pack://application:,,,/Images/View/ruler16.png" Header="Ruler">
+                        <Fluent:ToggleButton.LargeIcon>
+                            <Image Height="32" Width="32" Source="pack://application:,,,/Images/View/ruler32.png" />
+                        </Fluent:ToggleButton.LargeIcon>
+                        <Fluent:ToggleButton.ToolTip>
+                            <Fluent:ScreenTip Title="Ruler" Image="Images\View\ruler48.png" Text="Show/Hide ruler"/>
+                        </Fluent:ToggleButton.ToolTip>
+                    </Fluent:ToggleButton>
+                    <Fluent:ToggleButton Name="StatusbarButton" Icon="pack://application:,,,/Images/View/statusbar16.png" Header="Statusbar">
+                        <Fluent:ToggleButton.LargeIcon>
+                            <Image Height="32" Width="32" Source="pack://application:,,,/Images/View/statusbar32.png" />
+                        </Fluent:ToggleButton.LargeIcon>
+                        <Fluent:ToggleButton.ToolTip>
+                            <Fluent:ScreenTip Title="Statusbar" Image="Images\View\statusbar48.png" Text="Show/Hide statusbar"/>
+                        </Fluent:ToggleButton.ToolTip>
+                    </Fluent:ToggleButton>
+                </Fluent:RibbonGroupBox>
+                <Fluent:RibbonGroupBox Name="ZoomGroup" Header="Zoom" CanAddToQuickAccessToolBar="False">
+                    <Fluent:Button Name="ZoomInButton" Icon="pack://application:,,,/Images/View/zoomin16.png" Header="Zoom In">
+                        <Fluent:Button.LargeIcon>
+                            <Image Height="32" Width="32" Source="pack://application:,,,/Images/View/zoomin32.png" />
+                        </Fluent:Button.LargeIcon>
+                        <Fluent:Button.ToolTip>
+                            <Fluent:ScreenTip Title="Zoom In" Image="Images\View\zoomin48.png" Text="Zoom in"/>
+                        </Fluent:Button.ToolTip>
+                    </Fluent:Button>
+                    <Fluent:Button Name="ZoomOutButton" Icon="pack://application:,,,/Images/View/zoomout16.png" Header="Zoom Out">
+                        <Fluent:Button.LargeIcon>
+                            <Image Height="32" Width="32" Source="pack://application:,,,/Images/View/zoomout32.png" />
+                        </Fluent:Button.LargeIcon>
+                        <Fluent:Button.ToolTip>
+                            <Fluent:ScreenTip Title="Zoom Out" Image="Images\View\zoomout48.png" Text="Zoom out"/>
+                        </Fluent:Button.ToolTip>
+                    </Fluent:Button>
+                    <Fluent:Button Name="ResetZoomButton" Icon="pack://application:,,,/Images/View/resetzoom16.png" Header="Reset Zoom">
+                        <Fluent:Button.LargeIcon>
+                            <Image Height="32" Width="32" Source="pack://application:,,,/Images/View/resetzoom32.png" />
+                        </Fluent:Button.LargeIcon>
+                        <Fluent:Button.ToolTip>
+                            <Fluent:ScreenTip Title="Reset Zoom" Image="Images\View\resetzoom48.png" Text="Reset zoom"/>
+                        </Fluent:Button.ToolTip>
+                    </Fluent:Button>
+                </Fluent:RibbonGroupBox>
+                <Fluent:RibbonGroupBox Header="Fullscreen" CanAddToQuickAccessToolBar="False">
+                    <Fluent:ToggleButton Name="FullscreenMenuItem" Icon="pack://application:,,,/Images/View/fullscreen16.png" Header="Fullscreen">
+                        <Fluent:ToggleButton.LargeIcon>
+                            <Image Height="32" Width="32" Source="pack://application:,,,/Images/View/fullscreen32.png" />
+                        </Fluent:ToggleButton.LargeIcon>
+                        <Fluent:ToggleButton.ToolTip>
+                            <Fluent:ScreenTip Title="Fullscreen" Text="Enter/Exit Fullscreen" Image="Images/View/fullscreen48.png" />
+                        </Fluent:ToggleButton.ToolTip>
+                    </Fluent:ToggleButton>
+                </Fluent:RibbonGroupBox>
+            </Fluent:RibbonTabItem>
+            <Fluent:RibbonTabItem Name="EditTableTab" Header="Table" Group="{Binding ElementName=EditTableCellGroup}" Visibility="Collapsed">
+                <Fluent:RibbonTabItem.ToolTip>
+                    <Fluent:ScreenTip Title="Edit Table" Text="Table editing commands" />
+                </Fluent:RibbonTabItem.ToolTip>
+                <Fluent:RibbonGroupBox Header="Background" ToolTip="Background" CanAddToQuickAccessToolBar="False">
+                    <Fluent:DropDownButton Header="Color" LargeIcon="Images/Contextual/color32.png" CanAddToQuickAccessToolBar="False">
+                        <Fluent:DropDownButton.ToolTip>
+                            <Fluent:ScreenTip Title="Background Color" Text="Set table background color" />
+                        </Fluent:DropDownButton.ToolTip>
+                        <Fluent:ColorGallery x:Name="TableBackgroundColorGallery" IsAutomaticColorButtonVisible="False" Mode="StandardColors" IsNoColorButtonVisible="False" />
+                    </Fluent:DropDownButton>
+                    <Fluent:Button Name="TableBackgroundImageMenuItem" Header="Image">
+                        <Fluent:Button.LargeIcon>
+                            <Image Height="32" Width="32" Source="pack://application:,,,/Images/Contextual/image32.png" />
+                        </Fluent:Button.LargeIcon>
+                        <Fluent:Button.ToolTip>
+                            <Fluent:ScreenTip Title="Table Background Image" Text="Set table background image"/>
+                        </Fluent:Button.ToolTip>
+                    </Fluent:Button>
+                </Fluent:RibbonGroupBox>
+                <Fluent:RibbonGroupBox Header="Border" CanAddToQuickAccessToolBar="False">
+                    <Fluent:DropDownButton Header="Color" LargeIcon="Images/Contextual/color32.png" CanAddToQuickAccessToolBar="False">
+                        <Fluent:DropDownButton.ToolTip>
+                            <Fluent:ScreenTip Title="Border Color" Text="Set table border color" />
+                        </Fluent:DropDownButton.ToolTip>
+                        <Fluent:ColorGallery x:Name="TableBorderColorGallery" IsAutomaticColorButtonVisible="False" Mode="StandardColors" IsNoColorButtonVisible="False" />
+                    </Fluent:DropDownButton>
+                    <Fluent:Button Name="TableBorderBackgroundImageMenuItem" Header="Image">
+                        <Fluent:Button.LargeIcon>
+                            <Image Height="32" Width="32" Source="pack://application:,,,/Images/Contextual/image32.png" />
+                        </Fluent:Button.LargeIcon>
+                        <Fluent:Button.ToolTip>
+                            <Fluent:ScreenTip Title="Table Border Background Image" Text="Set table border background image"/>
+                        </Fluent:Button.ToolTip>
+                    </Fluent:Button>
+                    <Fluent:Spinner Name="TableBorderSizeBox" Header="Size:" Format="0 px" Minimum="0" Width="100" CanAddToQuickAccessToolBar="False">
+                        <Fluent:Spinner.ToolTip>
+                            <Fluent:ScreenTip Title="Border Size" Text="Set table border size" />
+                        </Fluent:Spinner.ToolTip>
+                    </Fluent:Spinner>
+                </Fluent:RibbonGroupBox>
+                <Fluent:RibbonGroupBox Header="Misc" CanAddToQuickAccessToolBar="False">
+                    <Fluent:Spinner Name="TableCellSpacingBox" Header="Cell Spacing:" Format="0 px" Minimum="0" Width="140" CanAddToQuickAccessToolBar="False">
+                        <Fluent:Spinner.ToolTip>
+                            <Fluent:ScreenTip Title="Cell Spacing" Text="Set table cell spacing" />
+                        </Fluent:Spinner.ToolTip>
+                    </Fluent:Spinner>
+                </Fluent:RibbonGroupBox>
+            </Fluent:RibbonTabItem>
+            <Fluent:RibbonTabItem Name="EditTableCellTab" Header="Cell" Group="{Binding ElementName=EditTableCellGroup}" Visibility="Collapsed">
+                <Fluent:RibbonTabItem.ToolTip>
+                    <Fluent:ScreenTip Title="Edit Cell" Text="Cell editing commands" />
+                </Fluent:RibbonTabItem.ToolTip>
+                <Fluent:RibbonGroupBox Header="Background" ToolTip="Background" CanAddToQuickAccessToolBar="False">
+                    <Fluent:DropDownButton Name="TableCellBackgroundMenuItem" Header="Color" LargeIcon="Images/Contextual/color32.png" CanAddToQuickAccessToolBar="False">
+                        <Fluent:DropDownButton.ToolTip>
+                            <Fluent:ScreenTip Title="Background Color" Text="Set cell background color" />
+                        </Fluent:DropDownButton.ToolTip>
+                        <Fluent:ColorGallery x:Name="TableCellBackgroundColorGallery" IsAutomaticColorButtonVisible="False" Mode="StandardColors" IsNoColorButtonVisible="False" />
+                    </Fluent:DropDownButton>
+                    <Fluent:Button Name="TableCellBackgroundImageMenuItem" Header="Image">
+                        <Fluent:Button.LargeIcon>
+                            <Image Height="32" Width="32" Source="pack://application:,,,/Images/Contextual/image32.png" />
+                        </Fluent:Button.LargeIcon>
+                        <Fluent:Button.ToolTip>
+                            <Fluent:ScreenTip Title="Table Cell Background Image" Text="Set table cell background image"/>
+                        </Fluent:Button.ToolTip>
+                    </Fluent:Button>
+                </Fluent:RibbonGroupBox>
+                <Fluent:RibbonGroupBox Header="Border" CanAddToQuickAccessToolBar="False">
+                    <Fluent:DropDownButton Name="TableCellBorderMenuItem"  Header="Color" LargeIcon="Images/Contextual/color32.png" CanAddToQuickAccessToolBar="False">
+                        <Fluent:DropDownButton.ToolTip>
+                            <Fluent:ScreenTip Title="Border Color" Text="Set cell border color" />
+                        </Fluent:DropDownButton.ToolTip>
+                        <Fluent:ColorGallery x:Name="TableCellBorderColorGallery" IsAutomaticColorButtonVisible="False" Mode="StandardColors" IsNoColorButtonVisible="False" />
+                    </Fluent:DropDownButton>
+                    <Fluent:Button Name="TableCellBorderBackgroundImageMenuItem" Header="Image">
+                        <Fluent:Button.LargeIcon>
+                            <Image Height="32" Width="32" Source="pack://application:,,,/Images/Contextual/image32.png" />
+                        </Fluent:Button.LargeIcon>
+                        <Fluent:Button.ToolTip>
+                            <Fluent:ScreenTip Title="Table Cell Border Background Image" Text="Set table cell border background image"/>
+                        </Fluent:Button.ToolTip>
+                    </Fluent:Button>
+                    <Fluent:Spinner Name="TableCellBorderSizeBox" Header="Size:" Format="0 px" Minimum="0" Width="100" CanAddToQuickAccessToolBar="False">
+                        <Fluent:Spinner.ToolTip>
+                            <Fluent:ScreenTip Title="Border Size" Text="Set cell border size" />
+                        </Fluent:Spinner.ToolTip>
+                    </Fluent:Spinner>
+                </Fluent:RibbonGroupBox>
+            </Fluent:RibbonTabItem>
+            <Fluent:RibbonTabItem Name="EditLinkTab" Header="Link" Group="{Binding ElementName=EditLinkGroup}" Visibility="Collapsed">
+                <Fluent:RibbonGroupBox>
+                    <Fluent:TextBox Header="URL:" />
+                </Fluent:RibbonGroupBox>
+            </Fluent:RibbonTabItem>
+            <Fluent:RibbonTabItem Name="EditListTab" Header="List" Group="{Binding ElementName=EditListGroup}" Visibility="Collapsed">
+
+            </Fluent:RibbonTabItem>
+            <Fluent:RibbonTabItem Name="EditImageTab" Header="Image" Group="{Binding ElementName=EditImageGroup}" Visibility="Collapsed">
+                <Fluent:RibbonTabItem.ToolTip>
+                    <Fluent:ScreenTip Title="Edit Image" Text="Image editing commands" />
+                </Fluent:RibbonTabItem.ToolTip>
+                <Fluent:RibbonGroupBox Header="Resize" CanAddToQuickAccessToolBar="False">
+                    <Fluent:Spinner Name="ImageHeightBox" Header="Height:" Format="0 px" Minimum="4" Maximum="5000" Width="112" Margin="-118,8,0,0" CanAddToQuickAccessToolBar="False">
+                        <Fluent:Spinner.ToolTip>
+                            <Fluent:ScreenTip Title="Height" Text="Set image height" />
+                        </Fluent:Spinner.ToolTip>
+                    </Fluent:Spinner>
+                    <Fluent:ComboBox Name="ImageResizeModeComboBox" IsEditable="False" Header=" Mode:" Width="228" Margin="0,8,0,0" CanAddToQuickAccessToolBar="False">
+                        <Fluent:ComboBox.ToolTip>
+                            <Fluent:ScreenTip Title="Resize Mode" Text="Set resize mode" />
+                        </Fluent:ComboBox.ToolTip>
+                        <TextBlock Text="Normal" />
+                        <TextBlock Text="Keep Aspect Ratio" />
+                        <TextBlock Text="Clipped" />
+                        <TextBlock Text="Fixed" />
+                    </Fluent:ComboBox>
+                    <Fluent:Spinner Name="ImageWidthBox" Header="Width:" Format="0 px" Minimum="4" Maximum="5000" Width="112" Margin="-118,8,0,0" CanAddToQuickAccessToolBar="False">
+                        <Fluent:Spinner.ToolTip>
+                            <Fluent:ScreenTip Title="Width" Text="Set image width" />
+                        </Fluent:Spinner.ToolTip>
+                    </Fluent:Spinner>
+                </Fluent:RibbonGroupBox>
+                <Fluent:RibbonGroupBox Header="Rotate" CanAddToQuickAccessToolBar="False">
+                    <Fluent:Button Name="RotateImageLeftMenuItem" Header="Rotate Left" LargeIcon="Images/Document/Export/export32.png" CanAddToQuickAccessToolBar="False">
+                        <Fluent:Button.ToolTip>
+                            <Fluent:ScreenTip Title="Rotate Left" Text="Rotate image left" />
+                        </Fluent:Button.ToolTip>
+                    </Fluent:Button>
+                    <Fluent:Button Name="RotateImageRightMenuItem" Header="Rotate Right" LargeIcon="Images/Document/import32.png" CanAddToQuickAccessToolBar="False">
+                        <Fluent:Button.ToolTip>
+                            <Fluent:ScreenTip Title="Rotate Right" Text="Rotate image right" />
+                        </Fluent:Button.ToolTip>
+                    </Fluent:Button>
+                </Fluent:RibbonGroupBox>
+                <Fluent:RibbonGroupBox Visibility="Collapsed" Header="Flip">
+                    <Fluent:Button Name="FlipImageHorizontalMenuItem" Header="Flip Horizontal" LargeIcon="Images/View/ruler32.png" />
+                    <Fluent:Button Name="FlipImageVerticalMenuItem" Header="Flip Vertical" LargeIcon="Images/View/verticalruler32.png" />
+                </Fluent:RibbonGroupBox>
+            </Fluent:RibbonTabItem>
+            <Fluent:RibbonTabItem Name="EditVideoTab" Header="Video" Group="{Binding ElementName=EditVideoGroup}" Visibility="Collapsed">
+                <Fluent:RibbonGroupBox Header="Resize" CanAddToQuickAccessToolBar="False">
+                    <Fluent:Spinner Name="VideoHeightBox" Header="Height:" Format="0" Width="96" Margin="-64,8,0,0" CanAddToQuickAccessToolBar="False" />
+                    <Fluent:ComboBox Name="VideoResizeModeComboBox" IsEditable="False" Header=" Mode:" Width="164" Margin="0,8,0,0" CanAddToQuickAccessToolBar="False">
+                        <TextBlock Text="Normal" />
+                        <TextBlock Text="Keep Aspect Ratio" />
+                        <TextBlock Text="Clipped" />
+                        <TextBlock Text="Fixed" />
+                    </Fluent:ComboBox>
+                    <Fluent:Spinner Name="VideoWidthBox" Header="Width:" Format="0" Width="96" Margin="-64,8,0,0" CanAddToQuickAccessToolBar="False" />
+                </Fluent:RibbonGroupBox>
+                <Fluent:RibbonGroupBox Visibility="Collapsed" Header="Rotate" CanAddToQuickAccessToolBar="False">
+                    <Fluent:Button Name="RotateVideoLeftMenuItem" Header="Rotate Left" LargeIcon="Images/Document/Export/export32.png" CanAddToQuickAccessToolBar="False" />
+                    <Fluent:Button Name="RotateVideoRightMenuItem" Header="Rotate Right" LargeIcon="Images/Document/import32.png" CanAddToQuickAccessToolBar="False" />
+                </Fluent:RibbonGroupBox>
+                <Fluent:RibbonGroupBox Visibility="Collapsed" Header="Flip">
+                    <Fluent:Button Name="FlipVideoHorizontalMenuItem" Header="Flip Horizontal" LargeIcon="Images/View/ruler32.png" />
+                    <Fluent:Button Name="FlipVideoVerticalMenuItem" Header="Flip Vertical" LargeIcon="Images/View/verticalruler32.png" />
+                </Fluent:RibbonGroupBox>
+                <Fluent:RibbonGroupBox Header="Misc">
+                    <Fluent:Button Name="VideoPlayMenuItem" Header="Play">
+
+                    </Fluent:Button>
+                </Fluent:RibbonGroupBox>
+            </Fluent:RibbonTabItem>
+            <Fluent:RibbonTabItem Name="EditShapeTab" Header="Video" Group="{Binding ElementName=EditVideoGroup}" Visibility="Collapsed">
+                <Fluent:RibbonGroupBox Header="Resize" CanAddToQuickAccessToolBar="False">
+                    <Fluent:Spinner Name="ShapeHeightBox" Header="Height:" Format="0" Width="96" Margin="-64,8,0,0" CanAddToQuickAccessToolBar="False" />
+                    <Fluent:ComboBox Name="VideoShapeModeComboBox" IsEditable="False" Header=" Type:" Width="164" Margin="0,8,0,0" CanAddToQuickAccessToolBar="False">
+                        <TextBlock Text="Normal" />
+                        <TextBlock Text="Keep Aspect Ratio" />
+                        <TextBlock Text="Clipped" />
+                        <TextBlock Text="Fixed" />
+                    </Fluent:ComboBox>
+                    <Fluent:Spinner Name="ShapeWidthBox" Header="Width:" Format="0" Width="96" Margin="-64,8,0,0" CanAddToQuickAccessToolBar="False" />
+                </Fluent:RibbonGroupBox>
+                <Fluent:RibbonGroupBox Visibility="Collapsed" Header="Rotate" CanAddToQuickAccessToolBar="False">
+                    <Fluent:Button Name="RotateShapeLeftMenuItem" Header="Rotate Left" LargeIcon="Images/Document/Export/export32.png" CanAddToQuickAccessToolBar="False" />
+                    <Fluent:Button Name="RotateShapeRightMenuItem" Header="Rotate Right" LargeIcon="Images/Document/import32.png" CanAddToQuickAccessToolBar="False" />
+                </Fluent:RibbonGroupBox>
+                <Fluent:RibbonGroupBox Visibility="Collapsed" Header="Flip">
+                    <Fluent:Button Name="FlipShapeHorizontalMenuItem" Header="Flip Horizontal" LargeIcon="Images/View/ruler32.png" />
+                    <Fluent:Button Name="FlipShapeVerticalMenuItem" Header="Flip Vertical" LargeIcon="Images/View/verticalruler32.png" />
+                </Fluent:RibbonGroupBox>
+            </Fluent:RibbonTabItem>
+            <Fluent:RibbonTabItem Name="EditObjectTab" Header="Object" Group="{Binding ElementName=EditObjectGroup}" Visibility="Collapsed">
+                <Fluent:RibbonTabItem.ToolTip>
+                    <Fluent:ScreenTip Title="Edit Object" Text="Object editing commands" />
+                </Fluent:RibbonTabItem.ToolTip>
+                <Fluent:RibbonGroupBox Header="Resize" CanAddToQuickAccessToolBar="False">
+                    <Fluent:Spinner Name="ObjectHeightBox" Header="Height:" Format="0 px" Minimum="4" Maximum="5000" Width="128" Margin="0,8,0,0" CanAddToQuickAccessToolBar="False">
+                        <Fluent:Spinner.ToolTip>
+                            <Fluent:ScreenTip Title="Height" Text="Set object height" />
+                        </Fluent:Spinner.ToolTip>
+                    </Fluent:Spinner>
+                    <Fluent:Spinner Name="ObjectWidthBox" Header="Width:" Format="0 px" Minimum="4" Maximum="5000" Width="128" Margin="3,8,0,0" CanAddToQuickAccessToolBar="False">
+                        <Fluent:Spinner.ToolTip>
+                            <Fluent:ScreenTip Title="Width" Text="Set object width" />
+                        </Fluent:Spinner.ToolTip>
+                    </Fluent:Spinner>
+                </Fluent:RibbonGroupBox>
+                <Fluent:RibbonGroupBox Header="Foreground" ToolTip="Foreground" CanAddToQuickAccessToolBar="False">
+                    <Fluent:DropDownButton Name="ObjectForegroundMenuItem" Header="Color" LargeIcon="Images/Contextual/color32.png" CanAddToQuickAccessToolBar="False">
+                        <Fluent:DropDownButton.ToolTip>
+                            <Fluent:ScreenTip Title="Foreground Color" Text="Set object foreground color" />
+                        </Fluent:DropDownButton.ToolTip>
+                        <Fluent:ColorGallery x:Name="ObjectForegroundColorGallery" IsAutomaticColorButtonVisible="False" Mode="StandardColors" IsNoColorButtonVisible="False" />
+                    </Fluent:DropDownButton>
+                </Fluent:RibbonGroupBox>
+                <Fluent:RibbonGroupBox Header="Background" ToolTip="Background" CanAddToQuickAccessToolBar="False">
+                    <Fluent:DropDownButton Name="ObjectBackgroundMenuItem" Header="Color" LargeIcon="Images/Contextual/color32.png" CanAddToQuickAccessToolBar="False">
+                        <Fluent:DropDownButton.ToolTip>
+                            <Fluent:ScreenTip Title="Background Color" Text="Set object background color" />
+                        </Fluent:DropDownButton.ToolTip>
+                        <Fluent:ColorGallery x:Name="ObjectBackgroundColorGallery" IsAutomaticColorButtonVisible="False" Mode="StandardColors" IsNoColorButtonVisible="False" />
+                    </Fluent:DropDownButton>
+                </Fluent:RibbonGroupBox>
+                <Fluent:RibbonGroupBox Name="ObjectBorderGroup" Header="Border" CanAddToQuickAccessToolBar="False">
+                    <Fluent:DropDownButton Header="Color" LargeIcon="Images/Contextual/color32.png" CanAddToQuickAccessToolBar="False">
+                        <Fluent:DropDownButton.ToolTip>
+                            <Fluent:ScreenTip Title="Border Color" Text="Set object border color" />
+                        </Fluent:DropDownButton.ToolTip>
+                        <Fluent:ColorGallery x:Name="ObjectBorderColorGallery" IsAutomaticColorButtonVisible="False" Mode="StandardColors" IsNoColorButtonVisible="False" />
+                    </Fluent:DropDownButton>
+                    <Fluent:Spinner Visibility="Collapsed" Name="ObjectBorderSizeBox" Header="Size:" Format="0 px" Minimum="0" Width="100" CanAddToQuickAccessToolBar="False">
+                        <Fluent:Spinner.ToolTip>
+                            <Fluent:ScreenTip Title="Border Size" Text="Set object border size" />
+                        </Fluent:Spinner.ToolTip>
+                    </Fluent:Spinner>
+                </Fluent:RibbonGroupBox>
+                <Fluent:RibbonGroupBox Header="Misc" CanAddToQuickAccessToolBar="False">
+                    <Fluent:TextBox Name="ObjectTextBox" Header="Text:" Width="96" CanAddToQuickAccessToolBar="False">
+                        <Fluent:TextBox.ToolTip>
+                            <Fluent:ScreenTip Title="Text" Text="Set object Text" />
+                        </Fluent:TextBox.ToolTip>
+                    </Fluent:TextBox>
+                    <Fluent:CheckBox Name="ObjectEnabledCheckBox" Header="Enabled">
+                        <Fluent:CheckBox.ToolTip>
+                            <Fluent:ScreenTip Title="Enabled" Text="Enable/Disable Object" />
+                        </Fluent:CheckBox.ToolTip>
+                    </Fluent:CheckBox>
+                </Fluent:RibbonGroupBox>
+            </Fluent:RibbonTabItem>
+            <Fluent:Ribbon.ContextualGroups>
+                <Fluent:RibbonContextualTabGroup x:Name="EditTableCellGroup" Header="Edit" Background="Green" />
+                <Fluent:RibbonContextualTabGroup x:Name="EditLinkGroup" Header="Edit" Background="Brown" />
+                <Fluent:RibbonContextualTabGroup x:Name="EditListGroup" Header="Edit" />
+                <Fluent:RibbonContextualTabGroup x:Name="EditImageGroup" Header="Edit" Background="Orange" />
+                <Fluent:RibbonContextualTabGroup x:Name="EditVideoGroup" Header="Edit" Background="Red" />
+                <Fluent:RibbonContextualTabGroup x:Name="EditShapeGroup" Header="Edit" Background="Purple" />
+                <Fluent:RibbonContextualTabGroup x:Name="EditObjectGroup" Header="Edit" Background="Blue" />
+            </Fluent:Ribbon.ContextualGroups>
+            <Fluent:Ribbon.ToolBarItems>
+                <Fluent:Button Name="OptionsButton" SizeDefinition="Small">
+                    <Fluent:Button.Icon>
+                        <Image Height="16" Width="16" Source="pack://application:,,,/Images/Tools/options16.png" />
+                    </Fluent:Button.Icon>
+                    <Fluent:Button.ToolTip>
+                        <Fluent:ScreenTip Title="Options" Text="Show options dialog" Image="/Images/Tools/options48.png" />
+                    </Fluent:Button.ToolTip>
+                </Fluent:Button>
+                <Fluent:DropDownButton SizeDefinition="Small">
+                    <Fluent:DropDownButton.Icon>
+                        <Image Height="16" Width="16" Source="pack://application:,,,/Images/Help/help16.png" />
+                    </Fluent:DropDownButton.Icon>
+                    <Fluent:DropDownButton.ToolTip>
+                        <Fluent:ScreenTip Title="Help" Text="Show help menu" />
+                    </Fluent:DropDownButton.ToolTip>
+                    <Fluent:MenuItem Name="OnlineHelpButton" Header="Online Help">
+                        <Fluent:MenuItem.Icon>
+                            <Image Height="16" Width="16" Source="pack://application:,,,/Images/Help/onlinehelp16.png" />
+                        </Fluent:MenuItem.Icon>
+                        <Fluent:MenuItem.ToolTip>
+                            <Fluent:ScreenTip Title="Online Help" Image="Images\Help\onlinehelp48.png" Text="Online help"/>
+                        </Fluent:MenuItem.ToolTip>
+                    </Fluent:MenuItem>
+                    <Fluent:MenuItem Name="ReportButton" Header="Report Bug">
+                        <Fluent:MenuItem.Icon>
+                            <Image Height="16" Width="16" Source="pack://application:,,,/Images/Help/reportbug16.png" />
+                        </Fluent:MenuItem.Icon>
+                        <Fluent:MenuItem.ToolTip>
+                            <Fluent:ScreenTip Title="Report Bug" Image="Images\Help\reportbug48.png" Text="Report bug"/>
+                        </Fluent:MenuItem.ToolTip>
+                    </Fluent:MenuItem>
+                    <Fluent:MenuItem Name="DonateButton" Header="Donate">
+                        <Fluent:MenuItem.Icon>
+                            <Image Height="16" Width="16" Source="pack://application:,,,/Images/Help/donate16.png" />
+                        </Fluent:MenuItem.Icon>
+                        <Fluent:MenuItem.ToolTip>
+                            <Fluent:ScreenTip Title="Donate" Image="Images\Help\donate48.png" Text="Donate"/>
+                        </Fluent:MenuItem.ToolTip>
+                    </Fluent:MenuItem>
+                    <Fluent:MenuItem Name="GetPluginsButton" Header="Get Plugins">
+                        <Fluent:MenuItem.Icon>
+                            <Image Height="16" Width="16" Source="pack://application:,,,/Images/Tools/plugins16.png" />
+                        </Fluent:MenuItem.Icon>
+                        <Fluent:MenuItem.ToolTip>
+                            <Fluent:ScreenTip Title="Get Plugins" Image="Images\Tools\plugins48.png" Text="Get plugins"/>
+                        </Fluent:MenuItem.ToolTip>
+                    </Fluent:MenuItem>
+                    <Fluent:MenuItem Name="HomepageButton" Header="Website">
+                        <Fluent:MenuItem.Icon>
+                            <Image Height="16" Width="16" Source="pack://application:,,,/Images/Help/website16.png" />
+                        </Fluent:MenuItem.Icon>
+                        <Fluent:MenuItem.ToolTip>
+                            <Fluent:ScreenTip Title="Website" Image="Images\Help\website48.png" Text="Visit Website"/>
+                        </Fluent:MenuItem.ToolTip>
+                    </Fluent:MenuItem>
+                    <Separator />
+                    <Fluent:MenuItem Name="AboutButton" Header="About">
+                        <Fluent:MenuItem.Icon>
+                            <Image Height="16" Width="16" Source="pack://application:,,,/Images/Help/about16.png" />
+                        </Fluent:MenuItem.Icon>
+                        <Fluent:MenuItem.ToolTip>
+                            <Fluent:ScreenTip Title="About" Image="Images\Help\about48.png" Text="About Document.Editor"/>
+                        </Fluent:MenuItem.ToolTip>
+                    </Fluent:MenuItem>
+                </Fluent:DropDownButton>
+            </Fluent:Ribbon.ToolBarItems>
+        </Fluent:Ribbon>
+        <Grid Grid.Row="1" ClipToBounds="True">
+            <Grid Name="dockingManagerGrid" Margin="0,0,0,0">
+                <avalonDock:DockingManager x:Name="dockingManager">
+                    <avalonDock:DockingManager.AnchorableContextMenu>
+                        <ContextMenu>
+                            <Fluent:MenuItem Name="SearchPanel_HideMenuItem" Header="Hide" />
+                            <!--<MenuItem Header="{x:Static avalonDockProperties:Resources.Anchorable_Float}" 
+                Command="{Binding Path=FloatCommand}"/>
+                            <MenuItem Header="{x:Static avalonDockProperties:Resources.Anchorable_Dock}" 
+                Command="{Binding Path=DockCommand}"/>
+                            <MenuItem Header="{x:Static avalonDockProperties:Resources.Anchorable_AutoHide}" 
+                Command="{Binding Path=AutoHideCommand}"/>
+                            <MenuItem Header="{x:Static avalonDockProperties:Resources.Anchorable_Hide}" 
+                Command="{Binding Path=HideCommand}"
+                Visibility="{Binding Path=IsEnabled, RelativeSource={RelativeSource Self}, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}"/>-->
+                        </ContextMenu>
+                    </avalonDock:DockingManager.AnchorableContextMenu>
+                    <avalonDock:DockingManager.DocumentHeaderTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal">
+                                <Image Source="{Binding IconSource}" Margin="0,0,4,0"/>
+                                <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </avalonDock:DockingManager.DocumentHeaderTemplate>
+                    <avalonDock:LayoutRoot>
+                        <avalonDock:LayoutPanel Orientation="Horizontal">
+                            <avalonDock:LayoutDocumentPane x:Name="TabCell" />
+                            <avalonDock:LayoutAnchorablePane DockMinWidth="128">
+                                <avalonDock:LayoutAnchorable x:Name="SearchPanel" IconSource="pack://application:,,,/Images/Edit/find16.png" Title="Search" CanFloat="False" CanClose="False" CanAutoHide="False">
+                                    <StackPanel Name="SearchPanel_StackPanel">
+                                        <!--<TextBlock Name="debugText" Text="test" />-->
+                                        <Fluent:TextBox Name="SearchPanel_FindTextBox" Header="Find:" Margin="5,2,5,2" />
+                                        <Fluent:TextBox Name="SearchPanel_ReplaceTextBox" Header="Replace:" Margin="5,2,5,2" />
+                                        <StackPanel Orientation="Horizontal">
+                                            <Fluent:Button Name="SearchPanel_FindButton" Header="Find" SizeDefinition="Middle" IsEnabled="False">
+                                                <Fluent:Button.Icon>
+                                                    <Image Source="pack://application:,,,/Images/Edit/find16.png" />
+                                                </Fluent:Button.Icon>
+                                            </Fluent:Button>
+                                            <Fluent:Button Name="SearchPanel_ReplaceButton" Header="Replace" SizeDefinition="Middle" IsEnabled="False">
+                                                <Fluent:Button.Icon>
+                                                    <Image Source="pack://application:,,,/Images/Edit/findreplace16.png" />
+                                                </Fluent:Button.Icon>
+                                            </Fluent:Button>
+                                        </StackPanel>
+                                        <Fluent:Spinner Name="SearchPanel_LineSpinner" Header="Line:" Format="0" Minimum="1" Margin="5,2,5,2" />
+                                        <Fluent:Button Name="SearchPanel_GoToButton" Header="Go To" SizeDefinition="Middle">
+                                            <Fluent:Button.Icon>
+                                                <Image Source="pack://application:,,,/Images/Edit/goto16.png" />
+                                            </Fluent:Button.Icon>
+                                        </Fluent:Button>
+                                    </StackPanel>
+                                </avalonDock:LayoutAnchorable>
+                            </avalonDock:LayoutAnchorablePane>
+                        </avalonDock:LayoutPanel>
+                    </avalonDock:LayoutRoot>
+                </avalonDock:DockingManager>
+            </Grid>
+        </Grid>
+        <Fluent:StatusBar x:Name="StatusBar" Grid.Row="2" Margin="0,-1,0,-1">
+            <Fluent:StatusBarItem Title="Lines" HorizontalAlignment="Left">
+                <TextBlock x:Name="LinesTextBlock" Text="Lines" />
+            </Fluent:StatusBarItem>
+            <Fluent:StatusBarItem Title="Columns" HorizontalAlignment="Left">
+                <TextBlock x:Name="ColumnsTextBlock" Text="Columns" />
+            </Fluent:StatusBarItem>
+            <Separator HorizontalAlignment="Left" />
+            <Fluent:StatusBarItem Title="Word Count" HorizontalAlignment="Left">
+                <TextBlock x:Name="WordCountTextBlock" Text="Word Count" />
+            </Fluent:StatusBarItem>
+            <Separator HorizontalAlignment="Left" />
+            <Fluent:StatusBarItem Title="File Size" HorizontalAlignment="Left">
+                <TextBlock x:Name="FileSizeTextBlock" Text="File Size" />
+            </Fluent:StatusBarItem>
+            <Separator HorizontalAlignment="Left" />
+            <Fluent:StatusBarItem Title="Zoom Slider"
+                                  HorizontalAlignment="Right">
+                <Slider x:Name="zoomSlider"
+                        Minimum="10"
+                        Maximum="500"
+                        IsDirectionReversed="False"
+                        Style="{DynamicResource ZoomSliderStyle}"
+                        Value="100" />
+            </Fluent:StatusBarItem>
+            <Fluent:StatusBarItem x:Name="ZoomTextBlock" Title="Zoom"
+                                  HorizontalAlignment="Right"
+                                  Value="{Binding Value, ElementName=zoomSlider, StringFormat=\{0:0\}%}" />
+        </Fluent:StatusBar>
+    </Grid>
+</Fluent:RibbonWindow>

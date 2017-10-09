@@ -1,0 +1,17 @@
+﻿<FlowDocument PageWidth="816" PageHeight="1056" PagePadding="96,96,96,96" AllowDrop="True" NumberSubstitution.CultureSource="User" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+  <Paragraph LineHeight="1">
+    <Run FontSize="48">Title</Run>
+  </Paragraph>
+  <Paragraph TextIndent="20" LineHeight="1">
+    <Run FontSize="16">Subject</Run>
+  </Paragraph>
+  <Paragraph TextIndent="20" LineHeight="1">
+    <Run FontSize="16" xml:space="preserve" />
+  </Paragraph>
+  <Paragraph TextIndent="20" LineHeight="1">
+    <Run FontSize="16" xml:space="preserve" />
+  </Paragraph>
+  <Paragraph LineHeight="1">
+    <Run FontSize="16">Content...</Run>
+  </Paragraph>
+</FlowDocument>

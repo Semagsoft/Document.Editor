@@ -1,0 +1,73 @@
+﻿<UserControl x:Class="FluentEmoticonGallery" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"  xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:Fluent="clr-namespace:Fluent;assembly=Fluent" mc:Ignorable="d">
+    <StackPanel>
+        <Fluent:Gallery GroupBy="Tag" MaxItemsInRow="21" Margin="0,0,0,26" Selectable="False" >
+            <Image Name="EmoticonAngelSmall" Height="16" Width="16" Source="../../Images/Insert/Emoticons/angel16.png" Tag="Small" />
+            <Image Name="EmoticonAngrySmall" Height="16" Width="16" Source="../../Images/Insert/Emoticons/angry16.png" Tag="Small" />
+            <Image Name="EmoticonCoolSmall" Height="16" Width="16" Source="../../Images/Insert/Emoticons/cool16.png" Tag="Small" />
+            <Image Name="EmoticonCryingSmall" Height="16" Width="16" Source="../../Images/Insert/Emoticons/crying16.png" Tag="Small" />
+            <Image Name="EmoticonDevilishSmall" Height="16" Width="16" Source="../../Images/Insert/Emoticons/devilish16.png" Tag="Small" />
+            <Image Name="EmoticonEmbarrassedSmall" Height="16" Width="16" Source="../../Images/Insert/Emoticons/embarrassed16.png" Tag="Small" />
+            <Image Name="EmoticonKissSmall" Height="16" Width="16" Source="../../Images/Insert/Emoticons/kiss16.png" Tag="Small" />
+            <Image Name="EmoticonlaughSmall" Height="16" Width="16" Source="../../Images/Insert/Emoticons/laugh16.png" Tag="Small" />
+            <Image Name="EmoticonMonkeySmall" Height="16" Width="16" Source="../../Images/Insert/Emoticons/monkey16.png" Tag="Small" />
+            <Image Name="EmoticonPlainSmall" Height="16" Width="16" Source="../../Images/Insert/Emoticons/plain16.png" Tag="Small" />
+            <Image Name="EmoticonRaspberrySmall" Height="16" Width="16" Source="../../Images/Insert/Emoticons/raspberry16.png" Tag="Small" />
+            <Image Name="EmoticonSadSmall" Height="16" Width="16" Source="../../Images/Insert/Emoticons/sad16.png" Tag="Small" />
+            <Image Name="EmoticonSickSmall" Height="16" Width="16" Source="../../Images/Insert/Emoticons/sick16.png" Tag="Small" />
+            <Image Name="EmoticonSmileSmall" Height="16" Width="16" Source="../../Images/Insert/Emoticons/smile16.png" Tag="Small" />
+            <Image Name="EmoticonSmileBigSmall" Height="16" Width="16" Source="../../Images/Insert/Emoticons/smilebig16.png" Tag="Small" />
+            <Image Name="EmoticonSmirkSmall" Height="16" Width="16" Source="../../Images/Insert/Emoticons/smirk16.png" Tag="Small" />
+            <Image Name="EmoticonSurpriseSmall" Height="16" Width="16" Source="../../Images/Insert/Emoticons/surprise16.png" Tag="Small" />
+            <Image Name="EmoticonTiredSmall" Height="16" Width="16" Source="../../Images/Insert/Emoticons/tired16.png" Tag="Small" />
+            <Image Name="EmoticonUncertainSmall" Height="16" Width="16" Source="../../Images/Insert/Emoticons/uncertain16.png" Tag="Small" />
+            <Image Name="EmoticonWinkSmall" Height="16" Width="16" Source="../../Images/Insert/Emoticons/wink16.png" Tag="Small" />
+            <Image Name="EmoticonWorriedSmall" Height="16" Width="16" Source="../../Images/Insert/Emoticons/worried16.png" Tag="Small" />
+        </Fluent:Gallery>
+        <Fluent:Gallery GroupBy="Tag" MaxItemsInRow="21" Margin="0,-26,0,0" Selectable="False" >
+            <Image Name="EmoticonAngelNormal" Height="32" Width="32" Source="../../Images/Insert/Emoticons/angel32.png" Tag="Normal" />
+            <Image Name="EmoticonAngryNormal" Height="32" Width="32" Source="../../Images/Insert/Emoticons/angry32.png" Tag="Normal" />
+            <Image Name="EmoticonCoolNormal" Height="32" Width="32" Source="../../Images/Insert/Emoticons/cool32.png" Tag="Normal" />
+            <Image Name="EmoticonCryingNormal" Height="32" Width="32" Source="../../Images/Insert/Emoticons/crying32.png" Tag="Normal" />
+            <Image Name="EmoticonDevilishNormal" Height="32" Width="32" Source="../../Images/Insert/Emoticons/devilish32.png" Tag="Normal" />
+            <Image Name="EmoticonEmbarrassedNormal" Height="32" Width="32" Source="../../Images/Insert/Emoticons/embarrassed32.png" Tag="Normal" />
+            <Image Name="EmoticonKissNormal" Height="32" Width="32" Source="../../Images/Insert/Emoticons/kiss32.png" Tag="Normal" />
+            <Image Name="EmoticonlaughNormal" Height="32" Width="32" Source="../../Images/Insert/Emoticons/laugh32.png" Tag="Normal" />
+            <Image Name="EmoticonMonkeyNormal" Height="32" Width="32" Source="../../Images/Insert/Emoticons/monkey32.png" Tag="Normal" />
+            <Image Name="EmoticonPlainNormal" Height="32" Width="32" Source="../../Images/Insert/Emoticons/plain32.png" Tag="Normal" />
+            <Image Name="EmoticonRaspberryNormal" Height="32" Width="32" Source="../../Images/Insert/Emoticons/raspberry32.png" Tag="Normal" />
+            <Image Name="EmoticonSadNormal" Height="32" Width="32" Source="../../Images/Insert/Emoticons/sad32.png" Tag="Normal" />
+            <Image Name="EmoticonSickNormal" Height="32" Width="32" Source="../../Images/Insert/Emoticons/sick32.png" Tag="Normal" />
+            <Image Name="EmoticonSmileNormal" Height="32" Width="32" Source="../../Images/Insert/Emoticons/smile32.png" Tag="Normal" />
+            <Image Name="EmoticonSmileBigNormal" Height="32" Width="32" Source="../../Images/Insert/Emoticons/smilebig32.png" Tag="Normal" />
+            <Image Name="EmoticonSmirkNormal" Height="32" Width="32" Source="../../Images/Insert/Emoticons/smirk32.png" Tag="Normal" />
+            <Image Name="EmoticonSurpriseNormal" Height="32" Width="32" Source="../../Images/Insert/Emoticons/surprise32.png" Tag="Normal" />
+            <Image Name="EmoticonTiredNormal" Height="32" Width="32" Source="../../Images/Insert/Emoticons/tired32.png" Tag="Normal" />
+            <Image Name="EmoticonUncertainNormal" Height="32" Width="32" Source="../../Images/Insert/Emoticons/uncertain32.png" Tag="Normal" />
+            <Image Name="EmoticonWinkNormal" Height="32" Width="32" Source="../../Images/Insert/Emoticons/wink32.png" Tag="Normal" />
+            <Image Name="EmoticonWorriedNormal" Height="32" Width="32" Source="../../Images/Insert/Emoticons/worried32.png" Tag="Normal" />
+        </Fluent:Gallery>
+        <Fluent:Gallery GroupBy="Tag" MaxItemsInRow="11" Margin="0,0,0,0" Selectable="False" >
+            <Image Name="EmoticonAngelLarge" Height="64" Width="64" Source="../../Images/Insert/Emoticons/angel64.png" Tag="Large" />
+            <Image Name="EmoticonAngryLarge" Height="64" Width="64" Source="../../Images/Insert/Emoticons/angry64.png" Tag="Large" />
+            <Image Name="EmoticonCoolLarge" Height="64" Width="64" Source="../../Images/Insert/Emoticons/cool64.png" Tag="Large" />
+            <Image Name="EmoticonCryingLarge" Height="64" Width="64" Source="../../Images/Insert/Emoticons/crying64.png" Tag="Large" />
+            <Image Name="EmoticonDevilishLarge" Height="64" Width="64" Source="../../Images/Insert/Emoticons/devilish64.png" Tag="Large" />
+            <Image Name="EmoticonEmbarrassedLarge" Height="64" Width="64" Source="../../Images/Insert/Emoticons/embarrassed64.png" Tag="Large" />
+            <Image Name="EmoticonKissLarge" Height="64" Width="64" Source="../../Images/Insert/Emoticons/kiss64.png" Tag="Large" />
+            <Image Name="EmoticonlaughLarge" Height="64" Width="64" Source="../../Images/Insert/Emoticons/laugh64.png" Tag="Large" />
+            <Image Name="EmoticonMonkeyLarge" Height="64" Width="64" Source="../../Images/Insert/Emoticons/monkey64.png" Tag="Large" />
+            <Image Name="EmoticonPlainLarge" Height="64" Width="64" Source="../../Images/Insert/Emoticons/plain64.png" Tag="Large" />
+            <Image Name="EmoticonRaspberryLarge" Height="64" Width="64" Source="../../Images/Insert/Emoticons/raspberry64.png" Tag="Large" />
+            <Image Name="EmoticonSadLarge" Height="64" Width="64" Source="../../Images/Insert/Emoticons/sad64.png" Tag="Large" />
+            <Image Name="EmoticonSickLarge" Height="64" Width="64" Source="../../Images/Insert/Emoticons/sick64.png" Tag="Large" />
+            <Image Name="EmoticonSmileLarge" Height="64" Width="64" Source="../../Images/Insert/Emoticons/smile64.png" Tag="Large" />
+            <Image Name="EmoticonSmileBigLarge" Height="64" Width="64" Source="../../Images/Insert/Emoticons/smilebig64.png" Tag="Large" />
+            <Image Name="EmoticonSmirkLarge" Height="64" Width="64" Source="../../Images/Insert/Emoticons/smirk64.png" Tag="Large" />
+            <Image Name="EmoticonSurpriseLarge" Height="64" Width="64" Source="../../Images/Insert/Emoticons/surprise64.png" Tag="Large" />
+            <Image Name="EmoticonTiredLarge" Height="64" Width="64" Source="../../Images/Insert/Emoticons/tired64.png" Tag="Large" />
+            <Image Name="EmoticonUncertainLarge" Height="64" Width="64" Source="../../Images/Insert/Emoticons/uncertain64.png" Tag="Large" />
+            <Image Name="EmoticonWinkLarge" Height="64" Width="64" Source="../../Images/Insert/Emoticons/wink64.png" Tag="Large" />
+            <Image Name="EmoticonWorriedLarge" Height="64" Width="64" Source="../../Images/Insert/Emoticons/worried64.png" Tag="Large" />
+        </Fluent:Gallery>
+    </StackPanel>
+</UserControl>
