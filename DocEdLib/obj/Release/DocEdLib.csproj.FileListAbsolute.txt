@@ -1,0 +1,13 @@
+E:\.Net Projects\Source Code\Document.Editor\DocEdLib\bin\Release\DocEdLib.dll.config
+E:\.Net Projects\Source Code\Document.Editor\DocEdLib\bin\Release\DocEdLib.dll
+E:\.Net Projects\Source Code\Document.Editor\DocEdLib\bin\Release\DocEdLib.pdb
+E:\.Net Projects\Source Code\Document.Editor\DocEdLib\obj\Release\DocEdLib.csprojAssemblyReference.cache
+E:\.Net Projects\Source Code\Document.Editor\DocEdLib\obj\Release\DocEdLib.dll
+E:\.Net Projects\Source Code\Document.Editor\DocEdLib\obj\Release\DocEdLib.pdb
+B:\.Net Projects\Source Code\Document.Editor\DocEdLib\bin\Release\DocEdLib.dll.config
+B:\.Net Projects\Source Code\Document.Editor\DocEdLib\bin\Release\DocEdLib.dll
+B:\.Net Projects\Source Code\Document.Editor\DocEdLib\bin\Release\DocEdLib.pdb
+B:\.Net Projects\Source Code\Document.Editor\DocEdLib\obj\Release\DocEdLib.csproj.AssemblyReference.cache
+B:\.Net Projects\Source Code\Document.Editor\DocEdLib\obj\Release\DocEdLib.csproj.CoreCompileInputs.cache
+B:\.Net Projects\Source Code\Document.Editor\DocEdLib\obj\Release\DocEdLib.dll
+B:\.Net Projects\Source Code\Document.Editor\DocEdLib\obj\Release\DocEdLib.pdb

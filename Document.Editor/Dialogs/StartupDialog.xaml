@@ -1,0 +1,57 @@
+﻿<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:Fluent="clr-namespace:Fluent;assembly=Fluent"
+        xmlns:AdsJumboWinForm="clr-namespace:AdsJumboWinForm;assembly=AdsJumboWinForm" x:Class="StartupDialog"
+        Title="Startup" Height="425.824" ShowInTaskbar="False" WindowStyle="ToolWindow" WindowStartupLocation="CenterOwner" ResizeMode="NoResize" Width="617.233">
+    <Grid Background="#7BFFFFFF">
+        <Fluent:Button SizeDefinition="Middle" Icon="../Images/Common/ok16.png" Header="Close" HorizontalAlignment="Right" Margin="0,0,10,8" x:Name="CloseButton" VerticalAlignment="Bottom">
+            <Fluent:Button.ToolTip>
+                <Fluent:ScreenTip Title="Close" Text="Close the Dialog" Image="../Images/Common/ok48.png" />
+            </Fluent:Button.ToolTip>
+        </Fluent:Button>
+        <TextBlock Height="23" HorizontalAlignment="Left" Margin="12,12,0,0" x:Name="TextBlock1" VerticalAlignment="Top" FontSize="14"><Run Text="Welcome to Document.Editor"/></TextBlock>
+        <TextBlock Height="23" HorizontalAlignment="Left" Margin="20,41,0,0" x:Name="TextBlock2" VerticalAlignment="Top"><Run Text="Hello and welcome to Document.Editor, click Close to get started or:"/></TextBlock>
+
+        <Fluent:CheckBox Header="Show on Startup" Foreground="Black" IsChecked="True" HorizontalAlignment="Left" Margin="10,0,0,10" x:Name="ShowOnStartupCheckBox" VerticalAlignment="Bottom" />
+        <Fluent:Button x:Name="OnlineHelpButton" Header="Online Help" Style="{DynamicResource ButtonBackstageStyle}" Height="85" Margin="0,74,0,0" HorizontalAlignment="Left" VerticalAlignment="Top">
+            <Fluent:Button.LargeIcon>
+                <Image Height="32" Width="32" Source="../Images/Help/onlinehelp32.png" />
+            </Fluent:Button.LargeIcon>
+            <Fluent:Button.ToolTip>
+                <Fluent:ScreenTip Title="Online Help" Text="Get Help Online" Image="../Images/Help/onlinehelp48.png" />
+            </Fluent:Button.ToolTip>
+        </Fluent:Button>
+        <Fluent:Button x:Name="ReportBugButton" Header="Report Bug" Style="{DynamicResource ButtonBackstageStyle}" Height="85" Margin="85,74,0,0" HorizontalAlignment="Left" VerticalAlignment="Top">
+            <Fluent:Button.LargeIcon>
+                <Image Height="32" Width="32" Source="../Images/Help/reportbug32.png" />
+            </Fluent:Button.LargeIcon>
+            <Fluent:Button.ToolTip>
+                <Fluent:ScreenTip Title="Report Bug" Text="Get Help Online" Image="../Images/Help/reportbug48.png" />
+            </Fluent:Button.ToolTip>
+        </Fluent:Button>
+        <Fluent:Button x:Name="DonateButton" Header="Donate" Style="{DynamicResource ButtonBackstageStyle}" Height="85" Margin="170,74,0,0" HorizontalAlignment="Left" VerticalAlignment="Top">
+            <Fluent:Button.LargeIcon>
+                <Image Height="32" Width="32" Source="../Images/Help/donate32.png" />
+            </Fluent:Button.LargeIcon>
+            <Fluent:Button.ToolTip>
+                <Fluent:ScreenTip Title="Donate" Text="Donate" Image="../Images/Help/donate48.png" />
+            </Fluent:Button.ToolTip>
+        </Fluent:Button>
+        <Fluent:Button x:Name="GetPluginsButton" Header="Get Plugins" Style="{DynamicResource ButtonBackstageStyle}" HorizontalAlignment="Left" Height="85" Margin="255,74,0,0" VerticalAlignment="Top">
+            <Fluent:Button.LargeIcon>
+                <Image Height="32" Width="32" Source="../Images/Tools/plugins32.png" />
+            </Fluent:Button.LargeIcon>
+            <Fluent:Button.ToolTip>
+                <Fluent:ScreenTip Title="Get Plugins" Text="Get More Plugins for Document.Editor" Image="../Images/Tools/plugins48.png" />
+            </Fluent:Button.ToolTip>
+        </Fluent:Button>
+        <Fluent:Button x:Name="WebsiteButton" Header="Visit Website" Style="{DynamicResource ButtonBackstageStyle}" HorizontalAlignment="Left" Height="85" Margin="340,74,0,0" VerticalAlignment="Top">
+            <Fluent:Button.LargeIcon>
+                <Image Height="32" Width="32" Source="../Images/Help/website32.png" />
+            </Fluent:Button.LargeIcon>
+            <Fluent:Button.ToolTip>
+                <Fluent:ScreenTip Title="Website" Text="Visit the Website" Image="../Images/Help/website48.png" />
+            </Fluent:Button.ToolTip>
+        </Fluent:Button>
+        <WindowsFormsHost Name="adHost" HorizontalAlignment="Center" Height="60" Margin="0,219,0,48" VerticalAlignment="Bottom"  Width="468" />
+        <!--<WindowsFormsHost x:Name="adHost_Copy" HorizontalAlignment="Center" Height="398" VerticalAlignment="Bottom"  Width="611" />-->
+    </Grid>
+</Window>
