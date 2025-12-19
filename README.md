@@ -1,5 +1,5 @@
 # Document.Editor
-http://documenteditor.semagsoft.com
+https://semagsoft.com/windows/documenteditor/
 
 Open source multitab VB.Net/WPF Ribbon UI based word processor for Windows Vista/7/8/8.1/10, and Windows 11.
 
