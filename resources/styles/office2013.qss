@@ -1,0 +1,12 @@
+/* Office 2013 Theme */
+QMainWindow { background: white; }
+QMenuBar { background: white; }
+QMenuBar::item:selected { background: #e5f0fa; }
+QToolBar { background: #f5f5f5; border: none; spacing: 4px; }
+QToolButton { border: 1px solid transparent; border-radius: 2px; padding: 2px; }
+QToolButton:hover { background: #e5f0fa; border-color: #99c4f0; }
+QToolButton:pressed, QToolButton:checked { background: #cce4f7; }
+QStatusBar { background: #f5f5f5; }
+QMdiArea { background: #f0f0f0; }
+QMenu { background: white; border: 1px solid #ccc; }
+QMenu::item:selected { background: #e5f0fa; }

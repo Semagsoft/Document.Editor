@@ -1,0 +1,637 @@
+#include "DocumentEditor.h"
+#include "converters/RtfConverter.h"
+#include "converters/XamlConverter.h"
+#include "services/SpellCheckHighlighter.h"
+#include "utils/SpellChecker.h"
+
+#include <QAction>
+#include <QApplication>
+#include <QBuffer>
+#include <QClipboard>
+#include <QFile>
+#include <QFileInfo>
+#include <QFontDatabase>
+#include <QKeyEvent>
+#include <QMenu>
+#include <QMessageBox>
+#include <QMimeData>
+#include <QRegularExpression>
+#include <QTextBlock>
+#include <QTextCursor>
+#include <QTextList>
+#include <QTextTable>
+
+DocumentEditor::DocumentEditor(QWidget* parent)
+    : QTextEdit(parent)
+{
+    setAcceptRichText(true);
+    setTabChangesFocus(false);
+    setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    setLineWrapMode(QTextEdit::WidgetWidth);
+    setWordWrapMode(QTextOption::WordWrap);
+
+    QTextDocument* doc = document();
+    doc->setPageSize(QSizeF(816, 1056));
+    doc->setDocumentMargin(0);
+
+    // Default font
+    m_baseFont = QFont(QStringLiteral("Segoe UI"), 12);
+    setFont(m_baseFont);
+    doc->setDefaultFont(m_baseFont);
+
+    // Set default paragraph format: 1.15 line spacing
+    QTextBlockFormat blockFmt;
+    blockFmt.setLineHeight(115, QTextBlockFormat::ProportionalHeight);
+    blockFmt.setTopMargin(0);
+    blockFmt.setBottomMargin(0);
+    QTextCursor cursor(doc);
+    cursor.select(QTextCursor::Document);
+    cursor.mergeBlockFormat(blockFmt);
+
+    m_baseFontPointSize = m_baseFont.pointSizeF();
+
+    m_statsTimer = new QTimer(this);
+    m_statsTimer->setSingleShot(true);
+    m_statsTimer->setInterval(200);
+    connect(m_statsTimer, &QTimer::timeout, this, &DocumentEditor::updateStats);
+
+    connectDocumentSignals();
+    updateStats();
+}
+
+void DocumentEditor::connectDocumentSignals()
+{
+    connect(this, &QTextEdit::textChanged, this, [this]() {
+        if (!m_fileChanged) {
+            m_fileChanged = true;
+            emit modifiedChanged(true);
+        }
+        scheduleStatsUpdate();
+    });
+
+    connect(this, &QTextEdit::cursorPositionChanged, this, [this]() {
+        scheduleStatsUpdate();
+        emit cursorPositionUpdated();
+    });
+
+    connect(document(), &QTextDocument::contentsChanged, this, [this]() {
+        scheduleStatsUpdate();
+    });
+}
+
+void DocumentEditor::scheduleStatsUpdate()
+{
+    if (!m_statsTimer->isActive())
+        m_statsTimer->start();
+}
+
+// ============================================================
+// Document State
+// ============================================================
+
+QString DocumentEditor::documentName() const { return m_documentName; }
+void DocumentEditor::setDocumentName(const QString& name)
+{
+    m_documentName = name;
+    QFileInfo fi(name);
+    if (fi.exists())
+        m_readOnlyFile = !fi.isWritable();
+}
+
+bool DocumentEditor::isModified() const { return m_fileChanged; }
+
+void DocumentEditor::setModified(bool changed)
+{
+    if (m_fileChanged != changed) {
+        m_fileChanged = changed;
+        emit modifiedChanged(changed);
+    }
+}
+
+bool DocumentEditor::isReadOnlyFile() const { return m_readOnlyFile; }
+
+// ============================================================
+// Page Setup
+// ============================================================
+
+QMarginsF DocumentEditor::pageMargins() const { return m_pageMargins; }
+
+void DocumentEditor::setPageMargins(const QMarginsF& margins)
+{
+    m_pageMargins = margins;
+    QTextFrameFormat frameFmt = document()->rootFrame()->frameFormat();
+    frameFmt.setLeftMargin(margins.left());
+    frameFmt.setRightMargin(margins.right());
+    frameFmt.setTopMargin(margins.top());
+    frameFmt.setBottomMargin(margins.bottom());
+    document()->rootFrame()->setFrameFormat(frameFmt);
+}
+
+qreal DocumentEditor::pageWidth() const { return document()->pageSize().width(); }
+
+void DocumentEditor::setPageWidth(qreal width)
+{
+    QSizeF size = document()->pageSize();
+    size.setWidth(width);
+    document()->setPageSize(size);
+}
+
+qreal DocumentEditor::pageHeight() const { return document()->pageSize().height(); }
+
+void DocumentEditor::setPageHeight(qreal height)
+{
+    QSizeF size = document()->pageSize();
+    size.setHeight(height);
+    document()->setPageSize(size);
+}
+
+// ============================================================
+// Zoom
+// ============================================================
+
+qreal DocumentEditor::zoomLevel() const { return m_zoomLevel; }
+
+void DocumentEditor::setZoomLevel(qreal level)
+{
+    m_zoomLevel = qBound(0.1, level, 5.0);
+    QFont zoomedFont = m_baseFont;
+    zoomedFont.setPointSizeF(qRound(m_baseFontPointSize * m_zoomLevel));
+    setFont(zoomedFont);
+}
+
+void DocumentEditor::setBaseFontPointSize(qreal size)
+{
+    m_baseFontPointSize = size;
+    m_baseFont.setPointSizeF(size);
+    setFont(m_baseFont);
+    document()->setDefaultFont(m_baseFont);
+}
+
+// ============================================================
+// Statistics
+// ============================================================
+
+void DocumentEditor::updateStats()
+{
+    QTextCursor cursor = textCursor();
+    QTextDocument* doc = document();
+
+    // Line count and current line
+    int blockNum = cursor.blockNumber() + 1;
+    int totalBlocks = doc->blockCount();
+
+    // Column
+    int col = cursor.positionInBlock() + 1;
+    int maxCol = col;
+    QTextBlock block = cursor.block();
+    if (block.isValid())
+        maxCol = block.length();
+
+    m_selectedLine = blockNum;
+    m_lineCount = totalBlocks;
+    m_selectedColumn = col;
+    m_columnCount = maxCol;
+
+    // Word count
+    QString text = doc->toPlainText();
+    text = text.replace(QRegularExpression(QStringLiteral("[\\r\\n]+")), QStringLiteral(" "));
+    text = text.trimmed();
+    m_wordCount = 0;
+    if (!text.isEmpty()) {
+        QStringList words = text.split(QRegularExpression(QStringLiteral("\\s+")),
+            Qt::SkipEmptyParts);
+        m_wordCount = words.size();
+    }
+}
+
+int DocumentEditor::lineCount() const { return m_lineCount; }
+int DocumentEditor::columnCount() const { return m_columnCount; }
+int DocumentEditor::wordCount() const { return m_wordCount; }
+int DocumentEditor::selectedLineNumber() const { return m_selectedLine; }
+int DocumentEditor::selectedColumnNumber() const { return m_selectedColumn; }
+
+// ============================================================
+// Find
+// ============================================================
+
+QTextCursor DocumentEditor::findWord(const QString& word, const QTextCursor& start)
+{
+    QTextCursor cursor = document()->find(word, start.isNull() ? textCursor() : start);
+    if (!cursor.isNull()) {
+        setTextCursor(cursor);
+        ensureCursorVisible();
+    }
+    return cursor;
+}
+
+void DocumentEditor::goToLine(int lineNumber)
+{
+    if (lineNumber < 1)
+        lineNumber = 1;
+    QTextBlock block = document()->findBlockByNumber(lineNumber - 1);
+    if (!block.isValid())
+        block = document()->lastBlock();
+    QTextCursor cursor(block);
+    setTextCursor(cursor);
+    ensureCursorVisible();
+}
+
+// ============================================================
+// Formatting Toggles
+// ============================================================
+
+void DocumentEditor::toggleBold()
+{
+    QTextCursor cursor = textCursor();
+    cursor.beginEditBlock();
+    QTextCharFormat fmt;
+    fmt.setFontWeight(cursor.charFormat().fontWeight() == QFont::Bold
+            ? QFont::Normal
+            : QFont::Bold);
+    cursor.mergeCharFormat(fmt);
+    cursor.endEditBlock();
+}
+
+void DocumentEditor::toggleItalic()
+{
+    QTextCursor cursor = textCursor();
+    cursor.beginEditBlock();
+    QTextCharFormat fmt;
+    fmt.setFontItalic(!cursor.charFormat().fontItalic());
+    cursor.mergeCharFormat(fmt);
+    cursor.endEditBlock();
+}
+
+void DocumentEditor::toggleUnderline()
+{
+    QTextCursor cursor = textCursor();
+    cursor.beginEditBlock();
+    QTextCharFormat fmt;
+    fmt.setFontUnderline(!cursor.charFormat().fontUnderline());
+    cursor.mergeCharFormat(fmt);
+    cursor.endEditBlock();
+}
+
+void DocumentEditor::toggleStrikethrough()
+{
+    QTextCursor cursor = textCursor();
+    cursor.beginEditBlock();
+    QTextCharFormat fmt;
+    fmt.setFontStrikeOut(!cursor.charFormat().fontStrikeOut());
+    cursor.mergeCharFormat(fmt);
+    cursor.endEditBlock();
+}
+
+void DocumentEditor::toggleSubscript()
+{
+    QTextCursor cursor = textCursor();
+    cursor.beginEditBlock();
+    QTextCharFormat fmt;
+    fmt.setVerticalAlignment(
+        cursor.charFormat().verticalAlignment() == QTextCharFormat::AlignSubScript
+            ? QTextCharFormat::AlignNormal
+            : QTextCharFormat::AlignSubScript);
+    cursor.mergeCharFormat(fmt);
+    cursor.endEditBlock();
+}
+
+void DocumentEditor::toggleSuperscript()
+{
+    QTextCursor cursor = textCursor();
+    cursor.beginEditBlock();
+    QTextCharFormat fmt;
+    fmt.setVerticalAlignment(
+        cursor.charFormat().verticalAlignment() == QTextCharFormat::AlignSuperScript
+            ? QTextCharFormat::AlignNormal
+            : QTextCharFormat::AlignSuperScript);
+    cursor.mergeCharFormat(fmt);
+    cursor.endEditBlock();
+}
+
+void DocumentEditor::clearFormatting()
+{
+    QTextCursor cursor = textCursor();
+    cursor.beginEditBlock();
+    QTextCharFormat fmt;
+    if (!cursor.hasSelection())
+        cursor.select(QTextCursor::WordUnderCursor);
+    fmt.setFont(QFont());
+    fmt.setFontWeight(QFont::Normal);
+    fmt.setFontItalic(false);
+    fmt.setFontUnderline(false);
+    fmt.setFontStrikeOut(false);
+    fmt.setVerticalAlignment(QTextCharFormat::AlignNormal);
+    fmt.setForeground(QColor());
+    fmt.setBackground(QColor());
+    cursor.mergeCharFormat(fmt);
+    cursor.endEditBlock();
+}
+
+// ============================================================
+// Alignment
+// ============================================================
+
+void DocumentEditor::setParagraphAlignment(Qt::Alignment align)
+{
+    QTextBlockFormat fmt;
+    fmt.setAlignment(align);
+    textCursor().mergeBlockFormat(fmt);
+}
+
+// ============================================================
+// Lists
+// ============================================================
+
+void DocumentEditor::toggleBulletList()
+{
+    QTextCursor cursor = textCursor();
+    QTextBlock block = cursor.block();
+    QTextList* list = block.textList();
+
+    if (list && list->format().style() == QTextListFormat::ListDisc) {
+        list->remove(block);
+        QTextBlockFormat bfmt;
+        bfmt.setIndent(0);
+        cursor.setBlockFormat(bfmt);
+    } else {
+        QTextListFormat listFmt;
+        listFmt.setStyle(QTextListFormat::ListDisc);
+        listFmt.setIndent(1);
+        cursor.createList(listFmt);
+    }
+}
+
+void DocumentEditor::toggleNumberList()
+{
+    QTextCursor cursor = textCursor();
+    QTextBlock block = cursor.block();
+    QTextList* list = block.textList();
+
+    if (list && list->format().style() == QTextListFormat::ListDecimal) {
+        list->remove(block);
+        QTextBlockFormat bfmt;
+        bfmt.setIndent(0);
+        cursor.setBlockFormat(bfmt);
+    } else {
+        QTextListFormat listFmt;
+        listFmt.setStyle(QTextListFormat::ListDecimal);
+        listFmt.setIndent(1);
+        cursor.createList(listFmt);
+    }
+}
+
+// ============================================================
+// Indent
+// ============================================================
+
+void DocumentEditor::indentMore()
+{
+    QTextBlockFormat fmt;
+    fmt.setIndent(textCursor().blockFormat().indent() + 1);
+    textCursor().mergeBlockFormat(fmt);
+}
+
+void DocumentEditor::indentLess()
+{
+    int indent = textCursor().blockFormat().indent();
+    if (indent > 0) {
+        QTextBlockFormat fmt;
+        fmt.setIndent(indent - 1);
+        textCursor().mergeBlockFormat(fmt);
+    }
+}
+
+// ============================================================
+// Line Spacing
+// ============================================================
+
+void DocumentEditor::setLineSpacing(qreal spacing)
+{
+    QTextBlockFormat fmt;
+    fmt.setLineHeight(static_cast<int>(spacing * 100),
+        QTextBlockFormat::ProportionalHeight);
+    textCursor().mergeBlockFormat(fmt);
+}
+
+// ============================================================
+// Page Orientation
+// ============================================================
+
+void DocumentEditor::togglePageOrientation()
+{
+    QSizeF size = document()->pageSize();
+    qreal temp = size.width();
+    size.setWidth(size.height());
+    size.setHeight(temp);
+    document()->setPageSize(size);
+}
+
+// ============================================================
+// Page Background
+// ============================================================
+
+QColor DocumentEditor::pageBackground() const
+{
+    return m_pageBackground;
+}
+
+void DocumentEditor::setPageBackground(const QColor& color)
+{
+    m_pageBackground = color;
+    m_pageBackgroundSet = true;
+    QPalette p = viewport()->palette();
+    p.setColor(QPalette::Base, color);
+    viewport()->setPalette(p);
+}
+
+// ============================================================
+// Text Direction
+// ============================================================
+
+void DocumentEditor::setTextDirection(Qt::LayoutDirection direction)
+{
+    QTextBlockFormat fmt;
+    fmt.setLayoutDirection(direction);
+    textCursor().mergeBlockFormat(fmt);
+}
+
+// ============================================================
+// Case
+// ============================================================
+
+void DocumentEditor::toUpperCase()
+{
+    QTextCursor cursor = textCursor();
+    cursor.beginEditBlock();
+    if (!cursor.hasSelection())
+        cursor.select(QTextCursor::WordUnderCursor);
+    QString text = cursor.selectedText();
+    cursor.insertText(text.toUpper());
+    cursor.endEditBlock();
+}
+
+void DocumentEditor::toLowerCase()
+{
+    QTextCursor cursor = textCursor();
+    cursor.beginEditBlock();
+    if (!cursor.hasSelection())
+        cursor.select(QTextCursor::WordUnderCursor);
+    QString text = cursor.selectedText();
+    cursor.insertText(text.toLower());
+    cursor.endEditBlock();
+}
+
+// ============================================================
+// Spell Check
+// ============================================================
+
+void DocumentEditor::setSpellChecker(SpellChecker* checker)
+{
+    m_spellChecker = checker;
+    if (m_spellChecker && m_spellCheckEnabled) {
+        if (!m_spellHighlighter)
+            m_spellHighlighter = new SpellCheckHighlighter(document(), m_spellChecker);
+        m_spellHighlighter->setDocument(document());
+    }
+}
+
+SpellChecker* DocumentEditor::spellChecker() const
+{
+    return m_spellChecker;
+}
+
+void DocumentEditor::setSpellCheckEnabled(bool enabled)
+{
+    m_spellCheckEnabled = enabled;
+    if (enabled && m_spellChecker && !m_spellHighlighter) {
+        m_spellHighlighter = new SpellCheckHighlighter(document(), m_spellChecker);
+    } else if (!enabled && m_spellHighlighter) {
+        delete m_spellHighlighter;
+        m_spellHighlighter = nullptr;
+    }
+}
+
+// ============================================================
+// File I/O
+// ============================================================
+
+bool DocumentEditor::loadFromFile(const QString& filename)
+{
+    QFile file(filename);
+    if (!file.open(QIODevice::ReadOnly))
+        return false;
+
+    constexpr qint64 kMaxFileSize = 50 * 1024 * 1024;
+    if (file.size() > kMaxFileSize) {
+        file.close();
+        QMessageBox::warning(this, tr("File Too Large"),
+            tr("The file is too large to open (max 50 MB)."));
+        return false;
+    }
+
+    QFileInfo fi(filename);
+    QString ext = fi.suffix().toLower();
+
+    bool ok = false;
+    if (ext == QStringLiteral("xaml") || ext == QStringLiteral("dexml")) {
+        QString xml = QString::fromUtf8(file.readAll());
+        ok = XamlConverter::loadFromXaml(xml, document(), m_pageMargins, m_pageBackground);
+        if (!ok) {
+            setPlainText(xml);
+        }
+    } else if (ext == QStringLiteral("html") || ext == QStringLiteral("htm")) {
+        QString html = QString::fromUtf8(file.readAll());
+        setHtml(html);
+        ok = true;
+    } else if (ext == QStringLiteral("rtf")) {
+        QByteArray data = file.readAll();
+        ok = RtfConverter::loadFromRtf(data, document());
+        if (!ok) {
+            setPlainText(QString::fromUtf8(data));
+            ok = true;
+        }
+    } else if (ext == QStringLiteral("txt")) {
+        setPlainText(QString::fromUtf8(file.readAll()));
+        ok = true;
+    } else {
+        setPlainText(QString::fromUtf8(file.readAll()));
+        ok = true;
+    }
+
+    file.close();
+
+    if (ok) {
+        m_documentName = filename;
+        m_fileChanged = false;
+        emit modifiedChanged(false);
+        document()->setModified(false);
+        updateStats();
+    }
+
+    return ok;
+}
+
+bool DocumentEditor::saveToFile(const QString& filename)
+{
+    QFile file(filename);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate))
+        return false;
+
+    QFileInfo fi(filename);
+    QString ext = fi.suffix().toLower();
+
+    bool ok = false;
+    if (ext == QStringLiteral("xaml") || ext == QStringLiteral("dexml")) {
+        QByteArray xml = XamlConverter::saveToXaml(document(), m_pageMargins, m_pageBackground).toUtf8();
+        ok = file.write(xml) > 0;
+    } else if (ext == QStringLiteral("html") || ext == QStringLiteral("htm")) {
+        QByteArray html = toHtml().toUtf8();
+        ok = file.write(html) > 0;
+    } else if (ext == QStringLiteral("rtf")) {
+        ok = file.write(RtfConverter::saveToRtf(document())) > 0;
+    } else {
+        QByteArray text = toPlainText().toUtf8();
+        ok = file.write(text) > 0;
+    }
+
+    file.close();
+
+    if (ok) {
+        m_documentName = filename;
+        m_fileChanged = false;
+        emit modifiedChanged(false);
+        document()->setModified(false);
+    }
+
+    return ok;
+}
+
+// ============================================================
+// Events
+// ============================================================
+
+void DocumentEditor::keyPressEvent(QKeyEvent* event)
+{
+    if (event->key() == Qt::Key_Tab) {
+        QTextCursor cursor = textCursor();
+        cursor.insertText(QStringLiteral("    "));
+        return;
+    }
+    QTextEdit::keyPressEvent(event);
+}
+
+void DocumentEditor::contextMenuEvent(QContextMenuEvent* event)
+{
+    QMenu* menu = createStandardContextMenu();
+    menu->addSeparator();
+
+    QAction* upperAction = menu->addAction(tr("Uppercase"));
+    connect(upperAction, &QAction::triggered, this, &DocumentEditor::toUpperCase);
+
+    QAction* lowerAction = menu->addAction(tr("Lowercase"));
+    connect(lowerAction, &QAction::triggered, this, &DocumentEditor::toLowerCase);
+
+    menu->exec(event->globalPos());
+    delete menu;
+}

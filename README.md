@@ -1,10 +1,34 @@
-# Document.Editor
-https://semagsoft.com/windows/documenteditor/
+﻿# Document.Editor
 
-Open source multitab VB.Net/WPF Ribbon UI based word processor for Windows Vista/7/8/8.1/10, and Windows 11.
+A cross-platform rich text document editor built with Qt6 and C++17.
 
-Includes support for opening FlowDocument, Html and plain / rich text formats and support for saving FlowDocument and plain / rich text formats.
+## Features
 
-Multiple tab interface so you can edit more then one document in a session, compact application size, and multiple Edit / Insert / Format commands.
+- Rich text editing with XAML, HTML, RTF, and TXT support
+- Multi-tab/MDI document interface
+- Text-to-speech
+- Spell checking
+- FTP import/export
+- Plugin architecture
+- Multiple themes (Office 2010, Office 2013, Windows 8, Silver, Black)
+- Page layout and print support
+- Shape and chart insertion
+- Word count, find/replace, and other editing tools
 
-Export documents to ftp server, zip archive or sound
+## Dependencies
+
+- CMake 3.20+
+- C++17 compiler
+- Qt6 (Core, Gui, Widgets, PrintSupport, Network, TextToSpeech, Xml, Charts, Concurrent)
+
+## Building
+
+```bash
+mkdir build && cd build
+cmake ..
+cmake --build .
+```
+
+## License
+
+GPL v2 License — see LICENSE.

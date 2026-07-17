@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Document Width="816" Height="1056" Padding="96,96,96,96">
+  <Paragraph>
+    <Run FontSize="48" Bold="True">Title</Run>
+  </Paragraph>
+  <Paragraph>
+    <Run FontSize="16">Subject</Run>
+  </Paragraph>
+  <Paragraph>
+    <Run FontSize="16" />
+  </Paragraph>
+  <Paragraph>
+    <Run FontSize="16" />
+  </Paragraph>
+  <Paragraph>
+    <Run FontSize="16">Content...</Run>
+  </Paragraph>
+</Document>

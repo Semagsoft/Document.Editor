@@ -1,0 +1,12 @@
+/* Windows 8 Theme */
+QMainWindow { background: #f1f1f1; }
+QMenuBar { background: #f1f1f1; }
+QMenuBar::item:selected { background: #e5e5e5; }
+QToolBar { background: #f1f1f1; border: none; spacing: 4px; }
+QToolButton { border: 1px solid transparent; border-radius: 2px; padding: 2px; }
+QToolButton:hover { background: #e5e5e5; border-color: #adadad; }
+QToolButton:pressed, QToolButton:checked { background: #cecece; }
+QStatusBar { background: #e1e1e1; }
+QMdiArea { background: #e1e1e1; }
+QMenu { background: white; border: 1px solid #ccc; }
+QMenu::item:selected { background: #e5e5e5; }

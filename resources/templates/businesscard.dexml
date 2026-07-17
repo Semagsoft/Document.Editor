@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Document Width="900" Height="600" Padding="48,48,48,48">
+  <Paragraph Alignment="Center">
+    <Run FontSize="36" Bold="True">Business Card</Run>
+  </Paragraph>
+  <Paragraph Alignment="Center">
+    <Run FontSize="14">Your Name</Run>
+  </Paragraph>
+  <Paragraph Alignment="Center">
+    <Run FontSize="12">Job Title</Run>
+  </Paragraph>
+  <Paragraph Alignment="Center">
+    <Run FontSize="10">Company Name</Run>
+  </Paragraph>
+  <Paragraph Alignment="Center">
+    <Run FontSize="10">email@example.com</Run>
+  </Paragraph>
+  <Paragraph Alignment="Center">
+    <Run FontSize="10">(555) 123-4567</Run>
+  </Paragraph>
+</Document>

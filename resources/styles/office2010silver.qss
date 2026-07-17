@@ -1,0 +1,12 @@
+/* Office 2010 Silver Theme */
+QMainWindow { background: #c4c7cf; }
+QMenuBar { background: #bcc0ca; }
+QMenuBar::item:selected { background: #a4a9b6; }
+QToolBar { background: #bcc0ca; border: none; spacing: 4px; }
+QToolButton { border: 1px solid transparent; border-radius: 3px; padding: 2px; }
+QToolButton:hover { background: #a4a9b6; border-color: #7a7f8f; }
+QToolButton:pressed, QToolButton:checked { background: #7a7f8f; }
+QStatusBar { background: #bcc0ca; }
+QMdiArea { background: #c4c7cf; }
+QMenu { background: white; border: 1px solid #7a7f8f; }
+QMenu::item:selected { background: #c4c7cf; }

@@ -1,0 +1,12 @@
+/* Office 2010 Blue Theme */
+QMainWindow { background: #deeaf6; }
+QMenuBar { background: #dce6f4; }
+QMenuBar::item:selected { background: #c1d6f0; }
+QToolBar { background: #dce6f4; border: none; spacing: 4px; }
+QToolButton { border: 1px solid transparent; border-radius: 3px; padding: 2px; }
+QToolButton:hover { background: #c1d6f0; border-color: #8baad0; }
+QToolButton:pressed, QToolButton:checked { background: #8baad0; }
+QStatusBar { background: #dce6f4; }
+QMdiArea { background: #deeaf6; }
+QMenu { background: white; border: 1px solid #8baad0; }
+QMenu::item:selected { background: #deeaf6; }
