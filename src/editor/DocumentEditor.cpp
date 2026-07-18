@@ -488,11 +488,14 @@ void DocumentEditor::toLowerCase()
 
 void DocumentEditor::setSpellChecker(SpellChecker* checker)
 {
+    if (m_spellChecker == checker && checker)
+        return;
     m_spellChecker = checker;
-    if (m_spellChecker && m_spellCheckEnabled) {
-        if (!m_spellHighlighter)
-            m_spellHighlighter = new SpellCheckHighlighter(document(), m_spellChecker);
-        m_spellHighlighter->setDocument(document());
+    if (m_spellCheckEnabled) {
+        delete m_spellHighlighter;
+        m_spellHighlighter = m_spellChecker
+            ? new SpellCheckHighlighter(document(), m_spellChecker)
+            : nullptr;
     }
 }
 
@@ -503,6 +506,8 @@ SpellChecker* DocumentEditor::spellChecker() const
 
 void DocumentEditor::setSpellCheckEnabled(bool enabled)
 {
+    if (m_spellCheckEnabled == enabled)
+        return;
     m_spellCheckEnabled = enabled;
     if (enabled && m_spellChecker && !m_spellHighlighter) {
         m_spellHighlighter = new SpellCheckHighlighter(document(), m_spellChecker);
@@ -530,36 +535,51 @@ bool DocumentEditor::loadFromFile(const QString& filename)
         return false;
     }
 
+    QByteArray data = file.readAll();
+    file.close();
+
     QFileInfo fi(filename);
     QString ext = fi.suffix().toLower();
 
     bool ok = false;
     if (ext == QStringLiteral("xaml") || ext == QStringLiteral("dexml")) {
-        QString xml = QString::fromUtf8(file.readAll());
+        QString xml = QString::fromUtf8(data);
         ok = XamlConverter::loadFromXaml(xml, document(), m_pageMargins, m_pageBackground);
         if (!ok) {
             setPlainText(xml);
         }
     } else if (ext == QStringLiteral("html") || ext == QStringLiteral("htm")) {
-        QString html = QString::fromUtf8(file.readAll());
+        QString html = QString::fromUtf8(data);
         setHtml(html);
         ok = true;
     } else if (ext == QStringLiteral("rtf")) {
-        QByteArray data = file.readAll();
         ok = RtfConverter::loadFromRtf(data, document());
         if (!ok) {
             setPlainText(QString::fromUtf8(data));
             ok = true;
         }
     } else if (ext == QStringLiteral("txt")) {
-        setPlainText(QString::fromUtf8(file.readAll()));
+        setPlainText(QString::fromUtf8(data));
+        ok = true;
+    } else if (ext.isEmpty()) {
+        // No extension — treat as plain text but reject binary content
+        if (isLikelyBinary(data)) {
+            QMessageBox::warning(this, tr("Cannot Open File"),
+                tr("The file appears to be a binary format that cannot be opened."));
+            return false;
+        }
+        setPlainText(QString::fromUtf8(data));
         ok = true;
     } else {
-        setPlainText(QString::fromUtf8(file.readAll()));
+        // Unknown extension — treat as plain text but reject binary content
+        if (isLikelyBinary(data)) {
+            QMessageBox::warning(this, tr("Cannot Open File"),
+                tr("The file format \"%1\" is not supported.").arg(ext));
+            return false;
+        }
+        setPlainText(QString::fromUtf8(data));
         ok = true;
     }
-
-    file.close();
 
     if (ok) {
         m_documentName = filename;
@@ -570,6 +590,19 @@ bool DocumentEditor::loadFromFile(const QString& filename)
     }
 
     return ok;
+}
+
+bool DocumentEditor::isLikelyBinary(const QByteArray &data) const
+{
+    int total = qMin(data.size(), 4096);
+    if (total == 0)
+        return false;
+    int nullCount = 0;
+    for (int i = 0; i < total; ++i) {
+        if (data[i] == '\0')
+            ++nullCount;
+    }
+    return (nullCount * 100 / total) > 5;
 }
 
 bool DocumentEditor::saveToFile(const QString& filename)
