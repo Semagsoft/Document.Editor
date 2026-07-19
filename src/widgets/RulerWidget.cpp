@@ -59,7 +59,9 @@ void RulerWidget::setZoom(qreal zoom)
 
 QSize RulerWidget::sizeHint() const
 {
-    return QSize(static_cast<int>(m_length * 96.0 / 2.54), static_cast<int>(m_height));
+    constexpr qreal kDpi = 96.0;
+    constexpr qreal kCmPerInch = 2.54;
+    return QSize(static_cast<int>(m_length * kDpi / kCmPerInch), static_cast<int>(m_height));
 }
 
 void RulerWidget::paintEvent(QPaintEvent *)

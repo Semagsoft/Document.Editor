@@ -1,16 +1,29 @@
 #include "DocumentTab.h"
 #include "DocumentEditor.h"
 #include "widgets/RulerWidget.h"
+#include "services/DocumentService.h"
 
 #include <QAction>
 #include <QApplication>
 #include <QColorDialog>
+#include <QDate>
 #include <QFileInfo>
 #include <QFontDialog>
 #include <QInputDialog>
 #include <QMenu>
 #include <QScrollArea>
+#include <QTime>
 #include <QVBoxLayout>
+
+#include "dialogs/InsertChartDialog.h"
+#include "dialogs/InsertDateDialog.h"
+#include "dialogs/InsertImageDialog.h"
+#include "dialogs/InsertLinkDialog.h"
+#include "dialogs/InsertShapeDialog.h"
+#include "dialogs/InsertSymbolDialog.h"
+#include "dialogs/InsertTableDialog.h"
+#include "dialogs/InsertTimeDialog.h"
+#include "dialogs/InsertVideoDialog.h"
 
 DocumentTab::DocumentTab(const QString& title, QWidget* parent)
     : QWidget(parent)
@@ -96,30 +109,77 @@ void DocumentTab::createContextMenu()
 {
     m_contextMenu = new QMenu(this);
 
-    // Insert submenu (signals for MainWindow to connect)
+    // Insert submenu (shows dialogs directly to avoid MainWindow coupling)
     QMenu* insertMenu = m_contextMenu->addMenu(tr("Insert"));
     connect(insertMenu->addAction(tr("Table...")), &QAction::triggered,
-        this, &DocumentTab::insertTableRequested);
+        this, [this]() {
+            InsertTableDialog dlg(this);
+            if (dlg.exec() == QDialog::Accepted)
+                m_editor->textCursor().insertTable(dlg.rows(), dlg.columns());
+        });
     insertMenu->addSeparator();
     connect(insertMenu->addAction(tr("Image...")), &QAction::triggered,
-        this, &DocumentTab::insertImageRequested);
+        this, [this]() {
+            InsertImageDialog dlg(this);
+            if (dlg.exec() == QDialog::Accepted)
+                DocumentService::embedImageInDocument(m_editor, dlg.imagePath(), dlg.width(), dlg.height());
+        });
     connect(insertMenu->addAction(tr("Shape...")), &QAction::triggered,
-        this, &DocumentTab::insertShapeRequested);
+        this, [this]() {
+            InsertShapeDialog dlg(this);
+            if (dlg.exec() == QDialog::Accepted) {
+                QPixmap shape = dlg.generateShape(dlg.shapeName());
+                if (!shape.isNull())
+                    m_editor->textCursor().insertImage(shape.toImage());
+            }
+        });
     connect(insertMenu->addAction(tr("Chart...")), &QAction::triggered,
-        this, &DocumentTab::insertChartRequested);
+        this, [this]() {
+            InsertChartDialog dlg(this);
+            if (dlg.exec() == QDialog::Accepted) {
+                QPixmap chart = dlg.generateChart(dlg.chartType());
+                if (!chart.isNull())
+                    m_editor->textCursor().insertImage(chart.toImage());
+            }
+        });
     insertMenu->addSeparator();
     connect(insertMenu->addAction(tr("Link...")), &QAction::triggered,
-        this, &DocumentTab::insertLinkRequested);
+        this, [this]() {
+            InsertLinkDialog dlg(this);
+            if (dlg.exec() == QDialog::Accepted) {
+                QTextCursor cursor = m_editor->textCursor();
+                cursor.insertHtml(QStringLiteral("<a href=\"%1\">%2</a>")
+                    .arg(dlg.url().toHtmlEscaped(), dlg.displayText().toHtmlEscaped()));
+            }
+        });
     connect(insertMenu->addAction(tr("Symbol...")), &QAction::triggered,
-        this, &DocumentTab::insertSymbolRequested);
+        this, [this]() {
+            InsertSymbolDialog dlg(this);
+            if (dlg.exec() == QDialog::Accepted)
+                m_editor->textCursor().insertText(QString(dlg.selectedSymbol()));
+        });
     connect(insertMenu->addAction(tr("Horizontal Line...")), &QAction::triggered,
         this, [this]() { m_editor->textCursor().insertHtml(QStringLiteral("<hr>")); });
     connect(insertMenu->addAction(tr("Date...")), &QAction::triggered,
-        this, &DocumentTab::insertDateRequested);
+        this, [this]() {
+            InsertDateDialog dlg(this);
+            if (dlg.exec() == QDialog::Accepted)
+                m_editor->textCursor().insertText(QDate::currentDate().toString(dlg.dateFormat()));
+        });
     connect(insertMenu->addAction(tr("Time...")), &QAction::triggered,
-        this, &DocumentTab::insertTimeRequested);
+        this, [this]() {
+            InsertTimeDialog dlg(this);
+            if (dlg.exec() == QDialog::Accepted)
+                m_editor->textCursor().insertText(QTime::currentTime().toString(dlg.timeFormat()));
+        });
     connect(insertMenu->addAction(tr("Video...")), &QAction::triggered,
-        this, &DocumentTab::insertVideoRequested);
+        this, [this]() {
+            InsertVideoDialog dlg(this);
+            if (dlg.exec() == QDialog::Accepted) {
+                QTextCursor cursor = m_editor->textCursor();
+                cursor.insertHtml(QStringLiteral("<a href=\"%1\">%1</a>").arg(dlg.videoPath().toHtmlEscaped()));
+            }
+        });
     insertMenu->addSeparator();
     connect(insertMenu->addAction(tr("Header...")), &QAction::triggered,
         this, [this]() {

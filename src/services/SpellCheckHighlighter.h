@@ -10,11 +10,11 @@ class SpellCheckHighlighter : public QSyntaxHighlighter
     Q_OBJECT
 
 public:
-    SpellCheckHighlighter(QTextDocument *parent, SpellChecker *checker);
+    SpellCheckHighlighter(QTextDocument *parent, const SpellChecker *checker);
 
 protected:
     void highlightBlock(const QString &text) override;
 
 private:
-    SpellChecker *m_checker;
+    const SpellChecker *m_checker;
 };

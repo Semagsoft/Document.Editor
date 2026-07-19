@@ -3,7 +3,7 @@
 
 #include <QRegularExpression>
 
-SpellCheckHighlighter::SpellCheckHighlighter(QTextDocument *parent, SpellChecker *checker)
+SpellCheckHighlighter::SpellCheckHighlighter(QTextDocument *parent, const SpellChecker *checker)
     : QSyntaxHighlighter(parent)
     , m_checker(checker)
 {

@@ -31,7 +31,7 @@ void PluginManager::loadPlugins(const QString& directory)
 
 void PluginManager::loadPlugin(const QString& filePath)
 {
-    auto* loader = new QPluginLoader(filePath, this);
+    auto* loader = new QPluginLoader(filePath);
     QObject* instance = loader->instance();
     if (!instance) {
         emit pluginError(QFileInfo(filePath).baseName(), loader->errorString());

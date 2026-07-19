@@ -8,6 +8,7 @@
 #include <QTextImageFormat>
 #include <QRegularExpression>
 #include <QBuffer>
+#include <QDir>
 #include <QFileInfo>
 #include <QImage>
 #include <QUrl>
@@ -190,12 +191,18 @@ bool XamlConverter::loadFromXaml(const QString &xml, QTextDocument *doc,
                 } else {
                     QFileInfo fi(source);
                     QString absPath = fi.absoluteFilePath();
-                    if (!absPath.startsWith(QStringLiteral("/")) ||
-                        absPath.contains(QStringLiteral("/../")) ||
-                        absPath.endsWith(QStringLiteral("/.."))) {
+                    QString cleanPath = QDir::cleanPath(absPath);
+                    // Reject if path normalization changes the path (detects traversal like /../)
+                    // or if the path isn't absolute
+                    if (!absPath.startsWith(QStringLiteral("/")) || absPath != cleanPath) {
                         continue;
                     }
-                    img.load(absPath);
+                    // If the file exists, verify canonical path matches (detects symlink escape)
+                    QString canonical = fi.canonicalFilePath();
+                    if (!canonical.isEmpty() && canonical != cleanPath) {
+                        continue;
+                    }
+                    img.load(cleanPath);
                 }
 
                 if (!img.isNull()) {

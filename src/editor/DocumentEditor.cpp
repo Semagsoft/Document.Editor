@@ -3,6 +3,7 @@
 #include "converters/XamlConverter.h"
 #include "services/SpellCheckHighlighter.h"
 #include "utils/SpellChecker.h"
+#include "utils/TextUtils.h"
 
 #include <QAction>
 #include <QApplication>
@@ -31,8 +32,9 @@ DocumentEditor::DocumentEditor(QWidget* parent)
     setLineWrapMode(QTextEdit::WidgetWidth);
     setWordWrapMode(QTextOption::WordWrap);
 
+    constexpr QSizeF kLetterSize(816, 1056);
     QTextDocument* doc = document();
-    doc->setPageSize(QSizeF(816, 1056));
+    doc->setPageSize(kLetterSize);
     doc->setDocumentMargin(0);
 
     // Default font
@@ -466,8 +468,7 @@ void DocumentEditor::toUpperCase()
     cursor.beginEditBlock();
     if (!cursor.hasSelection())
         cursor.select(QTextCursor::WordUnderCursor);
-    QString text = cursor.selectedText();
-    cursor.insertText(text.toUpper());
+    cursor.insertText(TextUtils::toUpperCase(cursor.selectedText()));
     cursor.endEditBlock();
 }
 
@@ -477,8 +478,7 @@ void DocumentEditor::toLowerCase()
     cursor.beginEditBlock();
     if (!cursor.hasSelection())
         cursor.select(QTextCursor::WordUnderCursor);
-    QString text = cursor.selectedText();
-    cursor.insertText(text.toLower());
+    cursor.insertText(TextUtils::toLowerCase(cursor.selectedText()));
     cursor.endEditBlock();
 }
 
@@ -492,7 +492,10 @@ void DocumentEditor::setSpellChecker(SpellChecker* checker)
         return;
     m_spellChecker = checker;
     if (m_spellCheckEnabled) {
-        delete m_spellHighlighter;
+        if (m_spellHighlighter) {
+            m_spellHighlighter->setDocument(nullptr);
+            delete m_spellHighlighter;
+        }
         m_spellHighlighter = m_spellChecker
             ? new SpellCheckHighlighter(document(), m_spellChecker)
             : nullptr;
@@ -512,6 +515,7 @@ void DocumentEditor::setSpellCheckEnabled(bool enabled)
     if (enabled && m_spellChecker && !m_spellHighlighter) {
         m_spellHighlighter = new SpellCheckHighlighter(document(), m_spellChecker);
     } else if (!enabled && m_spellHighlighter) {
+        m_spellHighlighter->setDocument(nullptr);
         delete m_spellHighlighter;
         m_spellHighlighter = nullptr;
     }
@@ -528,10 +532,11 @@ bool DocumentEditor::loadFromFile(const QString& filename)
         return false;
 
     constexpr qint64 kMaxFileSize = 50 * 1024 * 1024;
+    constexpr qint64 kMaxFileSizeMB = 50;
     if (file.size() > kMaxFileSize) {
         file.close();
         QMessageBox::warning(this, tr("File Too Large"),
-            tr("The file is too large to open (max 50 MB)."));
+            tr("The file is too large to open (max %1 MB).").arg(kMaxFileSizeMB));
         return false;
     }
 

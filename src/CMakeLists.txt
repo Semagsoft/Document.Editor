@@ -2,6 +2,7 @@ set(SOURCES
     main.cpp
     app/Application.cpp
     app/Settings.cpp
+    mainwindow/ActionManager.cpp
     mainwindow/MainWindow.cpp
     mainwindow/ThemeManager.cpp
     mainwindow/StatusBarManager.cpp
@@ -11,7 +12,7 @@ set(SOURCES
     widgets/RulerWidget.cpp
     widgets/TableGridPicker.cpp
     widgets/SymbolPicker.cpp
-    widgets/ImageResizer.cpp
+
     utils/DpiUtils.cpp
     dialogs/AboutDialog.cpp
     dialogs/GoToLineDialog.cpp
@@ -45,6 +46,7 @@ set(SOURCES
 set(HEADERS
     app/Application.h
     app/Settings.h
+    mainwindow/ActionManager.h
     mainwindow/MainWindow.h
     mainwindow/ThemeManager.h
     mainwindow/StatusBarManager.h
@@ -54,7 +56,7 @@ set(HEADERS
     widgets/RulerWidget.h
     widgets/TableGridPicker.h
     widgets/SymbolPicker.h
-    widgets/ImageResizer.h
+
     utils/DpiUtils.h
     dialogs/AboutDialog.h
     dialogs/GoToLineDialog.h

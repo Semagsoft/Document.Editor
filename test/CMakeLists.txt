@@ -47,10 +47,30 @@ add_document_editor_test(test_DocumentEditor test_DocumentEditor.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/DocumentEditor.cpp
     ${CMAKE_SOURCE_DIR}/src/services/SpellCheckHighlighter.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/SpellChecker.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/TextUtils.cpp
     ${CMAKE_SOURCE_DIR}/src/converters/XamlConverter.cpp
     ${CMAKE_SOURCE_DIR}/src/converters/RtfConverter.cpp
 )
 target_link_libraries(test_DocumentEditor PRIVATE Qt6::Gui Qt6::Widgets Qt6::Xml)
+
+set(WIDGET_SOURCES
+    ${CMAKE_SOURCE_DIR}/src/widgets/TableGridPicker.cpp
+    ${CMAKE_SOURCE_DIR}/src/widgets/SymbolPicker.cpp
+)
+
+set(DIALOG_SOURCES
+    ${CMAKE_SOURCE_DIR}/src/dialogs/InsertTableDialog.cpp
+    ${CMAKE_SOURCE_DIR}/src/dialogs/InsertImageDialog.cpp
+    ${CMAKE_SOURCE_DIR}/src/dialogs/InsertShapeDialog.cpp
+    ${CMAKE_SOURCE_DIR}/src/dialogs/InsertChartDialog.cpp
+    ${CMAKE_SOURCE_DIR}/src/dialogs/InsertLinkDialog.cpp
+    ${CMAKE_SOURCE_DIR}/src/dialogs/InsertSymbolDialog.cpp
+    ${CMAKE_SOURCE_DIR}/src/dialogs/InsertDateDialog.cpp
+    ${CMAKE_SOURCE_DIR}/src/dialogs/InsertTimeDialog.cpp
+    ${CMAKE_SOURCE_DIR}/src/dialogs/InsertVideoDialog.cpp
+    ${CMAKE_SOURCE_DIR}/src/dialogs/InsertLineDialog.cpp
+    ${WIDGET_SOURCES}
+)
 
 add_document_editor_test(test_DocumentManager test_DocumentManager.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/DocumentManager.cpp
@@ -58,12 +78,16 @@ add_document_editor_test(test_DocumentManager test_DocumentManager.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/DocumentTab.cpp
     ${CMAKE_SOURCE_DIR}/src/services/SpellCheckHighlighter.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/SpellChecker.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/TextUtils.cpp
     ${CMAKE_SOURCE_DIR}/src/widgets/RulerWidget.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/DpiUtils.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/DocumentService.cpp
+    ${CMAKE_SOURCE_DIR}/src/converters/FtpClient.cpp
     ${CMAKE_SOURCE_DIR}/src/converters/XamlConverter.cpp
     ${CMAKE_SOURCE_DIR}/src/converters/RtfConverter.cpp
+    ${DIALOG_SOURCES}
 )
-target_link_libraries(test_DocumentManager PRIVATE Qt6::Gui Qt6::Widgets Qt6::Xml)
+target_link_libraries(test_DocumentManager PRIVATE Qt6::Gui Qt6::Widgets Qt6::PrintSupport Qt6::Xml Qt6::Charts Qt6::Network)
 
 # Plugin tests
 add_document_editor_test(test_PluginManager test_PluginManager.cpp
@@ -82,3 +106,23 @@ add_document_editor_test(test_ThemeManager test_ThemeManager.cpp
     ${CMAKE_SOURCE_DIR}/src/mainwindow/ThemeManager.cpp
 )
 target_link_libraries(test_ThemeManager PRIVATE Qt6::Gui Qt6::Widgets)
+
+# DocumentService test
+add_document_editor_test(test_DocumentService test_DocumentService.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/DocumentService.cpp
+    ${CMAKE_SOURCE_DIR}/src/editor/DocumentManager.cpp
+    ${CMAKE_SOURCE_DIR}/src/editor/DocumentEditor.cpp
+    ${CMAKE_SOURCE_DIR}/src/editor/DocumentTab.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/SpellCheckHighlighter.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/SpellChecker.cpp
+    ${CMAKE_SOURCE_DIR}/src/widgets/RulerWidget.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/DpiUtils.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/TextUtils.cpp
+    ${CMAKE_SOURCE_DIR}/src/converters/FtpClient.cpp
+    ${CMAKE_SOURCE_DIR}/src/converters/XamlConverter.cpp
+    ${CMAKE_SOURCE_DIR}/src/converters/RtfConverter.cpp
+    ${CMAKE_SOURCE_DIR}/src/app/Settings.cpp
+    ${CMAKE_SOURCE_DIR}/src/mainwindow/StatusBarManager.cpp
+    ${DIALOG_SOURCES}
+)
+target_link_libraries(test_DocumentService PRIVATE Qt6::Gui Qt6::Widgets Qt6::PrintSupport Qt6::Xml Qt6::Network Qt6::Charts)

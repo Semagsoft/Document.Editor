@@ -36,15 +36,6 @@ public:
 
 signals:
     void titleChanged(const QString &title);
-    void insertTableRequested();
-    void insertImageRequested();
-    void insertShapeRequested();
-    void insertChartRequested();
-    void insertLinkRequested();
-    void insertSymbolRequested();
-    void insertDateRequested();
-    void insertTimeRequested();
-    void insertVideoRequested();
 
 private:
     void createContextMenu();

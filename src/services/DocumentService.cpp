@@ -5,6 +5,7 @@
 #include "editor/DocumentManager.h"
 #include "mainwindow/StatusBarManager.h"
 
+#include <QApplication>
 #include <QDir>
 #include <QFile>
 #include <QFileDialog>
@@ -25,11 +26,22 @@
 #include <QTemporaryDir>
 #include <QUrl>
 
+static void waitForProcess(QProcess &proc, int timeoutMs)
+{
+    const int stepMs = 50;
+    int elapsed = 0;
+    while (elapsed < timeoutMs && proc.state() != QProcess::NotRunning) {
+        QApplication::processEvents(QEventLoop::ExcludeUserInputEvents, stepMs);
+        proc.waitForFinished(stepMs);
+        elapsed += stepMs;
+    }
+}
+
 bool DocumentService::findTool(const QString &name, const QStringList &args)
 {
     QProcess proc;
     proc.start(name, args.isEmpty() ? QStringList{ QStringLiteral("--version") } : args);
-    proc.waitForFinished(3000);
+    waitForProcess(proc, 3000);
     return proc.exitCode() == 0;
 }
 
@@ -158,7 +170,7 @@ void DocumentService::importArchive()
         proc.start(QStringLiteral("7z"), { QStringLiteral("x"), path });
     else
         proc.start(QStringLiteral("unzip"), { path });
-    proc.waitForFinished(30000);
+    waitForProcess(proc, 30000);
     if (proc.exitCode() != 0) {
         QMessageBox::warning(m_parentWidget, tr("Archive Import"),
             tr("Failed to extract archive."));
@@ -288,9 +300,11 @@ void DocumentService::exportArchive()
     if (!path.endsWith(QStringLiteral(".zip"), Qt::CaseInsensitive))
         path += QStringLiteral(".zip");
     QString src = editor->documentName();
+    QTemporaryDir tmpDir;
     if (src.isEmpty()) {
-        QTemporaryDir tmp;
-        QString tmpFile = tmp.path() + QStringLiteral("/document.xaml");
+        if (!tmpDir.isValid())
+            return;
+        QString tmpFile = tmpDir.path() + QStringLiteral("/document.xaml");
         editor->saveToFile(tmpFile);
         src = tmpFile;
     }
@@ -314,7 +328,7 @@ void DocumentService::exportArchive()
         proc.setWorkingDirectory(QFileInfo(src).absolutePath());
         proc.start(QStringLiteral("zip"), args);
     }
-    proc.waitForFinished(30000);
+    waitForProcess(proc, 30000);
     if (proc.exitCode() == 0)
         emit statusMessage(tr("Archive saved"), 3000);
     else
@@ -338,7 +352,8 @@ void DocumentService::exportImage()
     QPainter painter(&pixmap);
     doc->drawContents(&painter);
     painter.end();
-    pixmap.save(path);
+    if (!pixmap.save(path))
+        QMessageBox::warning(m_parentWidget, tr("Export Error"), tr("Could not save image."));
 }
 
 void DocumentService::exportSound()
@@ -359,7 +374,7 @@ void DocumentService::exportSound()
     if (findTool(QStringLiteral("espeak"), { QStringLiteral("--version") })) {
         QProcess proc;
         proc.start(QStringLiteral("espeak"), { QStringLiteral("-w"), path, text });
-        proc.waitForFinished(60000);
+        waitForProcess(proc, 60000);
         if (proc.exitCode() == 0) {
             emit statusMessage(tr("Sound exported as WAV"), 3000);
             return;
@@ -368,7 +383,7 @@ void DocumentService::exportSound()
     if (findTool(QStringLiteral("spd-say"), { QStringLiteral("--version") })) {
         QProcess proc;
         proc.start(QStringLiteral("spd-say"), { QStringLiteral("-w"), path, QStringLiteral("-o"), text });
-        proc.waitForFinished(60000);
+        waitForProcess(proc, 60000);
         if (proc.exitCode() == 0) {
             emit statusMessage(tr("Sound exported as WAV"), 3000);
             return;
