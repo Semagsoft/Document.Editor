@@ -10,6 +10,7 @@
 #include <QMdiArea>
 #include <QMdiSubWindow>
 #include <QMessageBox>
+#include <QPointer>
 #include <QStyle>
 
 DocumentManager::DocumentManager(QMdiArea* mdiArea, QWidget* mainWindow,
@@ -229,8 +230,10 @@ void DocumentManager::setupSubWindow(QMdiSubWindow* subWindow, DocumentTab* tab)
     subWindow->setAttribute(Qt::WA_DeleteOnClose);
     subWindow->setWindowIcon(qApp->style()->standardIcon(QStyle::SP_FileIcon));
 
-    connect(tab, &DocumentTab::titleChanged, this, [subWindow](const QString& title) {
-        subWindow->setWindowTitle(title);
+    QPointer<QMdiSubWindow> safeSubWindow(subWindow);
+    connect(tab, &DocumentTab::titleChanged, this, [safeSubWindow](const QString& title) {
+        if (safeSubWindow)
+            safeSubWindow->setWindowTitle(title);
     });
 }
 

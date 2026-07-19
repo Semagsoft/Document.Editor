@@ -202,7 +202,7 @@ private slots:
         DocumentEditor editor;
         QTextCursor cursor(editor.document());
         cursor.insertText(QStringLiteral("hello world foo bar"));
-        QTest::qWait(250);
+        editor.refreshStats();
         QCOMPARE(editor.wordCount(), 4);
     }
 
@@ -211,7 +211,7 @@ private slots:
         DocumentEditor editor;
         QTextCursor cursor(editor.document());
         cursor.insertText(QStringLiteral("line1\nline2\nline3"));
-        QTest::qWait(250);
+        editor.refreshStats();
         QCOMPARE(editor.lineCount(), 3);
     }
 
@@ -222,7 +222,7 @@ private slots:
         cursor.insertText(QStringLiteral("line1\nline2\nline3"));
 
         editor.goToLine(2);
-        QTest::qWait(250);
+        editor.refreshStats();
         QCOMPARE(editor.selectedLineNumber(), 2);
     }
 

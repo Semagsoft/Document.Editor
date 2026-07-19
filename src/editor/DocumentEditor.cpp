@@ -82,6 +82,11 @@ void DocumentEditor::connectDocumentSignals()
     });
 }
 
+void DocumentEditor::refreshStats()
+{
+    updateStats();
+}
+
 void DocumentEditor::scheduleStatsUpdate()
 {
     if (!m_statsTimer->isActive())
@@ -599,15 +604,29 @@ bool DocumentEditor::loadFromFile(const QString& filename)
 
 bool DocumentEditor::isLikelyBinary(const QByteArray &data) const
 {
-    int total = qMin(data.size(), 4096);
-    if (total == 0)
+    if (data.isEmpty())
         return false;
+
+    int total = data.size();
     int nullCount = 0;
-    for (int i = 0; i < total; ++i) {
-        if (data[i] == '\0')
+    int nonPrintableCount = 0;
+    int sampleSize = qMin(total, 65536);
+
+    for (int i = 0; i < sampleSize; ++i) {
+        unsigned char c = static_cast<unsigned char>(data[i]);
+        if (c == '\0')
             ++nullCount;
+        else if (c < 8 && c != '\t' && c != '\r' && c != '\n')
+            ++nonPrintableCount;
     }
-    return (nullCount * 100 / total) > 5;
+
+    if (nullCount * 100 / sampleSize > 5)
+        return true;
+
+    if (nonPrintableCount * 100 / sampleSize > 30)
+        return true;
+
+    return false;
 }
 
 bool DocumentEditor::saveToFile(const QString& filename)
@@ -653,7 +672,52 @@ void DocumentEditor::keyPressEvent(QKeyEvent* event)
 {
     if (event->key() == Qt::Key_Tab) {
         QTextCursor cursor = textCursor();
-        cursor.insertText(QStringLiteral("    "));
+        QTextBlock block = cursor.block();
+
+        // Inside a list — increase/decrease list indent
+        if (QTextList* list = block.textList()) {
+            if (event->modifiers() & Qt::ShiftModifier) {
+                indentLess();
+            } else {
+                QTextListFormat fmt = list->format();
+                fmt.setIndent(fmt.indent() + 1);
+                list->setFormat(fmt);
+            }
+            return;
+        }
+
+        // Inside a table — move to next/previous cell
+        QTextTable* table = cursor.currentTable();
+        if (table) {
+            if (event->modifiers() & Qt::ShiftModifier) {
+                QTextCursor prevCursor = cursor;
+                prevCursor.movePosition(QTextCursor::PreviousCell);
+                if (prevCursor.currentTable() == table)
+                    setTextCursor(prevCursor);
+                return;
+            }
+            // If at end of last cell, insert a new row
+            int curRow = table->cellAt(cursor).row();
+            int curCol = table->cellAt(cursor).column();
+            if (curRow == table->rows() - 1 && curCol == table->columns() - 1) {
+                table->appendRows(1);
+                cursor = table->cellAt(curRow + 1, 0).firstCursorPosition();
+                setTextCursor(cursor);
+                return;
+            }
+            QTextCursor nextCursor = cursor;
+            nextCursor.movePosition(QTextCursor::NextCell);
+            if (nextCursor.currentTable() == table)
+                setTextCursor(nextCursor);
+            return;
+        }
+
+        // Default: increase block indent
+        if (event->modifiers() & Qt::ShiftModifier) {
+            indentLess();
+        } else {
+            indentMore();
+        }
         return;
     }
     QTextEdit::keyPressEvent(event);

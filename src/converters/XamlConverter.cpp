@@ -193,11 +193,10 @@ bool XamlConverter::loadFromXaml(const QString &xml, QTextDocument *doc,
                     QString absPath = fi.absoluteFilePath();
                     QString cleanPath = QDir::cleanPath(absPath);
                     // Reject if path normalization changes the path (detects traversal like /../)
-                    // or if the path isn't absolute
-                    if (!absPath.startsWith(QStringLiteral("/")) || absPath != cleanPath) {
+                    if (!fi.isAbsolute() || absPath != cleanPath) {
                         continue;
                     }
-                    // If the file exists, verify canonical path matches (detects symlink escape)
+                    // Verify canonical path matches when file exists (detects symlink escape)
                     QString canonical = fi.canonicalFilePath();
                     if (!canonical.isEmpty() && canonical != cleanPath) {
                         continue;

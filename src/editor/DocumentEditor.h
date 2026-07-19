@@ -92,6 +92,8 @@ public:
     SpellChecker* spellChecker() const;
     void setSpellCheckEnabled(bool enabled);
 
+    void refreshStats();
+
     // File I/O
     bool loadFromFile(const QString& filename);
     bool saveToFile(const QString& filename);

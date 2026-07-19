@@ -47,7 +47,7 @@ public:
     QAction* exportWordpressAction() const;
     QAction* exportEmailAction() const;
     QAction* exportFtpAction() const;
-    QAction* exportXpsAction() const;
+    QAction* exportPdfAction() const;
     QAction* exportArchiveAction() const;
     QAction* exportImageAction() const;
     QAction* exportSoundAction() const;
@@ -193,7 +193,7 @@ private:
     QAction* m_exportWordpressAction = nullptr;
     QAction* m_exportEmailAction = nullptr;
     QAction* m_exportFtpAction = nullptr;
-    QAction* m_exportXpsAction = nullptr;
+    QAction* m_exportPdfAction = nullptr;
     QAction* m_exportArchiveAction = nullptr;
     QAction* m_exportImageAction = nullptr;
     QAction* m_exportSoundAction = nullptr;

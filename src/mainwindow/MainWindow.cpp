@@ -11,6 +11,7 @@
 
 #include <QMdiArea>
 #include <QClipboard>
+#include <QPointer>
 #include <QCloseEvent>
 #include <QColorDialog>
 #include <QComboBox>
@@ -79,7 +80,6 @@ MainWindow::MainWindow(QWidget* parent)
     connect(m_docService, &DocumentService::documentOpened, this, [this](const QString &path) {
         if (!path.isEmpty())
             m_settings->addRecentFile(path);
-        rebuildRecentFilesMenu();
         m_actionManager->updateEditorActions(currentEditor(), m_docManager, m_statusBarManager);
         if (auto *e = currentEditor())
             e->setSpellChecker(m_spellChecker);
@@ -105,10 +105,12 @@ MainWindow::MainWindow(QWidget* parent)
     // Check for updates on startup
     if (m_settings->checkForUpdatesOnStartup()) {
         auto* netUtils = new NetworkUtils(this);
-        connect(netUtils, &NetworkUtils::updateAvailable, this, [this, netUtils](const QString& version, const QString& url) {
+        QPointer<NetworkUtils> safeNet(netUtils);
+        connect(netUtils, &NetworkUtils::updateAvailable, this, [this, safeNet](const QString& version, const QString& url) {
+            if (safeNet)
+                safeNet->deleteLater();
             statusBar()->showMessage(
                 tr("Version %1 is available. Go to Help > Check for Updates.").arg(version), 8000);
-            netUtils->deleteLater();
         });
         connect(netUtils, &NetworkUtils::upToDate, netUtils, &QObject::deleteLater);
         connect(netUtils, &NetworkUtils::updateCheckError, netUtils, &QObject::deleteLater);
@@ -227,7 +229,7 @@ void MainWindow::connectFileActions()
     connect(m_actionManager->exportWordpressAction(), &QAction::triggered, m_docService, &DocumentService::exportWordpress);
     connect(m_actionManager->exportEmailAction(), &QAction::triggered, m_docService, &DocumentService::exportEmail);
     connect(m_actionManager->exportFtpAction(), &QAction::triggered, m_docService, &DocumentService::exportFtp);
-    connect(m_actionManager->exportXpsAction(), &QAction::triggered, m_docService, &DocumentService::exportPdf);
+    connect(m_actionManager->exportPdfAction(), &QAction::triggered, m_docService, &DocumentService::exportPdf);
     connect(m_actionManager->exportArchiveAction(), &QAction::triggered, m_docService, &DocumentService::exportArchive);
     connect(m_actionManager->exportImageAction(), &QAction::triggered, m_docService, &DocumentService::exportImage);
     connect(m_actionManager->exportSoundAction(), &QAction::triggered, m_docService, &DocumentService::exportSound);
@@ -241,7 +243,6 @@ void MainWindow::connectFileActions()
         OptionsDialog dlg(m_settings, this);
         if (dlg.exec() == QDialog::Accepted) {
             m_settings->save();
-            rebuildRecentFilesMenu();
             emit documentChanged();
         }
     });

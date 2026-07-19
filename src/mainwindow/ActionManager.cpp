@@ -50,7 +50,7 @@ QAction* ActionManager::importImageAction() const { return m_importImageAction; 
 QAction* ActionManager::exportWordpressAction() const { return m_exportWordpressAction; }
 QAction* ActionManager::exportEmailAction() const { return m_exportEmailAction; }
 QAction* ActionManager::exportFtpAction() const { return m_exportFtpAction; }
-QAction* ActionManager::exportXpsAction() const { return m_exportXpsAction; }
+QAction* ActionManager::exportPdfAction() const { return m_exportPdfAction; }
 QAction* ActionManager::exportArchiveAction() const { return m_exportArchiveAction; }
 QAction* ActionManager::exportImageAction() const { return m_exportImageAction; }
 QAction* ActionManager::exportSoundAction() const { return m_exportSoundAction; }
@@ -215,7 +215,7 @@ void ActionManager::setupActions(QMainWindow* mainWindow)
     m_exportEmailAction = m_exportMenu->addAction(QObject::tr("To &Email..."));
     m_exportFtpAction = m_exportMenu->addAction(QObject::tr("To &FTP..."));
     m_exportMenu->addSeparator();
-    m_exportXpsAction = m_exportMenu->addAction(QObject::tr("To &PDF..."));
+    m_exportPdfAction = m_exportMenu->addAction(QObject::tr("To &PDF..."));
     m_exportArchiveAction = m_exportMenu->addAction(QObject::tr("To &Archive..."));
     m_exportImageAction = m_exportMenu->addAction(QObject::tr("To &Image..."));
     m_exportSoundAction = m_exportMenu->addAction(QObject::tr("To &Sound..."));
@@ -404,7 +404,7 @@ void ActionManager::setupIcons()
     m_exportWordpressAction->setIcon(icon(QStringLiteral("export")));
     m_exportEmailAction->setIcon(icon(QStringLiteral("email")));
     m_exportFtpAction->setIcon(icon(QStringLiteral("ftp")));
-    m_exportXpsAction->setIcon(icon(QStringLiteral("xps")));
+    m_exportPdfAction->setIcon(icon(QStringLiteral("xps")));
     m_exportArchiveAction->setIcon(icon(QStringLiteral("archive")));
     m_exportImageAction->setIcon(icon(QStringLiteral("image")));
     m_exportSoundAction->setIcon(icon(QStringLiteral("sound")));
