@@ -1,5 +1,4 @@
 set(SOURCES
-    main.cpp
     app/Application.cpp
     app/Settings.cpp
     mainwindow/ActionManager.cpp
@@ -37,6 +36,7 @@ set(SOURCES
     converters/FtpClient.cpp
     converters/XamlConverter.cpp
     converters/RtfConverter.cpp
+    converters/DocxConverter.cpp
     plugins/PluginManager.cpp
     plugins/PluginContext.cpp
     services/DocumentService.cpp
@@ -80,6 +80,7 @@ set(HEADERS
     converters/FtpClient.h
     converters/XamlConverter.h
     converters/RtfConverter.h
+    converters/DocxConverter.h
     plugins/IPlugin.h
     plugins/PluginManager.h
     plugins/PluginContext.h
@@ -91,9 +92,12 @@ set(RESOURCES
     ${CMAKE_SOURCE_DIR}/resources/resources.qrc
 )
 
-add_executable(Document.Editor ${SOURCES} ${HEADERS} ${RESOURCES})
+find_package(Qt6CorePrivate REQUIRED)
 
-target_link_libraries(Document.Editor PRIVATE
+add_library(de_objects OBJECT ${SOURCES} ${HEADERS})
+target_include_directories(de_objects PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(de_objects PUBLIC Qt6::CorePrivate)
+target_link_libraries(de_objects PUBLIC
     Qt6::Core
     Qt6::Gui
     Qt6::Widgets
@@ -104,4 +108,5 @@ target_link_libraries(Document.Editor PRIVATE
     Qt6::Charts
 )
 
-target_include_directories(Document.Editor PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+add_executable(Document.Editor main.cpp ${RESOURCES} $<TARGET_OBJECTS:de_objects>)
+target_link_libraries(Document.Editor PRIVATE de_objects)

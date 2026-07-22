@@ -1,4 +1,5 @@
 #include "DocumentEditor.h"
+#include "converters/DocxConverter.h"
 #include "converters/RtfConverter.h"
 #include "converters/XamlConverter.h"
 #include "services/SpellCheckHighlighter.h"
@@ -75,10 +76,6 @@ void DocumentEditor::connectDocumentSignals()
     connect(this, &QTextEdit::cursorPositionChanged, this, [this]() {
         scheduleStatsUpdate();
         emit cursorPositionUpdated();
-    });
-
-    connect(document(), &QTextDocument::contentsChanged, this, [this]() {
-        scheduleStatsUpdate();
     });
 }
 
@@ -562,6 +559,12 @@ bool DocumentEditor::loadFromFile(const QString& filename)
         QString html = QString::fromUtf8(data);
         setHtml(html);
         ok = true;
+    } else if (ext == QStringLiteral("docx")) {
+        ok = DocxConverter::loadFromDocx(data, document(), m_pageMargins, m_pageBackground);
+        if (!ok) {
+            setPlainText(QString::fromUtf8(data));
+            ok = true;
+        }
     } else if (ext == QStringLiteral("rtf")) {
         ok = RtfConverter::loadFromRtf(data, document());
         if (!ok) {
@@ -645,6 +648,9 @@ bool DocumentEditor::saveToFile(const QString& filename)
     } else if (ext == QStringLiteral("html") || ext == QStringLiteral("htm")) {
         QByteArray html = toHtml().toUtf8();
         ok = file.write(html) > 0;
+    } else if (ext == QStringLiteral("docx")) {
+        QByteArray docxData = DocxConverter::saveToDocx(document(), m_pageMargins, m_pageBackground);
+        ok = file.write(docxData) > 0;
     } else if (ext == QStringLiteral("rtf")) {
         ok = file.write(RtfConverter::saveToRtf(document())) > 0;
     } else {

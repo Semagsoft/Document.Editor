@@ -19,7 +19,7 @@ A cross-platform rich text document editor built with Qt6 and C++17.
 
 - CMake 3.20+
 - C++17 compiler
-- Qt6 (Core, Gui, Widgets, PrintSupport, Network, TextToSpeech, Xml, Charts, Concurrent)
+- Qt6 (Core, Gui, Widgets, PrintSupport, Network, TextToSpeech, Xml, Charts)
 
 ## Building
 

@@ -89,6 +89,7 @@ bool DocumentManager::saveDocumentAs(DocumentTab* tab)
     QString path = QFileDialog::getSaveFileName(m_mainWindow, tr("Save As"),
         tab->documentName().isEmpty() ? QStringLiteral("Untitled.xaml") : tab->documentName(),
         tr("XAML Document (*.xaml);;"
+           "Word Document (*.docx);;"
            "HTML Document (*.html);;"
            "Rich Text Format (*.rtf);;"
            "Text File (*.txt);;"
@@ -119,6 +120,7 @@ bool DocumentManager::saveDocumentCopy(DocumentTab* tab)
     QString path = QFileDialog::getSaveFileName(m_mainWindow, tr("Save Copy"),
         tab->documentName(),
         tr("XAML Document (*.xaml);;"
+           "Word Document (*.docx);;"
            "HTML Document (*.html);;"
            "Rich Text Format (*.rtf);;"
            "Text File (*.txt);;"

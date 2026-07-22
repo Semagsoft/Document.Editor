@@ -78,14 +78,13 @@ void PluginManager::setContext(PluginContext* context)
 void PluginManager::unloadPlugins()
 {
     for (auto it = m_plugins.begin(); it != m_plugins.end(); ++it) {
-        if (it->instance) {
+        if (it->instance)
             it->instance->shutdown();
-            if (it->loader) {
-                it->loader->unload();
-                delete it->loader;
-            }
-        }
         emit pluginUnloaded(it->name);
+        if (it->loader) {
+            it->loader->unload();
+            delete it->loader;
+        }
     }
     m_plugins.clear();
 }

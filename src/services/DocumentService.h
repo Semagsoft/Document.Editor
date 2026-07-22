@@ -38,6 +38,19 @@ public:
     static void embedImageInDocument(DocumentEditor *editor, const QString &path,
                                      qreal width = 0, qreal height = 0);
 
+    static void insertTableInteractive(QWidget *parent, DocumentEditor *editor);
+    static void insertImageInteractive(QWidget *parent, DocumentEditor *editor);
+    static void insertShapeInteractive(QWidget *parent, DocumentEditor *editor);
+    static void insertChartInteractive(QWidget *parent, DocumentEditor *editor);
+    static void insertLinkInteractive(QWidget *parent, DocumentEditor *editor);
+    static void insertSymbolInteractive(QWidget *parent, DocumentEditor *editor);
+    static void insertHorizontalLineInteractive(DocumentEditor *editor);
+    static void insertDateInteractive(QWidget *parent, DocumentEditor *editor);
+    static void insertTimeInteractive(QWidget *parent, DocumentEditor *editor);
+    static void insertVideoInteractive(QWidget *parent, DocumentEditor *editor);
+    static void insertHeader(DocumentEditor *editor);
+    static void insertFooter(DocumentEditor *editor);
+
 signals:
     void documentOpened(const QString &path);
     void statusMessage(const QString &message, int timeout);

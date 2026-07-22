@@ -31,16 +31,6 @@
 #include "dialogs/AboutDialog.h"
 #include "dialogs/FindDialog.h"
 #include "dialogs/GoToLineDialog.h"
-#include "dialogs/InsertChartDialog.h"
-#include "dialogs/InsertDateDialog.h"
-#include "dialogs/InsertImageDialog.h"
-#include "dialogs/InsertLineDialog.h"
-#include "dialogs/InsertLinkDialog.h"
-#include "dialogs/InsertShapeDialog.h"
-#include "dialogs/InsertSymbolDialog.h"
-#include "dialogs/InsertTableDialog.h"
-#include "dialogs/InsertTimeDialog.h"
-#include "dialogs/InsertVideoDialog.h"
 #include "dialogs/LineSpacingDialog.h"
 #include "dialogs/OptionsDialog.h"
 #include "dialogs/ReplaceDialog.h"
@@ -82,7 +72,7 @@ MainWindow::MainWindow(QWidget* parent)
             m_settings->addRecentFile(path);
         m_actionManager->updateEditorActions(currentEditor(), m_docManager, m_statusBarManager);
         if (auto *e = currentEditor())
-            e->setSpellChecker(m_spellChecker);
+            e->setSpellChecker(m_spellChecker.get());
     });
     connect(m_docService, &DocumentService::statusMessage, this, [this](const QString &msg, int timeout) {
         statusBar()->showMessage(msg, timeout);
@@ -129,7 +119,7 @@ MainWindow::MainWindow(QWidget* parent)
         m_pluginManager->loadPlugins();
 
     // Spell checker
-    m_spellChecker = new SpellChecker();
+    m_spellChecker = std::make_unique<SpellChecker>();
 
     // Text-to-speech
     m_tts = new QTextToSpeech(this);
@@ -138,13 +128,20 @@ MainWindow::MainWindow(QWidget* parent)
     m_zoomDebounceTimer = new QTimer(this);
     m_zoomDebounceTimer->setSingleShot(true);
     m_zoomDebounceTimer->setInterval(50);
+    connect(m_zoomDebounceTimer, &QTimer::timeout, this, [this]() {
+        int pct = qRound(m_zoomPendingLevel * 100.0);
+        if (auto *e = currentEditor()) {
+            e->setZoomLevel(m_zoomPendingLevel);
+        }
+        m_actionManager->zoomSlider()->setValue(pct);
+        m_actionManager->zoomLabel()->setText(QStringLiteral(" %1%").arg(pct));
+    });
 }
 
 MainWindow::~MainWindow()
 {
     if (m_pluginManager)
         m_pluginManager->unloadPlugins();
-    delete m_spellChecker;
 }
 
 ActionManager* MainWindow::actionManager() const
@@ -421,111 +418,52 @@ void MainWindow::connectFormatActions()
 void MainWindow::connectInsertActions()
 {
     connect(m_actionManager->insertTableAction(), &QAction::triggered, this, [this]() {
-        if (!currentEditor())
-            return;
-        InsertTableDialog dlg(this);
-        if (dlg.exec() == QDialog::Accepted) {
-            QTextCursor cursor = currentEditor()->textCursor();
-            cursor.insertTable(dlg.rows(), dlg.columns());
-        }
+        if (auto *e = currentEditor())
+            DocumentService::insertTableInteractive(this, e);
     });
     connect(m_actionManager->insertImageAction(), &QAction::triggered, this, [this]() {
-        if (!currentEditor())
-            return;
-        InsertImageDialog dlg(this);
-        if (dlg.exec() == QDialog::Accepted)
-            DocumentService::embedImageInDocument(currentEditor(), dlg.imagePath(), dlg.width(), dlg.height());
+        if (auto *e = currentEditor())
+            DocumentService::insertImageInteractive(this, e);
     });
     connect(m_actionManager->insertShapeAction(), &QAction::triggered, this, [this]() {
-        if (!currentEditor())
-            return;
-        InsertShapeDialog dlg(this);
-        if (dlg.exec() == QDialog::Accepted) {
-            QPixmap shape = dlg.generateShape(dlg.shapeName());
-            if (!shape.isNull()) {
-                QTextImageFormat fmt;
-                fmt.setName(QStringLiteral("shape_temp"));
-                fmt.setWidth(shape.width());
-                fmt.setHeight(shape.height());
-                currentEditor()->textCursor().insertImage(shape.toImage());
-            }
-        }
+        if (auto *e = currentEditor())
+            DocumentService::insertShapeInteractive(this, e);
     });
     connect(m_actionManager->insertChartAction(), &QAction::triggered, this, [this]() {
-        if (!currentEditor())
-            return;
-        InsertChartDialog dlg(this);
-        if (dlg.exec() == QDialog::Accepted) {
-            QPixmap chart = dlg.generateChart(dlg.chartType());
-            if (!chart.isNull())
-                currentEditor()->textCursor().insertImage(chart.toImage());
-        }
+        if (auto *e = currentEditor())
+            DocumentService::insertChartInteractive(this, e);
     });
     connect(m_actionManager->insertLinkAction(), &QAction::triggered, this, [this]() {
-        if (!currentEditor())
-            return;
-        InsertLinkDialog dlg(this);
-        if (dlg.exec() == QDialog::Accepted) {
-            QTextCursor cursor = currentEditor()->textCursor();
-            cursor.insertHtml(QStringLiteral("<a href=\"%1\">%2</a>").arg(dlg.url().toHtmlEscaped(), dlg.displayText().toHtmlEscaped()));
-        }
+        if (auto *e = currentEditor())
+            DocumentService::insertLinkInteractive(this, e);
     });
     connect(m_actionManager->insertSymbolAction(), &QAction::triggered, this, [this]() {
-        if (!currentEditor())
-            return;
-        InsertSymbolDialog dlg(this);
-        if (dlg.exec() == QDialog::Accepted)
-            currentEditor()->textCursor().insertText(QString(dlg.selectedSymbol()));
+        if (auto *e = currentEditor())
+            DocumentService::insertSymbolInteractive(this, e);
     });
     connect(m_actionManager->insertHorizontalLineAction(), &QAction::triggered, this, [this]() {
-        if (!currentEditor())
-            return;
-        InsertLineDialog dlg(this);
-        if (dlg.exec() == QDialog::Accepted)
-            currentEditor()->textCursor().insertHtml(QStringLiteral("<hr>"));
+        if (auto *e = currentEditor())
+            DocumentService::insertHorizontalLineInteractive(e);
     });
     connect(m_actionManager->insertDateAction(), &QAction::triggered, this, [this]() {
-        if (!currentEditor())
-            return;
-        InsertDateDialog dlg(this);
-        if (dlg.exec() == QDialog::Accepted)
-            currentEditor()->textCursor().insertText(
-                QDate::currentDate().toString(dlg.dateFormat()));
+        if (auto *e = currentEditor())
+            DocumentService::insertDateInteractive(this, e);
     });
     connect(m_actionManager->insertTimeAction(), &QAction::triggered, this, [this]() {
-        if (!currentEditor())
-            return;
-        InsertTimeDialog dlg(this);
-        if (dlg.exec() == QDialog::Accepted)
-            currentEditor()->textCursor().insertText(
-                QTime::currentTime().toString(dlg.timeFormat()));
+        if (auto *e = currentEditor())
+            DocumentService::insertTimeInteractive(this, e);
     });
     connect(m_actionManager->insertVideoAction(), &QAction::triggered, this, [this]() {
-        if (!currentEditor())
-            return;
-        InsertVideoDialog dlg(this);
-        if (dlg.exec() == QDialog::Accepted) {
-            QTextCursor cursor = currentEditor()->textCursor();
-            cursor.insertHtml(QStringLiteral("<a href=\"%1\">%1</a>").arg(dlg.videoPath().toHtmlEscaped()));
-        }
+        if (auto *e = currentEditor())
+            DocumentService::insertVideoInteractive(this, e);
     });
     connect(m_actionManager->insertHeaderAction(), &QAction::triggered, this, [this]() {
-        if (!currentEditor())
-            return;
-        QTextCursor cursor = currentEditor()->textCursor();
-        cursor.movePosition(QTextCursor::Start);
-        cursor.insertHtml(QStringLiteral(
-            "<div style=\"border-bottom: 2px solid #444; padding-bottom: 6px; "
-            "margin-bottom: 12px; font-size: 10pt; color: #666;\">Header</div>"));
+        if (auto *e = currentEditor())
+            DocumentService::insertHeader(e);
     });
     connect(m_actionManager->insertFooterAction(), &QAction::triggered, this, [this]() {
-        if (!currentEditor())
-            return;
-        QTextCursor cursor = currentEditor()->textCursor();
-        cursor.movePosition(QTextCursor::End);
-        cursor.insertHtml(QStringLiteral(
-            "<div style=\"border-top: 2px solid #444; padding-top: 6px; "
-            "margin-top: 12px; font-size: 10pt; color: #666;\">Footer</div>"));
+        if (auto *e = currentEditor())
+            DocumentService::insertFooter(e);
     });
 }
 
@@ -601,7 +539,7 @@ void MainWindow::connectReviewActions()
         if (misspelled.isEmpty()) {
             QMessageBox::information(this, tr("Spell Check"), tr("No misspellings found."));
         } else {
-            SpellCheckDialog dlg(m_spellChecker, misspelled, this);
+            SpellCheckDialog dlg(m_spellChecker.get(), misspelled, this);
             if (dlg.exec() == QDialog::Accepted) {
                 const auto reps = dlg.replacements();
                 for (const auto& rep : reps) {
@@ -718,18 +656,11 @@ void MainWindow::connectViewActions()
         }
     });
 
-    connect(m_actionManager->zoomSlider(), &QSlider::valueChanged, this, [this, updateZoomDisplay](int value) {
+    connect(m_actionManager->zoomSlider(), &QSlider::valueChanged, this, [this](int value) {
         if (!currentEditor())
             return;
-        qreal level = value / 100.0;
+        m_zoomPendingLevel = value / 100.0;
         m_zoomDebounceTimer->stop();
-        m_zoomDebounceTimer->disconnect();
-        connect(m_zoomDebounceTimer, &QTimer::timeout, this, [this, level, updateZoomDisplay]() {
-            if (auto *e = currentEditor()) {
-                e->setZoomLevel(level);
-                updateZoomDisplay(level);
-            }
-        });
         m_zoomDebounceTimer->start();
     });
 }
@@ -785,7 +716,7 @@ void MainWindow::connectDocumentSignals()
         m_actionManager->updateEditorActions(currentEditor(), m_docManager, m_statusBarManager);
         if (tab) {
             if (auto *e = tab->editor())
-                e->setSpellChecker(m_spellChecker);
+                e->setSpellChecker(m_spellChecker.get());
         }
     });
     connect(m_docManager, &DocumentManager::statusLineColumnChanged,

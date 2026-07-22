@@ -6,6 +6,8 @@
 #include "mainwindow/StatusBarManager.h"
 
 #include <QApplication>
+#include <QColorDialog>
+#include <QDate>
 #include <QDir>
 #include <QFile>
 #include <QFileDialog>
@@ -23,8 +25,20 @@
 #include <QTextDocument>
 #include <QTextImageFormat>
 #include <QTextStream>
+#include <QTime>
 #include <QTemporaryDir>
 #include <QUrl>
+
+#include "dialogs/InsertChartDialog.h"
+#include "dialogs/InsertDateDialog.h"
+#include "dialogs/InsertImageDialog.h"
+#include "dialogs/InsertLineDialog.h"
+#include "dialogs/InsertLinkDialog.h"
+#include "dialogs/InsertShapeDialog.h"
+#include "dialogs/InsertSymbolDialog.h"
+#include "dialogs/InsertTableDialog.h"
+#include "dialogs/InsertTimeDialog.h"
+#include "dialogs/InsertVideoDialog.h"
 
 static void waitForProcess(QProcess &proc, int timeoutMs)
 {
@@ -84,6 +98,103 @@ void DocumentService::embedImageInDocument(DocumentEditor *editor, const QString
     editor->textCursor().insertImage(fmt);
 }
 
+void DocumentService::insertTableInteractive(QWidget *parent, DocumentEditor *editor)
+{
+    InsertTableDialog dlg(parent);
+    if (dlg.exec() == QDialog::Accepted)
+        editor->textCursor().insertTable(dlg.rows(), dlg.columns());
+}
+
+void DocumentService::insertImageInteractive(QWidget *parent, DocumentEditor *editor)
+{
+    InsertImageDialog dlg(parent);
+    if (dlg.exec() == QDialog::Accepted)
+        embedImageInDocument(editor, dlg.imagePath(), dlg.width(), dlg.height());
+}
+
+void DocumentService::insertShapeInteractive(QWidget *parent, DocumentEditor *editor)
+{
+    InsertShapeDialog dlg(parent);
+    if (dlg.exec() == QDialog::Accepted) {
+        QPixmap shape = dlg.generateShape(dlg.shapeName());
+        if (!shape.isNull())
+            editor->textCursor().insertImage(shape.toImage());
+    }
+}
+
+void DocumentService::insertChartInteractive(QWidget *parent, DocumentEditor *editor)
+{
+    InsertChartDialog dlg(parent);
+    if (dlg.exec() == QDialog::Accepted) {
+        QPixmap chart = dlg.generateChart(dlg.chartType());
+        if (!chart.isNull())
+            editor->textCursor().insertImage(chart.toImage());
+    }
+}
+
+void DocumentService::insertLinkInteractive(QWidget *parent, DocumentEditor *editor)
+{
+    InsertLinkDialog dlg(parent);
+    if (dlg.exec() == QDialog::Accepted) {
+        QTextCursor cursor = editor->textCursor();
+        cursor.insertHtml(QStringLiteral("<a href=\"%1\">%2</a>")
+            .arg(dlg.url().toHtmlEscaped(), dlg.displayText().toHtmlEscaped()));
+    }
+}
+
+void DocumentService::insertSymbolInteractive(QWidget *parent, DocumentEditor *editor)
+{
+    InsertSymbolDialog dlg(parent);
+    if (dlg.exec() == QDialog::Accepted)
+        editor->textCursor().insertText(QString(dlg.selectedSymbol()));
+}
+
+void DocumentService::insertHorizontalLineInteractive(DocumentEditor *editor)
+{
+    editor->textCursor().insertHtml(QStringLiteral("<hr>"));
+}
+
+void DocumentService::insertDateInteractive(QWidget *parent, DocumentEditor *editor)
+{
+    InsertDateDialog dlg(parent);
+    if (dlg.exec() == QDialog::Accepted)
+        editor->textCursor().insertText(QDate::currentDate().toString(dlg.dateFormat()));
+}
+
+void DocumentService::insertTimeInteractive(QWidget *parent, DocumentEditor *editor)
+{
+    InsertTimeDialog dlg(parent);
+    if (dlg.exec() == QDialog::Accepted)
+        editor->textCursor().insertText(QTime::currentTime().toString(dlg.timeFormat()));
+}
+
+void DocumentService::insertVideoInteractive(QWidget *parent, DocumentEditor *editor)
+{
+    InsertVideoDialog dlg(parent);
+    if (dlg.exec() == QDialog::Accepted) {
+        QTextCursor cursor = editor->textCursor();
+        cursor.insertHtml(QStringLiteral("<a href=\"%1\">%1</a>").arg(dlg.videoPath().toHtmlEscaped()));
+    }
+}
+
+void DocumentService::insertHeader(DocumentEditor *editor)
+{
+    QTextCursor cursor = editor->textCursor();
+    cursor.movePosition(QTextCursor::Start);
+    cursor.insertHtml(QStringLiteral(
+        "<div style=\"border-bottom: 2px solid #444; padding-bottom: 6px; "
+        "margin-bottom: 12px; font-size: 10pt; color: #666;\">Header</div>"));
+}
+
+void DocumentService::insertFooter(DocumentEditor *editor)
+{
+    QTextCursor cursor = editor->textCursor();
+    cursor.movePosition(QTextCursor::End);
+    cursor.insertHtml(QStringLiteral(
+        "<div style=\"border-top: 2px solid #444; padding-top: 6px; "
+        "margin-top: 12px; font-size: 10pt; color: #666;\">Footer</div>"));
+}
+
 DocumentService::DocumentService(DocumentManager *docManager,
                                  Settings *settings,
                                  StatusBarManager *statusBar,
@@ -109,6 +220,7 @@ void DocumentService::openDocument(const QString &path)
         filePath = QFileDialog::getOpenFileName(m_parentWidget, tr("Open Document"),
             QString(),
             tr("XAML Document (*.xaml *.dexml);;"
+               "Word Document (*.docx);;"
                "HTML Document (*.html *.htm);;"
                "Rich Text Format (*.rtf);;"
                "Text File (*.txt);;"

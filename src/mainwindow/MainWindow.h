@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QMainWindow>
+#include <memory>
 
 class QMdiArea;
 class QTimer;
@@ -74,10 +75,11 @@ private:
     DocumentManager* m_docManager = nullptr;
     PluginManager* m_pluginManager = nullptr;
     PluginContext* m_pluginContext = nullptr;
-    SpellChecker* m_spellChecker = nullptr;
+    std::unique_ptr<SpellChecker> m_spellChecker;
     QTextToSpeech* m_tts = nullptr;
 
     Settings* m_settings = nullptr;
 
     QTimer* m_zoomDebounceTimer = nullptr;
+    qreal m_zoomPendingLevel = 1.0;
 };
