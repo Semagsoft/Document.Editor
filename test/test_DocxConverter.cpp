@@ -397,6 +397,94 @@ private slots:
         QVERIFY(doc2.toPlainText().contains(QStringLiteral("After image")));
     }
 
+    void testHyperlinkRoundTrip()
+    {
+        QTextDocument doc;
+        QTextCursor cursor(&doc);
+
+        QTextCharFormat linkFmt;
+        linkFmt.setAnchor(true);
+        linkFmt.setAnchorHref(QStringLiteral("https://example.com"));
+        linkFmt.setForeground(QColor(Qt::blue));
+        linkFmt.setFontUnderline(true);
+        cursor.insertText(QStringLiteral("Click here"), linkFmt);
+
+        cursor.insertBlock();
+        QTextCharFormat normalFmt;
+        cursor.insertText(QStringLiteral("Normal text"), normalFmt);
+
+        QByteArray docx = DocxConverter::saveToDocx(&doc, QMarginsF());
+        QVERIFY(!docx.isEmpty());
+
+        QTextDocument doc2;
+        QMarginsF margins;
+        QColor bg;
+        bool ok = DocxConverter::loadFromDocx(docx, &doc2, margins, bg);
+        QVERIFY(ok);
+
+        QVERIFY(doc2.toPlainText().contains(QStringLiteral("Click here")));
+        QVERIFY(doc2.toPlainText().contains(QStringLiteral("Normal text")));
+    }
+
+    void testMergedCellsRoundTrip()
+    {
+        QTextDocument doc;
+        QTextCursor cursor(&doc);
+        QTextTable *table = cursor.insertTable(2, 3);
+
+        table->mergeCells(0, 0, 1, 2);
+
+        for (int r = 0; r < 2; ++r) {
+            for (int c = 0; c < 3; ++c) {
+                QTextTableCell cell = table->cellAt(r, c);
+                if (cell.row() != r || cell.column() != c) continue;
+                QTextCursor cc = cell.firstCursorPosition();
+                cc.movePosition(QTextCursor::NextBlock, QTextCursor::KeepAnchor);
+                cc.removeSelectedText();
+                cc.insertText(QStringLiteral("R%1C%2").arg(r).arg(c));
+            }
+        }
+
+        QByteArray docx = DocxConverter::saveToDocx(&doc, QMarginsF());
+        QVERIFY(!docx.isEmpty());
+
+        QTextDocument doc2;
+        QMarginsF margins;
+        QColor bg;
+        bool ok = DocxConverter::loadFromDocx(docx, &doc2, margins, bg);
+        QVERIFY(ok);
+
+        QString text = doc2.toPlainText();
+        QVERIFY(text.contains(QStringLiteral("R0C0")));
+        QVERIFY(text.contains(QStringLiteral("R1C1")));
+    }
+
+    void testNamedStyleRoundTrip()
+    {
+        QTextDocument doc;
+        QTextCursor cursor(&doc);
+
+        QTextBlockFormat headingFmt;
+        headingFmt.setProperty(QTextFormat::UserProperty, QStringLiteral("Heading1"));
+        headingFmt.setAlignment(Qt::AlignCenter);
+        cursor.insertBlock(headingFmt);
+        cursor.insertText(QStringLiteral("Heading Text"));
+
+        cursor.insertBlock();
+        cursor.insertText(QStringLiteral("Normal Text"));
+
+        QByteArray docx = DocxConverter::saveToDocx(&doc, QMarginsF());
+        QVERIFY(!docx.isEmpty());
+
+        QTextDocument doc2;
+        QMarginsF margins;
+        QColor bg;
+        bool ok = DocxConverter::loadFromDocx(docx, &doc2, margins, bg);
+        QVERIFY(ok);
+
+        QVERIFY(doc2.toPlainText().contains(QStringLiteral("Heading Text")));
+    }
+
     void testTabCharacter()
     {
         QTextDocument doc;

@@ -138,6 +138,7 @@ static void readRPr(QXmlStreamReader &r, QTextCharFormat &fmt)
 struct PPrResult {
     int numId = -1;
     int ilvl = 0;
+    QString pStyle;
     QTextBlockFormat blockFmt;
     Qt::Alignment align = Qt::AlignLeft;
 };
@@ -152,7 +153,9 @@ static PPrResult readPPr(QXmlStreamReader &r)
             continue;
         QString n = r.name().toString();
 
-        if (n == QLatin1String("jc")) {
+        if (n == QLatin1String("pStyle")) {
+            res.pStyle = r.attributes().value(QLatin1String("w:val")).toString();
+        } else if (n == QLatin1String("jc")) {
             QString v = r.attributes().value(QLatin1String("w:val")).toString();
             if (v == QLatin1String("center"))         res.align = Qt::AlignCenter;
             else if (v == QLatin1String("right"))     res.align = Qt::AlignRight;
@@ -284,10 +287,12 @@ struct ImageRel {
 };
 
 static QVector<RunFragment> collectRuns(QXmlStreamReader &r,
-                                        const QMap<QString, ImageRel> &imagesByRelId)
+                                        const QMap<QString, ImageRel> &imagesByRelId,
+                                        const QMap<QString, QString> &hyperlinkTargets = {})
 {
     QVector<RunFragment> fragments;
     QTextCharFormat currentFmt;
+    QString currentHref;
 
     while (r.readNext() != QXmlStreamReader::Invalid) {
         if (r.isEndElement() && r.namespaceUri() == NS_W && r.name().toString() == QLatin1String("r")) {
@@ -296,17 +301,28 @@ static QVector<RunFragment> collectRuns(QXmlStreamReader &r,
         }
         if (r.isEndElement() && r.namespaceUri() == NS_W && r.name().toString() == QLatin1String("p"))
             break;
+        if (r.isEndElement() && r.namespaceUri() == NS_W && r.name().toString() == QLatin1String("hyperlink")) {
+            currentHref.clear();
+            continue;
+        }
         if (!r.isStartElement())
             continue;
         QString ns = r.namespaceUri().toString();
         QString n = r.name().toString();
 
-        if (ns == NS_W && n == QLatin1String("rPr")) {
+        if (ns == NS_W && n == QLatin1String("hyperlink")) {
+            QString relId = r.attributes().value(QLatin1String("r:id")).toString();
+            currentHref = hyperlinkTargets.value(relId);
+        } else if (ns == NS_W && n == QLatin1String("rPr")) {
             readRPr(r, currentFmt);
         } else if (ns == NS_W && n == QLatin1String("t")) {
             RunFragment f;
             f.text = r.readElementText();
             f.charFmt = currentFmt;
+            if (!currentHref.isEmpty()) {
+                f.charFmt.setAnchor(true);
+                f.charFmt.setAnchorHref(currentHref);
+            }
             fragments.append(f);
         } else if (ns == NS_W && n == QLatin1String("br")) {
             RunFragment f;
@@ -428,6 +444,7 @@ static void parseTable(QXmlStreamReader &xml, QTextCursor &cursor,
 
     struct CellContent {
         QVector<ParaBuffer> paragraphs;
+        int colSpan = 1;
     };
     QVector<QVector<CellContent>> grid;
     int currentRow = -1;
@@ -446,7 +463,19 @@ static void parseTable(QXmlStreamReader &xml, QTextCursor &cursor,
                 if (tx.isEndElement() && tx.name().toString() == QLatin1String("tc"))
                     break;
                 if (!tx.isStartElement()) continue;
-                if (tx.name().toString() == QLatin1String("p")) {
+                if (tx.name().toString() == QLatin1String("tcPr")) {
+                    while (tx.readNext() != QXmlStreamReader::Invalid) {
+                        if (tx.isEndElement() && tx.name().toString() == QLatin1String("tcPr"))
+                            break;
+                        if (!tx.isStartElement()) continue;
+                        if (tx.name().toString() == QLatin1String("gridSpan")) {
+                            QString v = tx.attributes().value(QLatin1String("w:val")).toString();
+                            if (!v.isEmpty()) cell.colSpan = qMax(1, v.toInt());
+                        } else {
+                            skipElement(tx);
+                        }
+                    }
+                } else if (tx.name().toString() == QLatin1String("p")) {
                     QByteArray paraBuf;
                     {
                         QXmlStreamWriter pw(&paraBuf);
@@ -498,6 +527,8 @@ static void parseTable(QXmlStreamReader &xml, QTextCursor &cursor,
                             pb.numId = ppr.numId;
                             pb.ilvl = ppr.ilvl;
                             pb.blockFmt = ppr.blockFmt;
+                            if (!ppr.pStyle.isEmpty())
+                                pb.blockFmt.setProperty(QTextFormat::UserProperty, ppr.pStyle);
                             pb.align = ppr.align;
                         } else if (pn == QLatin1String("r")) {
                             QVector<RunFragment> runs = collectRuns(px, imagesByRelId);
@@ -524,6 +555,11 @@ static void parseTable(QXmlStreamReader &xml, QTextCursor &cursor,
 
     for (int r = 0; r < rows; ++r) {
         for (int c = 0; c < cols && c < grid[r].size(); ++c) {
+            if (grid[r][c].colSpan > 1) {
+                int span = qMin(grid[r][c].colSpan, cols - c);
+                if (span > 1)
+                    table->mergeCells(r, c, 1, span);
+            }
             QTextTableCell cell = table->cellAt(r, c);
             QTextCursor cellCursor = cell.firstCursorPosition();
             cellCursor.movePosition(QTextCursor::NextBlock, QTextCursor::KeepAnchor);
@@ -586,6 +622,7 @@ bool DocxConverter::loadFromDocx(const QByteArray &zipData, QTextDocument *doc,
         numbering = parseNumbering(files[QLatin1String("word/numbering.xml")]);
 
     QMap<QString, ImageRel> imageDataByRelId;
+    QMap<QString, QString> hyperlinkTargets;
     if (files.contains(QLatin1String("word/_rels/document.xml.rels"))) {
         QXmlStreamReader relR(files[QLatin1String("word/_rels/document.xml.rels")]);
         while (!relR.atEnd()) {
@@ -597,12 +634,16 @@ bool DocxConverter::loadFromDocx(const QByteArray &zipData, QTextDocument *doc,
             QString target = a.value(QLatin1String("Target")).toString();
             QString type = a.value(QLatin1String("Type")).toString();
             if (!id.isEmpty() && !target.isEmpty()) {
-                QString mediaPath = QLatin1String("word/") + target;
-                if (files.contains(mediaPath)) {
-                    ImageRel ir;
-                    ir.data = files[mediaPath];
-                    ir.target = target;
-                    imageDataByRelId[id] = ir;
+                if (type.contains(QLatin1String("image"))) {
+                    QString mediaPath = QLatin1String("word/") + target;
+                    if (files.contains(mediaPath)) {
+                        ImageRel ir;
+                        ir.data = files[mediaPath];
+                        ir.target = target;
+                        imageDataByRelId[id] = ir;
+                    }
+                } else if (type.contains(QLatin1String("hyperlink"))) {
+                    hyperlinkTargets[id] = target;
                 }
             }
         }
@@ -691,10 +732,12 @@ bool DocxConverter::loadFromDocx(const QByteArray &zipData, QTextDocument *doc,
                 if (pn == QLatin1String("pPr")) {
                     ppr = readPPr(px);
                 } else if (pn == QLatin1String("r")) {
-                    runs = collectRuns(px, imageDataByRelId);
+                    runs = collectRuns(px, imageDataByRelId, hyperlinkTargets);
                 }
             }
 
+            if (!ppr.pStyle.isEmpty())
+                ppr.blockFmt.setProperty(QTextFormat::UserProperty, ppr.pStyle);
             if (firstBlock) {
                 cursor.setBlockFormat(ppr.blockFmt);
                 firstBlock = false;
@@ -746,8 +789,6 @@ bool DocxConverter::loadFromDocx(const QByteArray &zipData, QTextDocument *doc,
                     QString h = a.value(QLatin1String("w:h")).toString();
                     if (!w.isEmpty()) pgW = twipToPt(w.toInt());
                     if (!h.isEmpty()) pgH = twipToPt(h.toInt());
-                    if (!w.isEmpty()) pgW = twipToPt(w.toInt());
-                    if (!h.isEmpty()) pgH = twipToPt(h.toInt());
                 } else if (sn == QLatin1String("pgMar")) {
                     auto a = xml.attributes();
                     QString top = a.value(QLatin1String("w:top")).toString();
@@ -796,7 +837,8 @@ static void writeTableXml(QXmlStreamWriter &w, QTextTable *table,
                           QTextDocument *doc,
                           int &imageCounter, int &relationCounter,
                           QStringList &imageRels, QStringList &imageTargets,
-                          QZipWriter &zip)
+                          QZipWriter &zip,
+                          QSet<QString> &usedStyles)
 {
     w.writeStartElement(QLatin1String("w:tbl"));
     w.writeStartElement(QLatin1String("w:tblPr"));
@@ -815,6 +857,15 @@ static void writeTableXml(QXmlStreamWriter &w, QTextTable *table,
 
             w.writeStartElement(QLatin1String("w:tc"));
 
+            int cSpan = cell.columnSpan();
+            if (cSpan > 1) {
+                w.writeStartElement(QLatin1String("w:tcPr"));
+                w.writeStartElement(QLatin1String("w:gridSpan"));
+                w.writeAttribute(QLatin1String("w:val"), QString::number(cSpan));
+                w.writeEndElement();
+                w.writeEndElement();
+            }
+
             QTextCursor cellCursor = cell.firstCursorPosition();
             QTextBlock block = cellCursor.block();
             int cellEnd = cell.lastPosition();
@@ -824,6 +875,12 @@ static void writeTableXml(QXmlStreamWriter &w, QTextTable *table,
 
                 w.writeStartElement(QLatin1String("w:p"));
                 w.writeStartElement(QLatin1String("w:pPr"));
+
+                QString pStyle = bf.property(QTextFormat::UserProperty).toString();
+                if (!pStyle.isEmpty()) {
+                    w.writeTextElement(QLatin1String("w:pStyle"), pStyle);
+                    usedStyles.insert(pStyle);
+                }
 
                 Qt::Alignment align = bf.alignment();
                 if (align == Qt::AlignCenter)
@@ -1079,8 +1136,12 @@ QByteArray DocxConverter::saveToDocx(const QTextDocument *doc,
 
     int imageCounter = 0;
     int relationCounter = 1;
+    int hyperlinkCounter = 0;
     QStringList imageRels;
     QStringList imageTargets;
+    QMap<QString, QString> hyperlinkUrlToRelId;
+    QMap<QString, QString> hyperlinkRelIdToUrl;
+    QSet<QString> usedStyles;
 
     {
         QString xml;
@@ -1109,7 +1170,8 @@ QByteArray DocxConverter::saveToDocx(const QTextDocument *doc,
                 if (!writtenTables.contains(tp)) {
                     writeTableXml(w, table, const_cast<QTextDocument*>(doc),
                                   imageCounter, relationCounter,
-                                  imageRels, imageTargets, zip);
+                                  imageRels, imageTargets, zip,
+                                  usedStyles);
                     writtenTables.insert(tp);
                 }
                 int tableEnd = table->lastPosition();
@@ -1123,6 +1185,12 @@ QByteArray DocxConverter::saveToDocx(const QTextDocument *doc,
 
             w.writeStartElement(QLatin1String("w:p"));
             w.writeStartElement(QLatin1String("w:pPr"));
+
+            QString pStyle = bf.property(QTextFormat::UserProperty).toString();
+            if (!pStyle.isEmpty()) {
+                w.writeTextElement(QLatin1String("w:pStyle"), pStyle);
+                usedStyles.insert(pStyle);
+            }
 
             Qt::Alignment align = bf.alignment();
             if (align == Qt::AlignCenter)
@@ -1257,6 +1325,18 @@ QByteArray DocxConverter::saveToDocx(const QTextDocument *doc,
                     continue;
                 }
 
+                bool isLink = cf.isAnchor() && !cf.anchorHref().isEmpty();
+                if (isLink) {
+                    QString href = cf.anchorHref();
+                    if (!hyperlinkUrlToRelId.contains(href)) {
+                        ++relationCounter;
+                        QString rid = QStringLiteral("rId%1").arg(relationCounter);
+                        hyperlinkUrlToRelId[href] = rid;
+                        hyperlinkRelIdToUrl[rid] = href;
+                    }
+                    w.writeStartElement(QLatin1String("w:hyperlink"));
+                    w.writeAttribute(QLatin1String("r:id"), hyperlinkUrlToRelId[href]);
+                }
                 w.writeStartElement(QLatin1String("w:r"));
                 w.writeStartElement(QLatin1String("w:rPr"));
 
@@ -1307,6 +1387,8 @@ QByteArray DocxConverter::saveToDocx(const QTextDocument *doc,
                 w.writeEndElement();
                 w.writeTextElement(QLatin1String("w:t"), text);
                 w.writeEndElement();
+                if (isLink)
+                    w.writeEndElement();
             }
 
             w.writeEndElement();
@@ -1357,6 +1439,14 @@ QByteArray DocxConverter::saveToDocx(const QTextDocument *doc,
             w.writeAttribute(QLatin1String("Id"), imageRels[i]);
             w.writeAttribute(QLatin1String("Type"), QLatin1String("http://schemas.openxmlformats.org/officeDocument/2006/relationships/image"));
             w.writeAttribute(QLatin1String("Target"), imageTargets[i]);
+            w.writeEndElement();
+        }
+        for (auto it = hyperlinkRelIdToUrl.constBegin(); it != hyperlinkRelIdToUrl.constEnd(); ++it) {
+            w.writeStartElement(QLatin1String("Relationship"));
+            w.writeAttribute(QLatin1String("Id"), it.key());
+            w.writeAttribute(QLatin1String("Type"), QLatin1String("http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink"));
+            w.writeAttribute(QLatin1String("Target"), it.value());
+            w.writeAttribute(QLatin1String("TargetMode"), QLatin1String("External"));
             w.writeEndElement();
         }
         w.writeEndElement();
@@ -1458,6 +1548,19 @@ QByteArray DocxConverter::saveToDocx(const QTextDocument *doc,
         w.writeAttribute(QLatin1String("w:val"), QLatin1String("Normal"));
         w.writeEndElement();
         w.writeEndElement();
+        for (const QString &sn : usedStyles) {
+            if (sn == QLatin1String("Normal")) continue;
+            w.writeStartElement(QLatin1String("w:style"));
+            w.writeAttribute(QLatin1String("w:type"), QLatin1String("paragraph"));
+            w.writeAttribute(QLatin1String("w:styleId"), sn);
+            w.writeStartElement(QLatin1String("w:name"));
+            w.writeAttribute(QLatin1String("w:val"), sn);
+            w.writeEndElement();
+            w.writeStartElement(QLatin1String("w:basedOn"));
+            w.writeAttribute(QLatin1String("w:val"), QLatin1String("Normal"));
+            w.writeEndElement();
+            w.writeEndElement();
+        }
         w.writeEndElement();
         w.writeEndDocument();
         zip.addFile(QLatin1String("word/styles.xml"), xml.toUtf8());
