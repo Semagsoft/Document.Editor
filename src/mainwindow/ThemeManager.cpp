@@ -25,8 +25,7 @@ void ThemeManager::setTheme(Theme theme)
     setPalette(theme);
 
     QString stylesheet = loadStylesheet(theme);
-    if (!stylesheet.isEmpty())
-        qApp->setStyleSheet(stylesheet);
+    qApp->setStyleSheet(stylesheet);
 
     emit themeChanged(theme);
 }

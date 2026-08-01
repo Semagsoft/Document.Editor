@@ -43,6 +43,19 @@
 #include "utils/TextUtils.h"
 #include <QTextToSpeech>
 
+static QTextDocument::FindFlags buildFindFlags(bool matchCase, bool wholeWord = false,
+                                               bool backward = false)
+{
+    QTextDocument::FindFlags flags;
+    if (matchCase)
+        flags |= QTextDocument::FindCaseSensitively;
+    if (wholeWord)
+        flags |= QTextDocument::FindWholeWords;
+    if (backward)
+        flags |= QTextDocument::FindBackward;
+    return flags;
+}
+
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
 {
@@ -71,8 +84,8 @@ MainWindow::MainWindow(QWidget* parent)
         if (!path.isEmpty())
             m_settings->addRecentFile(path);
         m_actionManager->updateEditorActions(currentEditor(), m_docManager, m_statusBarManager);
-        if (auto *e = currentEditor())
-            e->setSpellChecker(m_spellChecker.get());
+        applyEditorSettings(currentEditor());
+        applyRulerToTabs();
     });
     connect(m_docService, &DocumentService::statusMessage, this, [this](const QString &msg, int timeout) {
         statusBar()->showMessage(msg, timeout);
@@ -123,6 +136,7 @@ MainWindow::MainWindow(QWidget* parent)
 
     // Text-to-speech
     m_tts = new QTextToSpeech(this);
+    applyTtsSettings();
 
     // Zoom debounce timer
     m_zoomDebounceTimer = new QTimer(this);
@@ -135,11 +149,25 @@ MainWindow::MainWindow(QWidget* parent)
         }
         m_actionManager->zoomSlider()->setValue(pct);
         m_actionManager->zoomLabel()->setText(QStringLiteral(" %1%").arg(pct));
+        m_statusBarManager->setZoomLevel(pct);
     });
+
+    // Startup behavior: create/open per settings (unless files were passed on the CLI)
+    const bool hasStartupFiles = app && !app->startupFiles().isEmpty();
+    if (!hasStartupFiles) {
+        if (m_settings->startupMode() == 0) {
+            QTimer::singleShot(0, this, [this]() { m_docService->newDocument(); });
+        } else if (m_settings->startupMode() == 1) {
+            QTimer::singleShot(0, this, [this]() { m_docService->openDocument(); });
+        }
+    }
 }
 
 MainWindow::~MainWindow()
 {
+    // Destroy editors (and their highlighters) before the spell checker they reference.
+    if (m_mdiArea)
+        qDeleteAll(m_mdiArea->subWindowList());
     if (m_pluginManager)
         m_pluginManager->unloadPlugins();
 }
@@ -162,6 +190,66 @@ StatusBarManager* MainWindow::statusBarManager() const
 DocumentEditor* MainWindow::currentEditor() const
 {
     return m_docManager->activeEditor();
+}
+
+void MainWindow::openFile(const QString& filePath)
+{
+    if (!filePath.isEmpty())
+        m_docService->openDocument(filePath);
+}
+
+void MainWindow::applyRulerToTabs()
+{
+    const RulerWidget::Unit unit = m_settings->rulerMeasurement() == 1
+        ? RulerWidget::Centimeters
+        : RulerWidget::Inches;
+    const bool visible = m_actionManager->showRulerAction()->isChecked();
+    for (DocumentTab* tab : m_docManager->allTabs()) {
+        tab->setRulerVisible(visible);
+        tab->setRulerUnit(unit);
+    }
+}
+
+void MainWindow::applyEditorSettings(DocumentEditor* editor)
+{
+    if (!editor)
+        return;
+    editor->setSpellChecker(m_spellChecker.get());
+    editor->setSpellCheckEnabled(m_settings->spellCheckEnabled());
+    if (editor->document()->toPlainText().isEmpty()) {
+        QFont f = m_settings->defaultFont();
+        if (f.family().isEmpty())
+            f = QFont(QStringLiteral("Segoe UI"));
+        if (f.pointSizeF() <= 0)
+            f.setPointSizeF(m_settings->defaultFontSize());
+        editor->setBaseFont(f);
+    }
+}
+
+void MainWindow::applyTtsSettings()
+{
+    if (!m_tts)
+        return;
+    const QList<QVoice> voices = m_tts->availableVoices();
+    const int idx = m_settings->ttsVoice() - 1;
+    if (idx >= 0 && idx < voices.size())
+        m_tts->setVoice(voices.at(idx));
+    m_tts->setRate(m_settings->ttsSpeed() / 10.0);
+}
+
+void MainWindow::applyTheme(ThemeManager::Theme theme)
+{
+    m_themeManager->setTheme(theme);
+    m_settings->setTheme(static_cast<int>(theme));
+    const QList<QPair<ThemeManager::Theme, QAction*>> themeActions = {
+        { ThemeManager::Office2010Blue,   m_actionManager->themeOffice2010Action() },
+        { ThemeManager::Office2010Silver, m_actionManager->themeOffice2010SilverAction() },
+        { ThemeManager::Office2010Black,  m_actionManager->themeOffice2010BlackAction() },
+        { ThemeManager::Office2013,       m_actionManager->themeOffice2013Action() },
+        { ThemeManager::Windows8,         m_actionManager->themeWindows8Action() },
+    };
+    for (const auto& pair : themeActions)
+        pair.second->setChecked(pair.first == theme);
 }
 
 void MainWindow::createCentralArea()
@@ -240,10 +328,18 @@ void MainWindow::connectFileActions()
         OptionsDialog dlg(m_settings, this);
         if (dlg.exec() == QDialog::Accepted) {
             m_settings->save();
-            emit documentChanged();
+            int themeIdx = m_settings->theme();
+            if (themeIdx >= ThemeManager::Office2010Blue && themeIdx <= ThemeManager::Windows8)
+                applyTheme(static_cast<ThemeManager::Theme>(themeIdx));
+            applyTabSettings();
+            applyRulerToTabs();
+            applyEditorSettings(currentEditor());
+            applyTtsSettings();
+            rebuildRecentFilesMenu();
+            m_actionManager->updateEditorActions(currentEditor(), m_docManager, m_statusBarManager);
         }
     });
-    connect(m_settings, &Settings::settingsChanged, this, &MainWindow::rebuildRecentFilesMenu);
+    connect(m_settings, &Settings::recentFilesChanged, this, &MainWindow::rebuildRecentFilesMenu);
 }
 
 void MainWindow::connectEditActions()
@@ -285,20 +381,10 @@ void MainWindow::connectEditActions()
             return;
         FindDialog dlg(this);
         connect(&dlg, &FindDialog::findNext, this, [this](const QString& text, bool matchCase, bool wholeWord) {
-            QTextDocument::FindFlags flags;
-            if (matchCase)
-                flags |= QTextDocument::FindCaseSensitively;
-            if (wholeWord)
-                flags |= QTextDocument::FindWholeWords;
-            currentEditor()->find(text, flags);
+            currentEditor()->find(text, buildFindFlags(matchCase, wholeWord));
         });
         connect(&dlg, &FindDialog::findPrevious, this, [this](const QString& text, bool matchCase, bool wholeWord) {
-            QTextDocument::FindFlags flags = QTextDocument::FindBackward;
-            if (matchCase)
-                flags |= QTextDocument::FindCaseSensitively;
-            if (wholeWord)
-                flags |= QTextDocument::FindWholeWords;
-            currentEditor()->find(text, flags);
+            currentEditor()->find(text, buildFindFlags(matchCase, wholeWord, true));
         });
         dlg.exec();
     });
@@ -307,31 +393,30 @@ void MainWindow::connectEditActions()
             return;
         ReplaceDialog dlg(this);
         connect(&dlg, &ReplaceDialog::findNext, this, [this](const QString& text, bool matchCase) {
-            QTextDocument::FindFlags flags;
-            if (matchCase)
-                flags |= QTextDocument::FindCaseSensitively;
-            currentEditor()->find(text, flags);
+            currentEditor()->find(text, buildFindFlags(matchCase));
         });
         connect(&dlg, &ReplaceDialog::replace, this, [this](const QString& find, const QString& replace, bool matchCase) {
-            QTextDocument::FindFlags flags;
-            if (matchCase)
-                flags |= QTextDocument::FindCaseSensitively;
-            if (currentEditor()->find(find, flags))
+            if (currentEditor()->find(find, buildFindFlags(matchCase)))
                 currentEditor()->textCursor().insertText(replace);
         });
         connect(&dlg, &ReplaceDialog::replaceAll, this, [this](const QString& find, const QString& replace, bool matchCase) {
-            QTextDocument::FindFlags flags;
-            if (matchCase)
-                flags |= QTextDocument::FindCaseSensitively;
+            if (find.isEmpty())
+                return;
+            const QTextDocument::FindFlags flags = buildFindFlags(matchCase);
             int count = 0;
             QTextCursor cursor = currentEditor()->textCursor();
             cursor.movePosition(QTextCursor::Start);
             while (!cursor.isNull() && cursor.position() < currentEditor()->document()->characterCount()) {
                 cursor = currentEditor()->document()->find(find, cursor, flags);
-                if (!cursor.isNull()) {
-                    cursor.insertText(replace);
-                    count++;
-                }
+                if (cursor.isNull())
+                    break;
+                int prevPos = cursor.position();
+                cursor.insertText(replace);
+                ++count;
+                if (cursor.position() == prevPos)
+                    break;
+                if (count > 100000)
+                    break;
             }
         });
         dlg.exec();
@@ -482,8 +567,16 @@ void MainWindow::connectPageLayoutActions()
             return;
         QStringList parts = result.split(QStringLiteral("x"), Qt::SkipEmptyParts);
         if (parts.size() == 2) {
-            currentEditor()->setPageWidth(parts[0].trimmed().toDouble());
-            currentEditor()->setPageHeight(parts[1].trimmed().toDouble());
+            bool wOk = false, hOk = false;
+            qreal w = parts[0].trimmed().toDouble(&wOk);
+            qreal h = parts[1].trimmed().toDouble(&hOk);
+            if (wOk && hOk && w > 0 && h > 0) {
+                currentEditor()->setPageWidth(w);
+                currentEditor()->setPageHeight(h);
+            } else {
+                QMessageBox::warning(this, tr("Page Size"),
+                    tr("Invalid page size. Enter positive numbers."));
+            }
         }
     });
     connect(m_actionManager->pageMarginsAction(), &QAction::triggered, this, [this]() {
@@ -498,9 +591,33 @@ void MainWindow::connectPageLayoutActions()
             return;
         QStringList parts = result.split(QStringLiteral(","), Qt::SkipEmptyParts);
         if (parts.size() == 4) {
-            currentEditor()->setPageMargins(QMarginsF(
-                parts[0].trimmed().toDouble(), parts[1].trimmed().toDouble(),
-                parts[2].trimmed().toDouble(), parts[3].trimmed().toDouble()));
+            bool ok = false;
+            const qreal left = parts[0].trimmed().toDouble(&ok);
+            if (!ok || left < 0) {
+                QMessageBox::warning(this, tr("Page Margins"),
+                    tr("Invalid margins. Enter non-negative numbers."));
+                return;
+            }
+            qreal top = 0, right = 0, bottom = 0;
+            top = parts[1].trimmed().toDouble(&ok);
+            if (!ok || top < 0) {
+                QMessageBox::warning(this, tr("Page Margins"),
+                    tr("Invalid margins. Enter non-negative numbers."));
+                return;
+            }
+            right = parts[2].trimmed().toDouble(&ok);
+            if (!ok || right < 0) {
+                QMessageBox::warning(this, tr("Page Margins"),
+                    tr("Invalid margins. Enter non-negative numbers."));
+                return;
+            }
+            bottom = parts[3].trimmed().toDouble(&ok);
+            if (!ok || bottom < 0) {
+                QMessageBox::warning(this, tr("Page Margins"),
+                    tr("Invalid margins. Enter non-negative numbers."));
+                return;
+            }
+            currentEditor()->setPageMargins(QMarginsF(left, top, right, bottom));
         }
     });
     connect(m_actionManager->pageOrientationAction(), &QAction::triggered, this, [this]() {
@@ -608,29 +725,26 @@ void MainWindow::connectViewActions()
 {
     connect(m_actionManager->showRulerAction(), &QAction::toggled, this, [this](bool checked) {
         m_settings->setShowRuler(checked);
+        applyRulerToTabs();
     });
     connect(m_actionManager->showStatusBarAction(), &QAction::toggled, this, [this](bool checked) {
         statusBar()->setVisible(checked);
+        m_settings->setShowStatusBar(checked);
     });
     connect(m_actionManager->themeOffice2010Action(), &QAction::triggered, this, [this]() {
-        m_themeManager->setTheme(ThemeManager::Office2010Blue);
-        m_settings->setTheme(static_cast<int>(ThemeManager::Office2010Blue));
+        applyTheme(ThemeManager::Office2010Blue);
     });
     connect(m_actionManager->themeOffice2010SilverAction(), &QAction::triggered, this, [this]() {
-        m_themeManager->setTheme(ThemeManager::Office2010Silver);
-        m_settings->setTheme(static_cast<int>(ThemeManager::Office2010Silver));
+        applyTheme(ThemeManager::Office2010Silver);
     });
     connect(m_actionManager->themeOffice2010BlackAction(), &QAction::triggered, this, [this]() {
-        m_themeManager->setTheme(ThemeManager::Office2010Black);
-        m_settings->setTheme(static_cast<int>(ThemeManager::Office2010Black));
+        applyTheme(ThemeManager::Office2010Black);
     });
     connect(m_actionManager->themeOffice2013Action(), &QAction::triggered, this, [this]() {
-        m_themeManager->setTheme(ThemeManager::Office2013);
-        m_settings->setTheme(static_cast<int>(ThemeManager::Office2013));
+        applyTheme(ThemeManager::Office2013);
     });
     connect(m_actionManager->themeWindows8Action(), &QAction::triggered, this, [this]() {
-        m_themeManager->setTheme(ThemeManager::Windows8);
-        m_settings->setTheme(static_cast<int>(ThemeManager::Windows8));
+        applyTheme(ThemeManager::Windows8);
     });
 
     // Zoom connections
@@ -638,6 +752,7 @@ void MainWindow::connectViewActions()
         int pct = qRound(level * 100.0);
         m_actionManager->zoomSlider()->setValue(pct);
         m_actionManager->zoomLabel()->setText(QStringLiteral(" %1%").arg(pct));
+        m_statusBarManager->setZoomLevel(pct);
     };
 
     connect(m_actionManager->zoomInAction(), &QAction::triggered, this, [this, updateZoomDisplay]() {
@@ -715,8 +830,8 @@ void MainWindow::connectDocumentSignals()
     connect(m_docManager, &DocumentManager::activeTabChanged, this, [this](DocumentTab* tab) {
         m_actionManager->updateEditorActions(currentEditor(), m_docManager, m_statusBarManager);
         if (tab) {
-            if (auto *e = tab->editor())
-                e->setSpellChecker(m_spellChecker.get());
+            applyEditorSettings(tab->editor());
+            applyRulerToTabs();
         }
     });
     connect(m_docManager, &DocumentManager::statusLineColumnChanged,
@@ -758,7 +873,8 @@ void MainWindow::loadSettings()
     if (m_settings->windowMaximized())
         showMaximized();
 
-    statusBar()->setVisible(m_actionManager->showStatusBarAction()->isChecked());
+    statusBar()->setVisible(m_settings->showStatusBar());
+    m_actionManager->showStatusBarAction()->setChecked(m_settings->showStatusBar());
     applyTabSettings();
 
     if (m_settings->enableGlass())
@@ -766,9 +882,9 @@ void MainWindow::loadSettings()
 
     int themeIdx = m_settings->theme();
     if (themeIdx >= ThemeManager::Office2010Blue && themeIdx <= ThemeManager::Windows8)
-        m_themeManager->setTheme(static_cast<ThemeManager::Theme>(themeIdx));
+        applyTheme(static_cast<ThemeManager::Theme>(themeIdx));
     else
-        m_themeManager->setTheme(ThemeManager::Office2010Blue);
+        applyTheme(ThemeManager::Office2010Blue);
 
     QByteArray state = m_settings->mainWindowState();
     if (!state.isEmpty())
@@ -783,11 +899,6 @@ void MainWindow::saveSettings()
     m_settings->setWindowMaximized(isMaximized());
     m_settings->setMainWindowState(saveState());
     m_settings->save();
-}
-
-void MainWindow::updateWindowTitle()
-{
-    setWindowTitle(QStringLiteral("Document.Editor"));
 }
 
 void MainWindow::closeCurrentDocument()
@@ -817,13 +928,4 @@ void MainWindow::closeEvent(QCloseEvent* event)
     }
     saveSettings();
     event->accept();
-}
-
-void MainWindow::keyPressEvent(QKeyEvent* event)
-{
-    if (event->key() == Qt::Key_Insert && (event->modifiers() & Qt::ControlModifier)) {
-        event->ignore();
-        return;
-    }
-    QMainWindow::keyPressEvent(event);
 }

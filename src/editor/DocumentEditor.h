@@ -37,6 +37,7 @@ public:
     // Zoom
     qreal zoomLevel() const;
     void setZoomLevel(qreal level);
+    void setBaseFont(const QFont& font);
     void setBaseFontPointSize(qreal size);
 
     // Statistics

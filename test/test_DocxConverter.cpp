@@ -459,6 +459,98 @@ private slots:
         QVERIFY(text.contains(QStringLiteral("R1C1")));
     }
 
+    void testVerticalMergeRoundTrip()
+    {
+        QTextDocument doc;
+        QTextCursor cursor(&doc);
+        QTextTable *table = cursor.insertTable(3, 2);
+
+        for (int r = 0; r < 3; ++r) {
+            for (int c = 0; c < 2; ++c) {
+                QTextTableCell cell = table->cellAt(r, c);
+                QTextCursor cc = cell.firstCursorPosition();
+                cc.movePosition(QTextCursor::NextBlock, QTextCursor::KeepAnchor);
+                cc.removeSelectedText();
+                cc.insertText(QStringLiteral("R%1C%2").arg(r).arg(c));
+            }
+        }
+
+        table->mergeCells(0, 0, 2, 1);
+        QCOMPARE(table->cellAt(0, 0).rowSpan(), 2);
+
+        QByteArray docx = DocxConverter::saveToDocx(&doc, QMarginsF());
+        QVERIFY(!docx.isEmpty());
+
+        QTextDocument doc2;
+        QMarginsF margins;
+        QColor bg;
+        bool ok = DocxConverter::loadFromDocx(docx, &doc2, margins, bg);
+        QVERIFY(ok);
+
+        QTextTable *loadedTable = nullptr;
+        for (QTextBlock block = doc2.begin(); block.isValid(); block = block.next()) {
+            QTextFrame *frame = doc2.frameAt(block.position());
+            while (frame) {
+                loadedTable = qobject_cast<QTextTable *>(frame);
+                if (loadedTable) break;
+                frame = frame->parentFrame();
+            }
+            if (loadedTable) break;
+        }
+        QVERIFY(loadedTable != nullptr);
+        QCOMPARE(loadedTable->rows(), 3);
+        QCOMPARE(loadedTable->columns(), 2);
+        QCOMPARE(loadedTable->cellAt(0, 0).rowSpan(), 2);
+    }
+
+    void testMultipleImagesSameParagraph()
+    {
+        QTextDocument doc;
+        QTextCursor cursor(&doc);
+
+        QImage img1(20, 20, QImage::Format_ARGB32);
+        img1.fill(Qt::blue);
+        QTextImageFormat imgFmt1;
+        QString name1 = QStringLiteral("img_one.png");
+        doc.addResource(QTextDocument::ImageResource, QUrl(name1), img1);
+        imgFmt1.setName(name1);
+        imgFmt1.setWidth(40);
+        imgFmt1.setHeight(40);
+
+        QImage img2(20, 20, QImage::Format_ARGB32);
+        img2.fill(Qt::red);
+        QTextImageFormat imgFmt2;
+        QString name2 = QStringLiteral("img_two.png");
+        doc.addResource(QTextDocument::ImageResource, QUrl(name2), img2);
+        imgFmt2.setName(name2);
+        imgFmt2.setWidth(40);
+        imgFmt2.setHeight(40);
+
+        cursor.insertImage(imgFmt1);
+        cursor.insertImage(imgFmt2);
+        cursor.insertBlock();
+        cursor.insertText(QStringLiteral("After images"));
+
+        QByteArray docx = DocxConverter::saveToDocx(&doc, QMarginsF());
+        QVERIFY(!docx.isEmpty());
+
+        QTextDocument doc2;
+        QMarginsF margins;
+        QColor bg;
+        bool ok = DocxConverter::loadFromDocx(docx, &doc2, margins, bg);
+        QVERIFY(ok);
+        QVERIFY(doc2.toPlainText().contains(QStringLiteral("After images")));
+
+        int imageCount = 0;
+        for (QTextBlock block = doc2.begin(); block.isValid(); block = block.next()) {
+            for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
+                if (it.fragment().charFormat().isImageFormat())
+                    ++imageCount;
+            }
+        }
+        QCOMPARE(imageCount, 2);
+    }
+
     void testNamedStyleRoundTrip()
     {
         QTextDocument doc;

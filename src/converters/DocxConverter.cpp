@@ -60,6 +60,16 @@ static void skipElement(QXmlStreamReader &r)
     }
 }
 
+static void copyStartElement(QXmlStreamWriter &pw, const QXmlStreamReader &xml)
+{
+    pw.writeStartElement(xml.qualifiedName().toString());
+    const auto nsDecls = xml.namespaceDeclarations();
+    for (const auto &nsd : nsDecls)
+        pw.writeNamespace(nsd.namespaceUri().toString(), nsd.prefix().toString());
+    for (const auto &attr : xml.attributes())
+        pw.writeAttribute(attr.qualifiedName().toString(), attr.value().toString());
+}
+
 static QColor parseColor(const QString &val, const QColor &fallback = QColor())
 {
     if (val.isEmpty() || val == QLatin1String("auto"))
@@ -324,6 +334,8 @@ static QVector<RunFragment> collectRuns(QXmlStreamReader &r,
                 f.charFmt.setAnchorHref(currentHref);
             }
             fragments.append(f);
+        } else if (ns == NS_W && n == QLatin1String("r")) {
+            currentFmt = QTextCharFormat();
         } else if (ns == NS_W && n == QLatin1String("br")) {
             RunFragment f;
             f.isLineBreak = true;
@@ -370,6 +382,7 @@ static QVector<RunFragment> collectRuns(QXmlStreamReader &r,
 static void insertRunsIntoCursor(QTextCursor &cursor, const QVector<RunFragment> &runs,
                                  QTextDocument *doc, const QMap<QString, ImageRel> &)
 {
+    static quint64 s_embeddedImageSeq = 0;
     for (const RunFragment &rf : runs) {
         if (rf.isLineBreak) {
             cursor.insertText(QStringLiteral("\n"), rf.charFmt);
@@ -379,8 +392,8 @@ static void insertRunsIntoCursor(QTextCursor &cursor, const QVector<RunFragment>
             QImage img;
             if (img.loadFromData(rf.imageData)) {
                 QString ext = QFileInfo(rf.imageFileName).suffix().toLower();
-                QString name = QStringLiteral("docx_embed_%1.%2").arg(
-                    reinterpret_cast<quintptr>(&rf)).arg(ext.isEmpty() ? QStringLiteral("png") : ext);
+                QString name = QStringLiteral("docx_embed_%1.%2").arg(++s_embeddedImageSeq)
+                    .arg(ext.isEmpty() ? QStringLiteral("png") : ext);
                 doc->addResource(QTextDocument::ImageResource, QUrl(name), img);
                 QTextImageFormat imgFmt;
                 imgFmt.setName(name);
@@ -424,9 +437,7 @@ static void parseTable(QXmlStreamReader &xml, QTextCursor &cursor,
         int depth = 1;
         while (depth > 0 && xml.readNext() != QXmlStreamReader::Invalid) {
             if (xml.isStartElement()) {
-                pw.writeStartElement(xml.qualifiedName().toString());
-                for (const auto &attr : xml.attributes())
-                    pw.writeAttribute(attr.qualifiedName().toString(), attr.value().toString());
+                copyStartElement(pw, xml);
                 ++depth;
             } else if (xml.isEndElement()) {
                 pw.writeEndElement();
@@ -445,6 +456,8 @@ static void parseTable(QXmlStreamReader &xml, QTextCursor &cursor,
     struct CellContent {
         QVector<ParaBuffer> paragraphs;
         int colSpan = 1;
+        bool vMergeRestart = false;
+        bool vMergeContinue = false;
     };
     QVector<QVector<CellContent>> grid;
     int currentRow = -1;
@@ -471,6 +484,12 @@ static void parseTable(QXmlStreamReader &xml, QTextCursor &cursor,
                         if (tx.name().toString() == QLatin1String("gridSpan")) {
                             QString v = tx.attributes().value(QLatin1String("w:val")).toString();
                             if (!v.isEmpty()) cell.colSpan = qMax(1, v.toInt());
+                        } else if (tx.name().toString() == QLatin1String("vMerge")) {
+                            QString v = tx.attributes().value(QLatin1String("w:val")).toString();
+                            if (v == QLatin1String("continue") || v.isEmpty())
+                                cell.vMergeContinue = true;
+                            else
+                                cell.vMergeRestart = true;
                         } else {
                             skipElement(tx);
                         }
@@ -553,8 +572,27 @@ static void parseTable(QXmlStreamReader &xml, QTextCursor &cursor,
 
     QTextTable *table = cursor.insertTable(rows, cols);
 
+    QVector<int> mergeStartRow(cols, -1);
     for (int r = 0; r < rows; ++r) {
         for (int c = 0; c < cols && c < grid[r].size(); ++c) {
+            const CellContent &cc = grid[r][c];
+            if (cc.vMergeContinue) {
+                if (mergeStartRow[c] >= 0 && mergeStartRow[c] < r)
+                    table->mergeCells(mergeStartRow[c], c, r - mergeStartRow[c] + 1, 1);
+                else
+                    mergeStartRow[c] = r;
+            } else if (cc.vMergeRestart) {
+                mergeStartRow[c] = r;
+            } else {
+                mergeStartRow[c] = -1;
+            }
+        }
+    }
+
+    for (int r = 0; r < rows; ++r) {
+        for (int c = 0; c < cols && c < grid[r].size(); ++c) {
+            if (grid[r][c].vMergeContinue)
+                continue;
             if (grid[r][c].colSpan > 1) {
                 int span = qMin(grid[r][c].colSpan, cols - c);
                 if (span > 1)
@@ -693,9 +731,7 @@ bool DocxConverter::loadFromDocx(const QByteArray &zipData, QTextDocument *doc,
             int depth = 1;
             while (depth > 0 && xml.readNext() != QXmlStreamReader::Invalid) {
                 if (xml.isStartElement()) {
-                    pw.writeStartElement(xml.qualifiedName().toString());
-                    for (const auto &attr : xml.attributes())
-                        pw.writeAttribute(attr.qualifiedName().toString(), attr.value().toString());
+                    copyStartElement(pw, xml);
                     ++depth;
                 } else if (xml.isEndElement()) {
                     pw.writeEndElement();
@@ -833,6 +869,79 @@ static QString imageFormatFromName(const QString &name)
     return QStringLiteral("PNG");
 }
 
+static void writeImageRun(QXmlStreamWriter &w, const QTextDocument *doc,
+                          const QTextImageFormat &imgFmt, const QImage &img,
+                          int &imageCounter, int &relationCounter,
+                          QStringList &imageRels, QStringList &imageTargets,
+                          QZipWriter &zip)
+{
+    ++imageCounter;
+    ++relationCounter;
+    QString relId = QStringLiteral("rId%1").arg(relationCounter);
+    QString fmt = imageFormatFromName(imgFmt.name());
+    QString ext = fmt.toLower();
+    if (ext == QLatin1String("jpeg")) ext = QStringLiteral("jpg");
+    QString target = QStringLiteral("media/image%1.%2").arg(imageCounter).arg(ext);
+    imageRels.append(relId);
+    imageTargets.append(target);
+
+    QByteArray imgData;
+    QBuffer imgBuf(&imgData);
+    imgBuf.open(QIODevice::WriteOnly);
+    img.save(&imgBuf, fmt.toLatin1().constData());
+    imgBuf.close();
+    zip.addFile(QLatin1String("word/") + target, imgData);
+
+    w.writeStartElement(QLatin1String("w:r"));
+    w.writeStartElement(QLatin1String("w:rPr"));
+    w.writeEndElement();
+    w.writeStartElement(QLatin1String("w:drawing"));
+    w.writeNamespace(NS_WP, QLatin1String("wp"));
+    w.writeNamespace(NS_A, QLatin1String("a"));
+    w.writeStartElement(QLatin1String("wp:inline"));
+    w.writeStartElement(QLatin1String("wp:extent"));
+    qreal iw = imgFmt.width() > 0 ? imgFmt.width() : img.width();
+    qreal ih = imgFmt.height() > 0 ? imgFmt.height() : img.height();
+    w.writeAttribute(QLatin1String("cx"), QString::number(ptToEmu(iw)));
+    w.writeAttribute(QLatin1String("cy"), QString::number(ptToEmu(ih)));
+    w.writeEndElement();
+    w.writeStartElement(QLatin1String("wp:docPr"));
+    w.writeAttribute(QLatin1String("id"), QString::number(imageCounter));
+    w.writeAttribute(QLatin1String("name"), QStringLiteral("Image%1").arg(imageCounter));
+    w.writeEndElement();
+    w.writeStartElement(QLatin1String("a:graphic"));
+    w.writeStartElement(QLatin1String("a:graphicData"));
+    w.writeAttribute(QLatin1String("uri"), QLatin1String("http://schemas.openxmlformats.org/drawingml/2006/picture"));
+    w.writeStartElement(QLatin1String("pic:pic"));
+    w.writeNamespace(QLatin1String("http://schemas.openxmlformats.org/drawingml/2006/picture"), QLatin1String("pic"));
+    w.writeStartElement(QLatin1String("pic:blipFill"));
+    w.writeStartElement(QLatin1String("a:blip"));
+    w.writeAttribute(QLatin1String("r:embed"), relId);
+    w.writeEndElement();
+    w.writeEndElement();
+    w.writeStartElement(QLatin1String("pic:spPr"));
+    w.writeStartElement(QLatin1String("a:xfrm"));
+    w.writeStartElement(QLatin1String("a:off"));
+    w.writeAttribute(QLatin1String("x"), QLatin1String("0"));
+    w.writeAttribute(QLatin1String("y"), QLatin1String("0"));
+    w.writeEndElement();
+    w.writeStartElement(QLatin1String("a:ext"));
+    w.writeAttribute(QLatin1String("cx"), QString::number(ptToEmu(iw)));
+    w.writeAttribute(QLatin1String("cy"), QString::number(ptToEmu(ih)));
+    w.writeEndElement();
+    w.writeEndElement();
+    w.writeStartElement(QLatin1String("a:prstGeom"));
+    w.writeAttribute(QLatin1String("prst"), QLatin1String("rect"));
+    w.writeEndElement();
+    w.writeEndElement();
+    w.writeEndElement();
+    w.writeEndElement();
+    w.writeEndElement();
+    w.writeEndElement();
+    w.writeEndElement();
+    w.writeEndElement();
+}
+
 static void writeTableXml(QXmlStreamWriter &w, QTextTable *table,
                           QTextDocument *doc,
                           int &imageCounter, int &relationCounter,
@@ -850,21 +959,30 @@ static void writeTableXml(QXmlStreamWriter &w, QTextTable *table,
 
     for (int row = 0; row < table->rows(); ++row) {
         w.writeStartElement(QLatin1String("w:tr"));
-        for (int col = 0; col < table->columns(); ++col) {
+        for (int col = 0; col < table->columns();) {
             QTextTableCell cell = table->cellAt(row, col);
-            if (cell.row() != row || cell.column() != col)
-                continue;
+            const int startRow = cell.row();
+            const int startCol = cell.column();
+            const int cSpan = cell.columnSpan();
+            const int rSpan = cell.rowSpan();
 
-            w.writeStartElement(QLatin1String("w:tc"));
+            if (startRow == row && startCol == col) {
+                w.writeStartElement(QLatin1String("w:tc"));
 
-            int cSpan = cell.columnSpan();
-            if (cSpan > 1) {
-                w.writeStartElement(QLatin1String("w:tcPr"));
-                w.writeStartElement(QLatin1String("w:gridSpan"));
-                w.writeAttribute(QLatin1String("w:val"), QString::number(cSpan));
-                w.writeEndElement();
-                w.writeEndElement();
-            }
+                if (cSpan > 1 || rSpan > 1) {
+                    w.writeStartElement(QLatin1String("w:tcPr"));
+                    if (cSpan > 1) {
+                        w.writeStartElement(QLatin1String("w:gridSpan"));
+                        w.writeAttribute(QLatin1String("w:val"), QString::number(cSpan));
+                        w.writeEndElement();
+                    }
+                    if (rSpan > 1) {
+                        w.writeStartElement(QLatin1String("w:vMerge"));
+                        w.writeAttribute(QLatin1String("w:val"), QLatin1String("restart"));
+                        w.writeEndElement();
+                    }
+                    w.writeEndElement();
+                }
 
             QTextCursor cellCursor = cell.firstCursorPosition();
             QTextBlock block = cellCursor.block();
@@ -917,74 +1035,9 @@ static void writeTableXml(QXmlStreamWriter &w, QTextTable *table,
                         QVariant res = doc->resource(QTextDocument::ImageResource, QUrl(imgFmt.name()));
                         if (res.isValid()) {
                             QImage img = qvariant_cast<QImage>(res);
-                            if (!img.isNull()) {
-                                ++imageCounter;
-                                ++relationCounter;
-                                QString relId = QStringLiteral("rId%1").arg(relationCounter);
-                                QString fmt = imageFormatFromName(imgFmt.name());
-                                QString ext = fmt.toLower();
-                                if (ext == QLatin1String("jpeg")) ext = QStringLiteral("jpg");
-                                QString target = QStringLiteral("media/image%1.%2").arg(imageCounter).arg(ext);
-                                imageRels.append(relId);
-                                imageTargets.append(target);
-
-                                QByteArray imgData;
-                                QBuffer imgBuf(&imgData);
-                                imgBuf.open(QIODevice::WriteOnly);
-                                img.save(&imgBuf, fmt.toLatin1().constData());
-                                imgBuf.close();
-                                zip.addFile(QLatin1String("word/") + target, imgData);
-
-                                w.writeStartElement(QLatin1String("w:r"));
-                                w.writeStartElement(QLatin1String("w:rPr"));
-                                w.writeEndElement();
-                                w.writeStartElement(QLatin1String("w:drawing"));
-                                w.writeNamespace(NS_WP, QLatin1String("wp"));
-                                w.writeNamespace(NS_A, QLatin1String("a"));
-                                w.writeStartElement(QLatin1String("wp:inline"));
-                                w.writeStartElement(QLatin1String("wp:extent"));
-                                qreal iw = imgFmt.width() > 0 ? imgFmt.width() : img.width();
-                                qreal ih = imgFmt.height() > 0 ? imgFmt.height() : img.height();
-                                w.writeAttribute(QLatin1String("cx"), QString::number(ptToEmu(iw)));
-                                w.writeAttribute(QLatin1String("cy"), QString::number(ptToEmu(ih)));
-                                w.writeEndElement();
-                                w.writeStartElement(QLatin1String("wp:docPr"));
-                                w.writeAttribute(QLatin1String("id"), QString::number(imageCounter));
-                                w.writeAttribute(QLatin1String("name"), QStringLiteral("Image%1").arg(imageCounter));
-                                w.writeEndElement();
-                                w.writeStartElement(QLatin1String("a:graphic"));
-                                w.writeStartElement(QLatin1String("a:graphicData"));
-                                w.writeAttribute(QLatin1String("uri"), QLatin1String("http://schemas.openxmlformats.org/drawingml/2006/picture"));
-                                w.writeStartElement(QLatin1String("pic:pic"));
-                                w.writeNamespace(QLatin1String("http://schemas.openxmlformats.org/drawingml/2006/picture"), QLatin1String("pic"));
-                                w.writeStartElement(QLatin1String("pic:blipFill"));
-                                w.writeStartElement(QLatin1String("a:blip"));
-                                w.writeAttribute(QLatin1String("r:embed"), relId);
-                                w.writeEndElement();
-                                w.writeEndElement();
-                                w.writeStartElement(QLatin1String("pic:spPr"));
-                                w.writeStartElement(QLatin1String("a:xfrm"));
-                                w.writeStartElement(QLatin1String("a:off"));
-                                w.writeAttribute(QLatin1String("x"), QLatin1String("0"));
-                                w.writeAttribute(QLatin1String("y"), QLatin1String("0"));
-                                w.writeEndElement();
-                                w.writeStartElement(QLatin1String("a:ext"));
-                                w.writeAttribute(QLatin1String("cx"), QString::number(ptToEmu(iw)));
-                                w.writeAttribute(QLatin1String("cy"), QString::number(ptToEmu(ih)));
-                                w.writeEndElement();
-                                w.writeEndElement();
-                                w.writeStartElement(QLatin1String("a:prstGeom"));
-                                w.writeAttribute(QLatin1String("prst"), QLatin1String("rect"));
-                                w.writeEndElement();
-                                w.writeEndElement();
-                                w.writeEndElement();
-                                w.writeEndElement();
-                                w.writeEndElement();
-                                w.writeEndElement();
-                                w.writeEndElement();
-                                w.writeEndElement();
-                                w.writeEndElement();
-                            }
+                            if (!img.isNull())
+                                writeImageRun(w, doc, imgFmt, img, imageCounter, relationCounter,
+                                              imageRels, imageTargets, zip);
                         }
                         continue;
                     }
@@ -1052,7 +1105,23 @@ static void writeTableXml(QXmlStreamWriter &w, QTextTable *table,
                 block = block.next();
             }
 
-            w.writeEndElement();
+                w.writeEndElement();
+
+                col += cSpan;
+            } else {
+                w.writeStartElement(QLatin1String("w:tc"));
+                w.writeStartElement(QLatin1String("w:tcPr"));
+                if (cSpan > 1) {
+                    w.writeStartElement(QLatin1String("w:gridSpan"));
+                    w.writeAttribute(QLatin1String("w:val"), QString::number(cSpan));
+                    w.writeEndElement();
+                }
+                w.writeEmptyElement(QLatin1String("w:vMerge"));
+                w.writeEndElement();
+                w.writeEmptyElement(QLatin1String("w:p"));
+                w.writeEndElement();
+                col += cSpan;
+            }
         }
         w.writeEndElement();
     }
@@ -1246,74 +1315,9 @@ QByteArray DocxConverter::saveToDocx(const QTextDocument *doc,
                     QVariant res = doc->resource(QTextDocument::ImageResource, QUrl(imgFmt.name()));
                     if (res.isValid()) {
                         QImage img = qvariant_cast<QImage>(res);
-                        if (!img.isNull()) {
-                            ++imageCounter;
-                            ++relationCounter;
-                            QString relId = QStringLiteral("rId%1").arg(relationCounter);
-                            QString fmt = imageFormatFromName(imgFmt.name());
-                            QString ext = fmt.toLower();
-                            if (ext == QLatin1String("jpeg")) ext = QStringLiteral("jpg");
-                            QString target = QStringLiteral("media/image%1.%2").arg(imageCounter).arg(ext);
-                            imageRels.append(relId);
-                            imageTargets.append(target);
-
-                            QByteArray imgData;
-                            QBuffer imgBuf(&imgData);
-                            imgBuf.open(QIODevice::WriteOnly);
-                            img.save(&imgBuf, fmt.toLatin1().constData());
-                            imgBuf.close();
-                            zip.addFile(QLatin1String("word/") + target, imgData);
-
-                            w.writeStartElement(QLatin1String("w:r"));
-                            w.writeStartElement(QLatin1String("w:rPr"));
-                            w.writeEndElement();
-                            w.writeStartElement(QLatin1String("w:drawing"));
-                            w.writeNamespace(NS_WP, QLatin1String("wp"));
-                            w.writeNamespace(NS_A, QLatin1String("a"));
-                            w.writeStartElement(QLatin1String("wp:inline"));
-                            w.writeStartElement(QLatin1String("wp:extent"));
-                            qreal iw = imgFmt.width() > 0 ? imgFmt.width() : img.width();
-                            qreal ih = imgFmt.height() > 0 ? imgFmt.height() : img.height();
-                            w.writeAttribute(QLatin1String("cx"), QString::number(ptToEmu(iw)));
-                            w.writeAttribute(QLatin1String("cy"), QString::number(ptToEmu(ih)));
-                            w.writeEndElement();
-                            w.writeStartElement(QLatin1String("wp:docPr"));
-                            w.writeAttribute(QLatin1String("id"), QString::number(imageCounter));
-                            w.writeAttribute(QLatin1String("name"), QStringLiteral("Image%1").arg(imageCounter));
-                            w.writeEndElement();
-                            w.writeStartElement(QLatin1String("a:graphic"));
-                            w.writeStartElement(QLatin1String("a:graphicData"));
-                            w.writeAttribute(QLatin1String("uri"), QLatin1String("http://schemas.openxmlformats.org/drawingml/2006/picture"));
-                            w.writeStartElement(QLatin1String("pic:pic"));
-                            w.writeNamespace(QLatin1String("http://schemas.openxmlformats.org/drawingml/2006/picture"), QLatin1String("pic"));
-                            w.writeStartElement(QLatin1String("pic:blipFill"));
-                            w.writeStartElement(QLatin1String("a:blip"));
-                            w.writeAttribute(QLatin1String("r:embed"), relId);
-                            w.writeEndElement();
-                            w.writeEndElement();
-                            w.writeStartElement(QLatin1String("pic:spPr"));
-                            w.writeStartElement(QLatin1String("a:xfrm"));
-                            w.writeStartElement(QLatin1String("a:off"));
-                            w.writeAttribute(QLatin1String("x"), QLatin1String("0"));
-                            w.writeAttribute(QLatin1String("y"), QLatin1String("0"));
-                            w.writeEndElement();
-                            w.writeStartElement(QLatin1String("a:ext"));
-                            w.writeAttribute(QLatin1String("cx"), QString::number(ptToEmu(iw)));
-                            w.writeAttribute(QLatin1String("cy"), QString::number(ptToEmu(ih)));
-                            w.writeEndElement();
-                            w.writeEndElement();
-                            w.writeStartElement(QLatin1String("a:prstGeom"));
-                            w.writeAttribute(QLatin1String("prst"), QLatin1String("rect"));
-                            w.writeEndElement();
-                            w.writeEndElement();
-                            w.writeEndElement();
-                            w.writeEndElement();
-                            w.writeEndElement();
-                            w.writeEndElement();
-                            w.writeEndElement();
-                            w.writeEndElement();
-                            w.writeEndElement();
-                        }
+                        if (!img.isNull())
+                            writeImageRun(w, doc, imgFmt, img, imageCounter, relationCounter,
+                                          imageRels, imageTargets, zip);
                     }
                     continue;
                 }

@@ -156,10 +156,12 @@ bool DocumentManager::closeDocument(DocumentTab* tab)
             tr("Save changes to '%1'?").arg(tab->tabTitle()),
             QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel);
 
-        if (btn == QMessageBox::Save)
-            saveDocument(tab);
-        else if (btn == QMessageBox::Cancel)
+        if (btn == QMessageBox::Save) {
+            if (!saveDocument(tab))
+                return false;
+        } else if (btn == QMessageBox::Cancel) {
             return false;
+        }
     }
 
     QMdiSubWindow* sub = qobject_cast<QMdiSubWindow*>(tab->parentWidget());

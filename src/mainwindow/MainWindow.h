@@ -3,13 +3,14 @@
 #include <QMainWindow>
 #include <memory>
 
+#include "ThemeManager.h"
+
 class QMdiArea;
 class QTimer;
 
 class ActionManager;
 class DocumentService;
 class Settings;
-class ThemeManager;
 class StatusBarManager;
 class DocumentManager;
 class DocumentEditor;
@@ -30,17 +31,15 @@ public:
     void closeAllDocuments();
     void closeAllButCurrent();
 
+    void openFile(const QString& filePath);
+
     Settings* settings() const;
     StatusBarManager* statusBarManager() const;
 
     ActionManager* actionManager() const;
 
-signals:
-    void documentChanged();
-
 protected:
     void closeEvent(QCloseEvent* event) override;
-    void keyPressEvent(QKeyEvent* event) override;
 
 private:
     void createCentralArea();
@@ -59,7 +58,10 @@ private:
     void loadSettings();
     void saveSettings();
     void applyTabSettings();
-    void updateWindowTitle();
+    void applyRulerToTabs();
+    void applyEditorSettings(DocumentEditor* editor);
+    void applyTtsSettings();
+    void applyTheme(ThemeManager::Theme theme);
     void rebuildRecentFilesMenu();
 
     DocumentEditor* currentEditor() const;

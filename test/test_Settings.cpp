@@ -86,6 +86,30 @@ private slots:
         QVERIFY(s.recentFiles().isEmpty());
     }
 
+    void testRecentFilesPersistedImmediately()
+    {
+        {
+            Settings s;
+            s.addRecentFile(QStringLiteral("persist_check.xaml"));
+        }
+
+        Settings s2;
+        QVERIFY(s2.recentFiles().contains(QStringLiteral("persist_check.xaml")));
+    }
+
+    void testShowStatusBarDefaultsAndPersistence()
+    {
+        {
+            Settings s;
+            QCOMPARE(s.showStatusBar(), true);
+            s.setShowStatusBar(false);
+            s.save();
+        }
+
+        Settings s2;
+        QCOMPARE(s2.showStatusBar(), false);
+    }
+
     void testWindowGeometry()
     {
         Settings s;

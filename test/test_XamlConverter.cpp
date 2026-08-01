@@ -1,5 +1,8 @@
 #include <QTest>
 #include <QTextDocument>
+#include <QTextCursor>
+#include <QTextImageFormat>
+#include <QImage>
 #include <QMarginsF>
 #include <QColor>
 #include "converters/XamlConverter.h"
@@ -67,6 +70,51 @@ private slots:
 
         QString xaml = XamlConverter::saveToXaml(&doc, QMarginsF());
         QVERIFY(xaml.contains(QStringLiteral("Bold=\"True\"")));
+    }
+
+    void testMultipleImagesSameParagraph()
+    {
+        QTextDocument doc;
+        QTextCursor cursor(&doc);
+
+        QImage img1(16, 16, QImage::Format_ARGB32);
+        img1.fill(Qt::blue);
+        QTextImageFormat imgFmt1;
+        QString name1 = QStringLiteral("xaml_img_a.png");
+        doc.addResource(QTextDocument::ImageResource, QUrl(name1), img1);
+        imgFmt1.setName(name1);
+        imgFmt1.setWidth(32);
+        imgFmt1.setHeight(32);
+
+        QImage img2(16, 16, QImage::Format_ARGB32);
+        img2.fill(Qt::red);
+        QTextImageFormat imgFmt2;
+        QString name2 = QStringLiteral("xaml_img_b.png");
+        doc.addResource(QTextDocument::ImageResource, QUrl(name2), img2);
+        imgFmt2.setName(name2);
+        imgFmt2.setWidth(32);
+        imgFmt2.setHeight(32);
+
+        cursor.insertImage(imgFmt1);
+        cursor.insertImage(imgFmt2);
+
+        QString xaml = XamlConverter::saveToXaml(&doc, QMarginsF());
+        QVERIFY(!xaml.isEmpty());
+
+        QTextDocument doc2;
+        QMarginsF margins;
+        QColor bg;
+        bool ok = XamlConverter::loadFromXaml(xaml, &doc2, margins, bg);
+        QVERIFY(ok);
+
+        int imageCount = 0;
+        for (QTextBlock block = doc2.begin(); block.isValid(); block = block.next()) {
+            for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
+                if (it.fragment().charFormat().isImageFormat())
+                    ++imageCount;
+            }
+        }
+        QCOMPARE(imageCount, 2);
     }
 };
 

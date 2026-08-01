@@ -164,12 +164,20 @@ void DocumentEditor::setZoomLevel(qreal level)
     setFont(zoomedFont);
 }
 
+void DocumentEditor::setBaseFont(const QFont& font)
+{
+    m_baseFont = font;
+    if (m_baseFont.pointSizeF() > 0)
+        m_baseFontPointSize = m_baseFont.pointSizeF();
+    document()->setDefaultFont(m_baseFont);
+    setZoomLevel(m_zoomLevel);
+}
+
 void DocumentEditor::setBaseFontPointSize(qreal size)
 {
-    m_baseFontPointSize = size;
-    m_baseFont.setPointSizeF(size);
-    setFont(m_baseFont);
-    document()->setDefaultFont(m_baseFont);
+    QFont font = m_baseFont;
+    font.setPointSizeF(size);
+    setBaseFont(font);
 }
 
 // ============================================================

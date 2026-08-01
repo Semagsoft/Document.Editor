@@ -42,13 +42,10 @@
 
 static void waitForProcess(QProcess &proc, int timeoutMs)
 {
-    const int stepMs = 50;
-    int elapsed = 0;
-    while (elapsed < timeoutMs && proc.state() != QProcess::NotRunning) {
-        QApplication::processEvents(QEventLoop::ExcludeUserInputEvents, stepMs);
-        proc.waitForFinished(stepMs);
-        elapsed += stepMs;
-    }
+    if (proc.waitForFinished(timeoutMs))
+        return;
+    proc.kill();
+    proc.waitForFinished(1000);
 }
 
 bool DocumentService::findTool(const QString &name, const QStringList &args)
@@ -229,8 +226,8 @@ void DocumentService::openDocument(const QString &path)
     if (filePath.isEmpty())
         return;
 
-    m_docManager->openDocument(filePath);
-    emit documentOpened(filePath);
+    if (m_docManager->openDocument(filePath))
+        emit documentOpened(filePath);
 }
 
 void DocumentService::importFtp()

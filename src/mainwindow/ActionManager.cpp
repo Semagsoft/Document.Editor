@@ -4,6 +4,7 @@
 #include "mainwindow/StatusBarManager.h"
 
 #include <QComboBox>
+#include <QFileInfo>
 #include <QFontDatabase>
 #include <QIcon>
 #include <QLabel>
@@ -362,10 +363,15 @@ void ActionManager::setupActions(QMainWindow* mainWindow)
 
     m_themeMenu = m_viewMenu->addMenu(QObject::tr("&Theme"));
     m_themeOffice2010Action = m_themeMenu->addAction(QObject::tr("Office 2010 &Blue"));
+    m_themeOffice2010Action->setCheckable(true);
     m_themeOffice2010SilverAction = m_themeMenu->addAction(QObject::tr("Office 2010 &Silver"));
+    m_themeOffice2010SilverAction->setCheckable(true);
     m_themeOffice2010BlackAction = m_themeMenu->addAction(QObject::tr("Office 2010 &Black"));
+    m_themeOffice2010BlackAction->setCheckable(true);
     m_themeOffice2013Action = m_themeMenu->addAction(QObject::tr("Office &2013"));
+    m_themeOffice2013Action->setCheckable(true);
     m_themeWindows8Action = m_themeMenu->addAction(QObject::tr("&Windows 8"));
+    m_themeWindows8Action->setCheckable(true);
 
     // Help menu
     m_helpMenu = mb->addMenu(QObject::tr("&Help"));
@@ -680,9 +686,37 @@ void ActionManager::updateEditorActions(DocumentEditor* editor, DocumentManager*
         m_italicAction->setChecked(fmt.fontItalic());
         m_underlineAction->setChecked(fmt.fontUnderline());
         m_strikethroughAction->setChecked(fmt.fontStrikeOut());
+
+        const int pct = qRound(editor->zoomLevel() * 100.0);
+        m_zoomSlider->setValue(pct);
+        m_zoomLabel->setText(QStringLiteral(" %1%").arg(pct));
+
+        const QString name = editor->documentName();
+        if (name.isEmpty()) {
+            statusBarManager->setFileSize(QStringLiteral("Unsaved"));
+        } else {
+            const qint64 bytes = QFileInfo(name).size();
+            if (bytes >= 1024)
+                statusBarManager->setFileSize(tr("%1 KB").arg(bytes / 1024));
+            else
+                statusBarManager->setFileSize(tr("%1 B").arg(bytes));
+        }
     } else {
         statusBarManager->setLineColumn(0, 0, 0, 0);
         statusBarManager->setWordCount(0);
-        statusBarManager->setFileSize(QStringLiteral("0 KB"));
+        statusBarManager->setFileSize(QString());
+
+        m_boldAction->setChecked(false);
+        m_italicAction->setChecked(false);
+        m_underlineAction->setChecked(false);
+        m_strikethroughAction->setChecked(false);
+
+        m_updatingFont = true;
+        m_fontCombo->setCurrentIndex(-1);
+        m_fontSizeCombo->clearEditText();
+        m_updatingFont = false;
+
+        m_zoomSlider->setValue(100);
+        m_zoomLabel->setText(QStringLiteral(" 100%"));
     }
 }

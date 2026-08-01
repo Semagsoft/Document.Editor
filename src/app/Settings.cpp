@@ -16,6 +16,7 @@ void Settings::load()
                            .toRect();
     m_windowMaximized = m_settings.value(QStringLiteral("Maximized"), false).toBool();
     m_showRuler = m_settings.value(QStringLiteral("ShowRuler"), true).toBool();
+    m_showStatusBar = m_settings.value(QStringLiteral("ShowStatusBar"), true).toBool();
     m_mainWindowState = m_settings.value(QStringLiteral("MainWindowState")).toByteArray();
     m_settings.endGroup();
 
@@ -56,6 +57,7 @@ void Settings::save()
     m_settings.setValue(QStringLiteral("Geometry"), m_windowGeometry);
     m_settings.setValue(QStringLiteral("Maximized"), m_windowMaximized);
     m_settings.setValue(QStringLiteral("ShowRuler"), m_showRuler);
+    m_settings.setValue(QStringLiteral("ShowStatusBar"), m_showStatusBar);
     m_settings.setValue(QStringLiteral("MainWindowState"), m_mainWindowState);
     m_settings.endGroup();
 
@@ -100,6 +102,12 @@ bool Settings::showRuler() const { return m_showRuler; }
 void Settings::setShowRuler(bool show)
 {
     m_showRuler = show;
+    emit settingsChanged();
+}
+bool Settings::showStatusBar() const { return m_showStatusBar; }
+void Settings::setShowStatusBar(bool show)
+{
+    m_showStatusBar = show;
     emit settingsChanged();
 }
 QByteArray Settings::mainWindowState() const { return m_mainWindowState; }
@@ -176,11 +184,20 @@ void Settings::setTabCloseButtonMode(int mode)
     emit settingsChanged();
 }
 
+void Settings::persistRecentFiles()
+{
+    m_settings.beginGroup(QStringLiteral("Options"));
+    m_settings.setValue(QStringLiteral("RecentFiles"), m_recentFiles);
+    m_settings.sync();
+    m_settings.endGroup();
+}
+
 QStringList Settings::recentFiles() const { return m_recentFiles; }
 void Settings::setRecentFiles(const QStringList& files)
 {
     m_recentFiles = files;
-    emit settingsChanged();
+    persistRecentFiles();
+    emit recentFilesChanged();
 }
 
 void Settings::addRecentFile(const QString& file)
@@ -189,13 +206,15 @@ void Settings::addRecentFile(const QString& file)
     m_recentFiles.prepend(file);
     while (m_recentFiles.size() > kMaxRecentFiles)
         m_recentFiles.removeLast();
-    emit settingsChanged();
+    persistRecentFiles();
+    emit recentFilesChanged();
 }
 
 void Settings::clearRecentFiles()
 {
     m_recentFiles.clear();
-    emit settingsChanged();
+    persistRecentFiles();
+    emit recentFilesChanged();
 }
 bool Settings::showRecentDocuments() const { return m_showRecentDocuments; }
 void Settings::setShowRecentDocuments(bool show)

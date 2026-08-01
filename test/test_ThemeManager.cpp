@@ -1,5 +1,6 @@
 #include <QTest>
 #include <QSignalSpy>
+#include <QApplication>
 #include "mainwindow/ThemeManager.h"
 
 class TestThemeManager : public QObject
@@ -35,6 +36,16 @@ private slots:
 
         tm.setTheme(ThemeManager::Office2010Blue);
         QCOMPARE(spy.count(), 1);
+    }
+
+    void testStylesheetResetOnMissingResource()
+    {
+        ThemeManager tm;
+        qApp->setStyleSheet(QStringLiteral("QMainWindow { background-color: #ff00ff; }"));
+        QVERIFY(!qApp->styleSheet().isEmpty());
+
+        tm.setTheme(ThemeManager::Office2010Blue);
+        QVERIFY(qApp->styleSheet().isEmpty());
     }
 };
 

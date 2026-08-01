@@ -46,13 +46,28 @@ OptionsDialog::OptionsDialog(Settings *settings, QWidget *parent)
 
 void OptionsDialog::accept()
 {
-    QWidget *ttsTab = m_tabs->widget(5);
-    if (ttsTab) {
-        auto *voiceCombo = ttsTab->findChild<QComboBox *>();
-        auto *speedSpin = ttsTab->findChild<QSpinBox *>();
-        if (voiceCombo) m_settings->setTtsVoice(voiceCombo->currentIndex());
-        if (speedSpin) m_settings->setTtsSpeed(speedSpin->value());
-    }
+    m_settings->setShowStartupDialog(m_showStartupCheck->isChecked());
+    m_settings->setCheckForUpdatesOnStartup(m_updateCheck->isChecked());
+    m_settings->setShowRecentDocuments(m_recentCheck->isChecked());
+    m_settings->setStartupMode(m_startupModeCombo->currentIndex());
+    m_settings->setTemplatesFolder(m_templatesFolderEdit->currentText());
+
+    m_settings->setTheme(m_themeCombo->currentIndex());
+    m_settings->setDefaultFont(m_fontCombo->currentFont());
+    m_settings->setDefaultFontSize(m_fontSizeSpin->value());
+    m_settings->setEnableGlass(m_glassCheck->isChecked());
+
+    m_settings->setSpellCheckEnabled(m_spellCheck->isChecked());
+
+    m_settings->setTabPlacement(m_tabPlacementCombo->currentIndex());
+    m_settings->setTabSizeMode(m_tabSizeCombo->currentIndex());
+    m_settings->setTabCloseButtonMode(m_tabCloseCombo->currentIndex());
+
+    m_settings->setRulerMeasurement(m_rulerUnitCombo->currentIndex());
+
+    m_settings->setTtsVoice(m_voiceCombo->currentIndex());
+    m_settings->setTtsSpeed(m_speedSpin->value());
+
     QDialog::accept();
 }
 
@@ -66,14 +81,17 @@ QWidget *OptionsDialog::createGeneralTab()
     auto *showStartupCheck = new QCheckBox(tr("Show startup dialog"));
     showStartupCheck->setChecked(m_settings->showStartupDialog());
     startupLayout->addWidget(showStartupCheck);
+    m_showStartupCheck = showStartupCheck;
 
     auto *updateCheck = new QCheckBox(tr("Check for updates on startup"));
     updateCheck->setChecked(m_settings->checkForUpdatesOnStartup());
     startupLayout->addWidget(updateCheck);
+    m_updateCheck = updateCheck;
 
     auto *recentCheck = new QCheckBox(tr("Show recent documents"));
     recentCheck->setChecked(m_settings->showRecentDocuments());
     startupLayout->addWidget(recentCheck);
+    m_recentCheck = recentCheck;
 
     auto *startupModeLabel = new QLabel(tr("Startup mode:"));
     auto *startupModeCombo = new QComboBox();
@@ -81,6 +99,7 @@ QWidget *OptionsDialog::createGeneralTab()
     startupModeCombo->setCurrentIndex(m_settings->startupMode());
     startupLayout->addWidget(startupModeLabel);
     startupLayout->addWidget(startupModeCombo);
+    m_startupModeCombo = startupModeCombo;
 
     layout->addWidget(startupGroup);
 
@@ -93,6 +112,7 @@ QWidget *OptionsDialog::createGeneralTab()
     templatesLayout->addWidget(templatesFolderLabel);
     templatesLayout->addWidget(templatesFolderEdit);
     layout->addWidget(templatesGroup);
+    m_templatesFolderEdit = templatesFolderEdit;
 
     layout->addStretch();
     return widget;
@@ -109,19 +129,23 @@ QWidget *OptionsDialog::createAppearanceTab()
                           tr("Windows 8")});
     themeCombo->setCurrentIndex(m_settings->theme());
     layout->addRow(tr("Theme:"), themeCombo);
+    m_themeCombo = themeCombo;
 
     auto *fontCombo = new QFontComboBox();
     fontCombo->setCurrentFont(QFont(m_settings->defaultFont()));
     layout->addRow(tr("Default font:"), fontCombo);
+    m_fontCombo = fontCombo;
 
     auto *fontSizeSpin = new QSpinBox();
     fontSizeSpin->setRange(8, 72);
     fontSizeSpin->setValue(m_settings->defaultFontSize());
     layout->addRow(tr("Default font size:"), fontSizeSpin);
+    m_fontSizeSpin = fontSizeSpin;
 
     auto *glassCheck = new QCheckBox(tr("Enable glass (Aero)"));
     glassCheck->setChecked(m_settings->enableGlass());
     layout->addRow(QString(), glassCheck);
+    m_glassCheck = glassCheck;
 
     return widget;
 }
@@ -134,6 +158,7 @@ QWidget *OptionsDialog::createEditingTab()
     auto *spellCheck = new QCheckBox(tr("Enable spell check"));
     spellCheck->setChecked(m_settings->spellCheckEnabled());
     layout->addWidget(spellCheck);
+    m_spellCheck = spellCheck;
 
     layout->addStretch();
     return widget;
@@ -148,16 +173,19 @@ QWidget *OptionsDialog::createTabsTab()
     placementCombo->addItems({tr("Top"), tr("Bottom"), tr("Left"), tr("Right")});
     placementCombo->setCurrentIndex(m_settings->tabPlacement());
     layout->addRow(tr("Tab placement:"), placementCombo);
+    m_tabPlacementCombo = placementCombo;
 
     auto *sizeCombo = new QComboBox();
     sizeCombo->addItems({tr("Fit"), tr("Fill"), tr("Fixed")});
     sizeCombo->setCurrentIndex(m_settings->tabSizeMode());
     layout->addRow(tr("Tab size mode:"), sizeCombo);
+    m_tabSizeCombo = sizeCombo;
 
     auto *closeCombo = new QComboBox();
     closeCombo->addItems({tr("All tabs"), tr("Active tab"), tr("None")});
     closeCombo->setCurrentIndex(m_settings->tabCloseButtonMode());
     layout->addRow(tr("Close button:"), closeCombo);
+    m_tabCloseCombo = closeCombo;
 
     return widget;
 }
@@ -171,6 +199,7 @@ QWidget *OptionsDialog::createRulerTab()
     unitCombo->addItems({tr("Inches"), tr("Centimeters")});
     unitCombo->setCurrentIndex(m_settings->rulerMeasurement());
     layout->addRow(tr("Measurement unit:"), unitCombo);
+    m_rulerUnitCombo = unitCombo;
 
     return widget;
 }
@@ -190,11 +219,13 @@ QWidget *OptionsDialog::createTtsTab()
     if (voiceIdx >= 0 && voiceIdx < voiceCombo->count())
         voiceCombo->setCurrentIndex(voiceIdx);
     layout->addRow(tr("Voice:"), voiceCombo);
+    m_voiceCombo = voiceCombo;
 
     auto *speedSpin = new QSpinBox();
     speedSpin->setRange(-10, 10);
     speedSpin->setValue(m_settings->ttsSpeed());
     layout->addRow(tr("Speed:"), speedSpin);
+    m_speedSpin = speedSpin;
 
     return widget;
 }

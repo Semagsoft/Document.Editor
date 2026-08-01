@@ -205,8 +205,8 @@ bool XamlConverter::loadFromXaml(const QString &xml, QTextDocument *doc,
                 }
 
                 if (!img.isNull()) {
-                    QString name = QStringLiteral("xaml_embed_%1")
-                        .arg(reader.lineNumber());
+                    static quint64 s_embeddedImageSeq = 0;
+                    QString name = QStringLiteral("xaml_embed_%1").arg(++s_embeddedImageSeq);
                     doc->addResource(QTextDocument::ImageResource,
                         QUrl(name), img);
                     QTextImageFormat imgFmt;

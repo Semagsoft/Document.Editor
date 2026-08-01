@@ -24,6 +24,8 @@ public:
     void setWindowMaximized(bool maximized);
     bool showRuler() const;
     void setShowRuler(bool show);
+    bool showStatusBar() const;
+    void setShowStatusBar(bool show);
     QByteArray mainWindowState() const;
     void setMainWindowState(const QByteArray& state);
 
@@ -87,9 +89,12 @@ public:
 
 signals:
     void settingsChanged();
+    void recentFilesChanged();
 
 private:
     static constexpr int kMaxRecentFiles = 10;
+
+    void persistRecentFiles();
 
     QSettings m_settings;
 
@@ -97,6 +102,7 @@ private:
     QRect m_windowGeometry { 100, 100, 1024, 720 };
     bool m_windowMaximized = false;
     bool m_showRuler = true;
+    bool m_showStatusBar = true;
     QByteArray m_mainWindowState;
 
     // General
