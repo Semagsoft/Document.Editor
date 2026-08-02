@@ -856,7 +856,7 @@ static QString imageFormatFromName(const QString &name)
     return QStringLiteral("PNG");
 }
 
-static void writeImageRun(QXmlStreamWriter &w, const QTextDocument *doc,
+static void writeImageRun(QXmlStreamWriter &w,
                           const QTextImageFormat &imgFmt, const QImage &img,
                           int &imageCounter, int &relationCounter,
                           QStringList &imageRels, QStringList &imageTargets,
@@ -1025,7 +1025,7 @@ static void writeTableXml(QXmlStreamWriter &w, QTextTable *table,
                         if (res.isValid()) {
                             QImage img = qvariant_cast<QImage>(res);
                             if (!img.isNull())
-                                writeImageRun(w, doc, imgFmt, img, imageCounter, relationCounter,
+                                writeImageRun(w, imgFmt, img, imageCounter, relationCounter,
                                               imageRels, imageTargets, zip);
                         }
                         continue;
@@ -1316,7 +1316,7 @@ QByteArray DocxConverter::saveToDocx(const QTextDocument *doc,
                     if (res.isValid()) {
                         QImage img = qvariant_cast<QImage>(res);
                         if (!img.isNull())
-                            writeImageRun(w, doc, imgFmt, img, imageCounter, relationCounter,
+                            writeImageRun(w, imgFmt, img, imageCounter, relationCounter,
                                           imageRels, imageTargets, zip);
                     }
                     continue;
