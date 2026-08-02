@@ -92,12 +92,10 @@ set(RESOURCES
     ${CMAKE_SOURCE_DIR}/resources/resources.qrc
 )
 
-find_package(Qt6CorePrivate REQUIRED)
-
 add_library(de_objects OBJECT ${SOURCES} ${HEADERS})
 target_include_directories(de_objects PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(de_objects PUBLIC Qt6::CorePrivate)
 target_link_libraries(de_objects PUBLIC
+    miniz
     Qt6::Core
     Qt6::Gui
     Qt6::Widgets

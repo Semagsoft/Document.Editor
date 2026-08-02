@@ -451,7 +451,6 @@ QColor DocumentEditor::pageBackground() const
 void DocumentEditor::setPageBackground(const QColor& color)
 {
     m_pageBackground = color;
-    m_pageBackgroundSet = true;
     QPalette p = viewport()->palette();
     p.setColor(QPalette::Base, color);
     viewport()->setPalette(p);
@@ -570,14 +569,16 @@ bool DocumentEditor::loadFromFile(const QString& filename)
     } else if (ext == QStringLiteral("docx")) {
         ok = DocxConverter::loadFromDocx(data, document(), m_pageMargins, m_pageBackground);
         if (!ok) {
-            setPlainText(QString::fromUtf8(data));
-            ok = true;
+            QMessageBox::warning(this, tr("Cannot Open File"),
+                tr("The file could not be opened as a Word (.docx) document."));
+            return false;
         }
     } else if (ext == QStringLiteral("rtf")) {
         ok = RtfConverter::loadFromRtf(data, document());
         if (!ok) {
-            setPlainText(QString::fromUtf8(data));
-            ok = true;
+            QMessageBox::warning(this, tr("Cannot Open File"),
+                tr("The file could not be opened as a Rich Text Format (.rtf) document."));
+            return false;
         }
     } else if (ext == QStringLiteral("txt")) {
         setPlainText(QString::fromUtf8(data));

@@ -23,6 +23,7 @@
 #include <QProcess>
 #include <QStandardPaths>
 #include <QTextDocument>
+#include <QTextFrame>
 #include <QTextImageFormat>
 #include <QTextStream>
 #include <QTime>
@@ -391,6 +392,19 @@ void DocumentService::exportPdf()
     QPrinter printer(QPrinter::HighResolution);
     printer.setOutputFormat(QPrinter::PdfFormat);
     printer.setOutputFileName(path);
+
+    // Match the printer layout to the document's page size and margins so the
+    // rendered output lines up with what the user sees on screen.
+    const qreal pageW = editor->pageWidth();
+    const qreal pageH = editor->pageHeight();
+    if (pageW > 0 && pageH > 0) {
+        QPageLayout layout(QPageSize(QSizeF(pageW, pageH), QPageSize::Point),
+                           QPageLayout::Portrait,
+                           editor->pageMargins(),
+                           QPageLayout::Point);
+        printer.setPageLayout(layout);
+    }
+
     QPainter painter(&printer);
     editor->document()->drawContents(&painter);
     painter.end();
@@ -458,9 +472,17 @@ void DocumentService::exportImage()
     QSizeF pageSize = doc->pageSize();
     QPixmap pixmap(pageSize.toSize());
     pixmap.fill(Qt::white);
+
+    // Inset the content by the configured page margins (relative to whatever the
+    // document's root frame already uses) so the image matches print/PDF output.
     QPainter painter(&pixmap);
+    const QMarginsF margins = editor->pageMargins();
+    const QTextFrameFormat frameFmt = doc->rootFrame()->frameFormat();
+    painter.translate(margins.left() - frameFmt.leftMargin(),
+                      margins.top() - frameFmt.topMargin());
     doc->drawContents(&painter);
     painter.end();
+
     if (!pixmap.save(path))
         QMessageBox::warning(m_parentWidget, tr("Export Error"), tr("Could not save image."));
 }
@@ -532,6 +554,7 @@ void DocumentService::pageSetup()
             editor->setPageWidth(pts.width());
             editor->setPageHeight(pts.height());
         }
+        editor->setPageMargins(printer.pageLayout().marginsPoints());
     }
 }
 

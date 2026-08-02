@@ -121,7 +121,6 @@ private:
     QFont m_baseFont;
     QMarginsF m_pageMargins { 96, 96, 96, 96 };
     QColor m_pageBackground { Qt::white };
-    bool m_pageBackgroundSet = false;
 
     QTimer* m_statsTimer = nullptr;
 

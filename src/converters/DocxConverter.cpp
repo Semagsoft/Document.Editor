@@ -1,7 +1,6 @@
 #include "DocxConverter.h"
 
-#include <QtCore/private/qzipreader_p.h>
-#include <QtCore/private/qzipwriter_p.h>
+#include "miniz.h"
 
 #include <QXmlStreamReader>
 #include <QXmlStreamWriter>
@@ -49,6 +48,24 @@ static int       docxLineToProportional(int line)
 {
     if (line <= 0) return 100;
     return qRound(line * 100.0 / 240.0);
+}
+
+// Streams zip output into a QByteArray (the write target for the DOCX writer).
+static size_t zipAppendCallback(void *pOpaque, mz_uint64 fileOfs, const void *pBuf, size_t n)
+{
+    QByteArray *buffer = static_cast<QByteArray *>(pOpaque);
+    if (fileOfs > static_cast<mz_uint64>(buffer->size()))
+        return 0;
+    if (fileOfs < static_cast<mz_uint64>(buffer->size()))
+        buffer->truncate(static_cast<int>(fileOfs));
+    buffer->append(static_cast<const char *>(pBuf), static_cast<int>(n));
+    return n;
+}
+
+static bool addZipFile(mz_zip_archive *zip, const QString &name, const QByteArray &data)
+{
+    return mz_zip_writer_add_mem(zip, name.toUtf8().constData(),
+                                 data.constData(), data.size(), MZ_BEST_COMPRESSION);
 }
 
 static void skipElement(QXmlStreamReader &r)
@@ -298,11 +315,12 @@ struct ImageRel {
 
 static QVector<RunFragment> collectRuns(QXmlStreamReader &r,
                                         const QMap<QString, ImageRel> &imagesByRelId,
-                                        const QMap<QString, QString> &hyperlinkTargets = {})
+                                        const QMap<QString, QString> &hyperlinkTargets = {},
+                                        const QString &initialHref = {})
 {
     QVector<RunFragment> fragments;
     QTextCharFormat currentFmt;
-    QString currentHref;
+    QString currentHref = initialHref;
 
     while (r.readNext() != QXmlStreamReader::Invalid) {
         if (r.isEndElement() && r.namespaceUri() == NS_W && r.name().toString() == QLatin1String("r")) {
@@ -380,7 +398,7 @@ static QVector<RunFragment> collectRuns(QXmlStreamReader &r,
 }
 
 static void insertRunsIntoCursor(QTextCursor &cursor, const QVector<RunFragment> &runs,
-                                 QTextDocument *doc, const QMap<QString, ImageRel> &)
+                                 QTextDocument *doc)
 {
     static quint64 s_embeddedImageSeq = 0;
     for (const RunFragment &rf : runs) {
@@ -408,7 +426,6 @@ static void insertRunsIntoCursor(QTextCursor &cursor, const QVector<RunFragment>
 }
 
 struct ParaBuffer {
-    QString xml;
     int numId = -1;
     int ilvl = 0;
     QTextBlockFormat blockFmt;
@@ -416,8 +433,81 @@ struct ParaBuffer {
     QVector<RunFragment> runs;
 };
 
+static QString serializeElementXml(QXmlStreamReader &r)
+{
+    QString out;
+    QXmlStreamWriter pw(&out);
+    pw.setAutoFormatting(false);
+    pw.writeStartElement(r.qualifiedName().toString());
+    for (const auto &attr : r.attributes())
+        pw.writeAttribute(attr.qualifiedName().toString(), attr.value().toString());
+    pw.writeNamespace(NS_W, QLatin1String("w"));
+    pw.writeNamespace(NS_WP, QLatin1String("wp"));
+    pw.writeNamespace(NS_A, QLatin1String("a"));
+    pw.writeNamespace(NS_R, QLatin1String("r"));
+
+    int depth = 1;
+    while (depth > 0 && r.readNext() != QXmlStreamReader::Invalid) {
+        if (r.isStartElement()) {
+            copyStartElement(pw, r);
+            ++depth;
+        } else if (r.isEndElement()) {
+            pw.writeEndElement();
+            --depth;
+        } else if (r.isCharacters()) {
+            pw.writeCharacters(r.text().toString());
+        } else if (r.isCDATA()) {
+            pw.writeCDATA(r.text().toString());
+        } else if (r.isComment()) {
+            pw.writeComment(r.text().toString());
+        }
+    }
+    pw.writeEndDocument();
+    return out;
+}
+
+static ParaBuffer parseParagraph(QXmlStreamReader &r,
+                                 const QMap<QString, ImageRel> &imagesByRelId,
+                                 const QMap<QString, QString> &hyperlinkTargets = {})
+{
+    ParaBuffer pb;
+    const QString xml = serializeElementXml(r);
+
+    QXmlStreamReader px(xml);
+    while (!px.atEnd()) {
+        px.readNext();
+        if (px.isStartElement() && px.name().toString() == QLatin1String("p"))
+            break;
+    }
+    while (!px.atEnd()) {
+        px.readNext();
+        if (px.isEndElement() && px.name().toString() == QLatin1String("p"))
+            break;
+        if (!px.isStartElement() || px.namespaceUri().toString() != NS_W)
+            continue;
+        QString pn = px.name().toString();
+        if (pn == QLatin1String("pPr")) {
+            PPrResult ppr = readPPr(px);
+            pb.numId = ppr.numId;
+            pb.ilvl = ppr.ilvl;
+            pb.blockFmt = ppr.blockFmt;
+            pb.align = ppr.align;
+            if (!ppr.pStyle.isEmpty())
+                pb.blockFmt.setProperty(QTextFormat::UserProperty, ppr.pStyle);
+        } else if (pn == QLatin1String("r")) {
+            pb.runs = collectRuns(px, imagesByRelId, hyperlinkTargets);
+        } else if (pn == QLatin1String("hyperlink")) {
+            QString relId = px.attributes().value(QLatin1String("r:id")).toString();
+            pb.runs = collectRuns(px, imagesByRelId, hyperlinkTargets,
+                                  hyperlinkTargets.value(relId));
+        }
+    }
+    return pb;
+}
+
 static void parseTable(QXmlStreamReader &xml, QTextCursor &cursor,
                        const QMap<QString, ImageRel> &imagesByRelId,
+                       const QMap<QString, QString> &hyperlinkTargets,
                        QTextDocument *doc,
                        QMap<QPair<int,int>, QTextList*> &activeLists,
                        const QMap<int, NumDef> &numbering)
@@ -495,66 +585,7 @@ static void parseTable(QXmlStreamReader &xml, QTextCursor &cursor,
                         }
                     }
                 } else if (tx.name().toString() == QLatin1String("p")) {
-                    QByteArray paraBuf;
-                    {
-                        QXmlStreamWriter pw(&paraBuf);
-                        pw.setAutoFormatting(false);
-                        pw.writeStartElement(QLatin1String("w:p"));
-                        for (const auto &attr : tx.attributes())
-                            pw.writeAttribute(attr.qualifiedName().toString(), attr.value().toString());
-                        pw.writeNamespace(NS_W, QLatin1String("w"));
-            pw.writeNamespace(NS_WP, QLatin1String("wp"));
-            pw.writeNamespace(NS_A, QLatin1String("a"));
-            pw.writeNamespace(NS_R, QLatin1String("r"));
-                        int depth = 1;
-                        while (depth > 0 && tx.readNext() != QXmlStreamReader::Invalid) {
-                            if (tx.isStartElement()) {
-                                pw.writeStartElement(tx.qualifiedName().toString());
-                                for (const auto &attr : tx.attributes())
-                                    pw.writeAttribute(attr.qualifiedName().toString(), attr.value().toString());
-                                ++depth;
-                            } else if (tx.isEndElement()) {
-                                pw.writeEndElement();
-                                --depth;
-                            } else if (tx.isCharacters()) {
-                                pw.writeCharacters(tx.text().toString());
-                            } else if (tx.isCDATA()) {
-                                pw.writeCDATA(tx.text().toString());
-                            } else if (tx.isComment()) {
-                                pw.writeComment(tx.text().toString());
-                            }
-                        }
-                        pw.writeEndDocument();
-                    }
-
-                    ParaBuffer pb;
-                    QXmlStreamReader px(paraBuf);
-                    while (!px.atEnd()) {
-                        px.readNext();
-                        if (px.isStartElement() && px.name().toString() == QLatin1String("p"))
-                            break;
-                    }
-                    while (!px.atEnd()) {
-                        px.readNext();
-                        if (px.isEndElement() && px.name().toString() == QLatin1String("p"))
-                            break;
-                        if (!px.isStartElement()) continue;
-                        if (px.namespaceUri().toString() != NS_W) continue;
-                        QString pn = px.name().toString();
-                        if (pn == QLatin1String("pPr")) {
-                            PPrResult ppr = readPPr(px);
-                            pb.numId = ppr.numId;
-                            pb.ilvl = ppr.ilvl;
-                            pb.blockFmt = ppr.blockFmt;
-                            if (!ppr.pStyle.isEmpty())
-                                pb.blockFmt.setProperty(QTextFormat::UserProperty, ppr.pStyle);
-                            pb.align = ppr.align;
-                        } else if (pn == QLatin1String("r")) {
-                            QVector<RunFragment> runs = collectRuns(px, imagesByRelId);
-                            pb.runs = runs;
-                        }
-                    }
-                    cell.paragraphs.append(pb);
+                    cell.paragraphs.append(parseParagraph(tx, imagesByRelId, hyperlinkTargets));
                 }
             }
             if (currentRow >= 0 && currentRow < grid.size())
@@ -628,7 +659,7 @@ static void parseTable(QXmlStreamReader &xml, QTextCursor &cursor,
                     activeLists[listKey]->add(cellCursor.block());
                 }
 
-                insertRunsIntoCursor(cellCursor, pb.runs, doc, imagesByRelId);
+                insertRunsIntoCursor(cellCursor, pb.runs, doc);
             }
         }
     }
@@ -637,20 +668,30 @@ static void parseTable(QXmlStreamReader &xml, QTextCursor &cursor,
 bool DocxConverter::loadFromDocx(const QByteArray &zipData, QTextDocument *doc,
                                   QMarginsF &outMargins, QColor &outPageBackground)
 {
-    QBuffer buffer;
-    buffer.setData(zipData);
-    if (!buffer.open(QIODevice::ReadOnly))
-        return false;
-
-    QZipReader reader(&buffer);
-    if (reader.status() != QZipReader::NoError) {
-        qDebug() << "ZIP error:" << reader.status();
+    mz_zip_archive zip;
+    mz_zip_zero_struct(&zip);
+    if (!mz_zip_reader_init_mem(&zip, zipData.constData(), zipData.size(), 0)) {
+        qDebug() << "ZIP error:" << mz_zip_get_last_error(&zip);
         return false;
     }
 
     QMap<QString, QByteArray> files;
-    for (const QZipReader::FileInfo &fi : reader.fileInfoList())
-        files[fi.filePath] = reader.fileData(fi.filePath);
+    const mz_uint numFiles = mz_zip_reader_get_num_files(&zip);
+    for (mz_uint i = 0; i < numFiles; ++i) {
+        mz_zip_archive_file_stat st;
+        if (!mz_zip_reader_file_stat(&zip, i, &st))
+            continue;
+        if (st.m_is_directory)
+            continue;
+        QByteArray data;
+        data.resize(static_cast<int>(st.m_uncomp_size));
+        if (!mz_zip_reader_extract_to_mem(&zip, i, data.data(), data.size(), 0)) {
+            mz_zip_reader_end(&zip);
+            return false;
+        }
+        files[QString::fromUtf8(st.m_filename)] = data;
+    }
+    mz_zip_reader_end(&zip);
 
     if (!files.contains(QLatin1String("word/document.xml")))
         return false;
@@ -717,80 +758,25 @@ bool DocxConverter::loadFromDocx(const QByteArray &zipData, QTextDocument *doc,
             continue;
 
         if (n == QLatin1String("p")) {
-            QString paraXml;
-            QXmlStreamWriter pw(&paraXml);
-            pw.setAutoFormatting(false);
-            pw.writeStartElement(QLatin1String("w:p"));
-            for (const auto &attr : xml.attributes())
-                pw.writeAttribute(attr.qualifiedName().toString(), attr.value().toString());
-            pw.writeNamespace(NS_W, QLatin1String("w"));
-            pw.writeNamespace(NS_WP, QLatin1String("wp"));
-            pw.writeNamespace(NS_A, QLatin1String("a"));
-            pw.writeNamespace(NS_R, QLatin1String("r"));
+            ParaBuffer pb = parseParagraph(xml, imageDataByRelId, hyperlinkTargets);
 
-            int depth = 1;
-            while (depth > 0 && xml.readNext() != QXmlStreamReader::Invalid) {
-                if (xml.isStartElement()) {
-                    copyStartElement(pw, xml);
-                    ++depth;
-                } else if (xml.isEndElement()) {
-                    pw.writeEndElement();
-                    --depth;
-                } else if (xml.isCharacters()) {
-                    pw.writeCharacters(xml.text().toString());
-                } else if (xml.isCDATA()) {
-                    pw.writeCDATA(xml.text().toString());
-                } else if (xml.isComment()) {
-                    pw.writeComment(xml.text().toString());
-                }
-            }
-            pw.writeEndDocument();
-
-            QXmlStreamReader px(paraXml);
-            while (!px.atEnd()) {
-                px.readNext();
-                if (px.isStartElement() && px.name().toString() == QLatin1String("p"))
-                    break;
-            }
-
-            PPrResult ppr;
-            QVector<RunFragment> runs;
-
-            while (!px.atEnd()) {
-                px.readNext();
-                if (px.isEndElement() && px.name().toString() == QLatin1String("p"))
-                    break;
-                if (!px.isStartElement())
-                    continue;
-                if (px.namespaceUri().toString() != NS_W)
-                    continue;
-                QString pn = px.name().toString();
-                if (pn == QLatin1String("pPr")) {
-                    ppr = readPPr(px);
-                } else if (pn == QLatin1String("r")) {
-                    runs = collectRuns(px, imageDataByRelId, hyperlinkTargets);
-                }
-            }
-
-            if (!ppr.pStyle.isEmpty())
-                ppr.blockFmt.setProperty(QTextFormat::UserProperty, ppr.pStyle);
             if (firstBlock) {
-                cursor.setBlockFormat(ppr.blockFmt);
+                cursor.setBlockFormat(pb.blockFmt);
                 firstBlock = false;
             } else {
-                cursor.insertBlock(ppr.blockFmt);
+                cursor.insertBlock(pb.blockFmt);
             }
 
-            if (cursor.blockFormat().alignment() != ppr.align) {
+            if (cursor.blockFormat().alignment() != pb.align) {
                 QTextBlockFormat bf = cursor.blockFormat();
-                bf.setAlignment(ppr.align);
+                bf.setAlignment(pb.align);
                 cursor.setBlockFormat(bf);
             }
 
-            QPair<int,int> listKey(ppr.numId, ppr.ilvl);
-            if (ppr.numId >= 0 && numbering.contains(ppr.numId)) {
-                const NumDef &nd = numbering[ppr.numId];
-                int level = qMin(ppr.ilvl, nd.levels.size() - 1);
+            QPair<int,int> listKey(pb.numId, pb.ilvl);
+            if (pb.numId >= 0 && numbering.contains(pb.numId)) {
+                const NumDef &nd = numbering[pb.numId];
+                int level = qMin(pb.ilvl, nd.levels.size() - 1);
                 const NumLevel &nl = nd.levels[level];
 
                 if (!activeLists.contains(listKey)) {
@@ -803,12 +789,13 @@ bool DocxConverter::loadFromDocx(const QByteArray &zipData, QTextDocument *doc,
                 activeLists[listKey]->add(cursor.block());
             }
 
-            insertRunsIntoCursor(cursor, runs, doc, imageDataByRelId);
+            insertRunsIntoCursor(cursor, pb.runs, doc);
             continue;
         }
 
         if (n == QLatin1String("tbl")) {
-            parseTable(xml, cursor, imageDataByRelId, doc, activeLists, numbering);
+            parseTable(xml, cursor, imageDataByRelId, hyperlinkTargets, doc,
+                       activeLists, numbering);
             firstBlock = false;
             continue;
         }
@@ -873,7 +860,7 @@ static void writeImageRun(QXmlStreamWriter &w, const QTextDocument *doc,
                           const QTextImageFormat &imgFmt, const QImage &img,
                           int &imageCounter, int &relationCounter,
                           QStringList &imageRels, QStringList &imageTargets,
-                          QZipWriter &zip)
+                          mz_zip_archive &zip)
 {
     ++imageCounter;
     ++relationCounter;
@@ -890,7 +877,7 @@ static void writeImageRun(QXmlStreamWriter &w, const QTextDocument *doc,
     imgBuf.open(QIODevice::WriteOnly);
     img.save(&imgBuf, fmt.toLatin1().constData());
     imgBuf.close();
-    zip.addFile(QLatin1String("word/") + target, imgData);
+    addZipFile(&zip, QLatin1String("word/") + target, imgData);
 
     w.writeStartElement(QLatin1String("w:r"));
     w.writeStartElement(QLatin1String("w:rPr"));
@@ -946,7 +933,7 @@ static void writeTableXml(QXmlStreamWriter &w, QTextTable *table,
                           QTextDocument *doc,
                           int &imageCounter, int &relationCounter,
                           QStringList &imageRels, QStringList &imageTargets,
-                          QZipWriter &zip,
+                          mz_zip_archive &zip,
                           QSet<QString> &usedStyles)
 {
     w.writeStartElement(QLatin1String("w:tbl"));
@@ -996,7 +983,9 @@ static void writeTableXml(QXmlStreamWriter &w, QTextTable *table,
 
                 QString pStyle = bf.property(QTextFormat::UserProperty).toString();
                 if (!pStyle.isEmpty()) {
-                    w.writeTextElement(QLatin1String("w:pStyle"), pStyle);
+                    w.writeStartElement(QLatin1String("w:pStyle"));
+                    w.writeAttribute(QLatin1String("w:val"), pStyle);
+                    w.writeEndElement();
                     usedStyles.insert(pStyle);
                 }
 
@@ -1133,10 +1122,13 @@ QByteArray DocxConverter::saveToDocx(const QTextDocument *doc,
                                       const QMarginsF &margins,
                                       const QColor &pageBackground)
 {
-    QBuffer buf;
-    buf.open(QIODevice::WriteOnly);
-    QZipWriter zip(&buf);
-    zip.setCompressionPolicy(QZipWriter::AutoCompress);
+    QByteArray zipBuffer;
+    mz_zip_archive zip;
+    mz_zip_zero_struct(&zip);
+    zip.m_pWrite = zipAppendCallback;
+    zip.m_pIO_opaque = &zipBuffer;
+    if (!mz_zip_writer_init_v2(&zip, 0, 0))
+        return {};
 
     {
         QString xml;
@@ -1183,7 +1175,10 @@ QByteArray DocxConverter::saveToDocx(const QTextDocument *doc,
         w.writeEndElement();
         w.writeEndElement();
         w.writeEndDocument();
-        zip.addFile(QLatin1String("[Content_Types].xml"), xml.toUtf8());
+        if (!addZipFile(&zip, QLatin1String("[Content_Types].xml"), xml.toUtf8())) {
+            mz_zip_writer_end(&zip);
+            return {};
+        }
     }
 
     {
@@ -1200,7 +1195,10 @@ QByteArray DocxConverter::saveToDocx(const QTextDocument *doc,
         w.writeEndElement();
         w.writeEndElement();
         w.writeEndDocument();
-        zip.addFile(QLatin1String("_rels/.rels"), xml.toUtf8());
+        if (!addZipFile(&zip, QLatin1String("_rels/.rels"), xml.toUtf8())) {
+            mz_zip_writer_end(&zip);
+            return {};
+        }
     }
 
     int imageCounter = 0;
@@ -1257,7 +1255,9 @@ QByteArray DocxConverter::saveToDocx(const QTextDocument *doc,
 
             QString pStyle = bf.property(QTextFormat::UserProperty).toString();
             if (!pStyle.isEmpty()) {
-                w.writeTextElement(QLatin1String("w:pStyle"), pStyle);
+                w.writeStartElement(QLatin1String("w:pStyle"));
+                w.writeAttribute(QLatin1String("w:val"), pStyle);
+                w.writeEndElement();
                 usedStyles.insert(pStyle);
             }
 
@@ -1423,7 +1423,10 @@ QByteArray DocxConverter::saveToDocx(const QTextDocument *doc,
         w.writeEndElement();
         w.writeEndDocument();
 
-        zip.addFile(QLatin1String("word/document.xml"), xml.toUtf8());
+        if (!addZipFile(&zip, QLatin1String("word/document.xml"), xml.toUtf8())) {
+            mz_zip_writer_end(&zip);
+            return {};
+        }
     }
 
     {
@@ -1455,7 +1458,10 @@ QByteArray DocxConverter::saveToDocx(const QTextDocument *doc,
         }
         w.writeEndElement();
         w.writeEndDocument();
-        zip.addFile(QLatin1String("word/_rels/document.xml.rels"), xml.toUtf8());
+        if (!addZipFile(&zip, QLatin1String("word/_rels/document.xml.rels"), xml.toUtf8())) {
+            mz_zip_writer_end(&zip);
+            return {};
+        }
     }
 
     {
@@ -1534,7 +1540,10 @@ QByteArray DocxConverter::saveToDocx(const QTextDocument *doc,
 
         w.writeEndElement();
         w.writeEndDocument();
-        zip.addFile(QLatin1String("word/numbering.xml"), xml.toUtf8());
+        if (!addZipFile(&zip, QLatin1String("word/numbering.xml"), xml.toUtf8())) {
+            mz_zip_writer_end(&zip);
+            return {};
+        }
     }
 
     {
@@ -1567,9 +1576,16 @@ QByteArray DocxConverter::saveToDocx(const QTextDocument *doc,
         }
         w.writeEndElement();
         w.writeEndDocument();
-        zip.addFile(QLatin1String("word/styles.xml"), xml.toUtf8());
+        if (!addZipFile(&zip, QLatin1String("word/styles.xml"), xml.toUtf8())) {
+            mz_zip_writer_end(&zip);
+            return {};
+        }
     }
 
-    zip.close();
-    return buf.data();
+    if (!mz_zip_writer_finalize_archive(&zip)) {
+        mz_zip_writer_end(&zip);
+        return {};
+    }
+    mz_zip_writer_end(&zip);
+    return zipBuffer;
 }

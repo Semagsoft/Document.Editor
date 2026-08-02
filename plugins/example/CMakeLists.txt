@@ -23,3 +23,16 @@ target_link_libraries(ExamplePlugin PRIVATE
 install(TARGETS ExamplePlugin
     LIBRARY DESTINATION ${CMAKE_INSTALL_BINDIR}/plugins
 )
+
+# During development, also drop the plugin next to the app binary so the
+# PluginManager can discover it without a separate install step.
+if(TARGET Document.Editor)
+    add_custom_command(TARGET ExamplePlugin POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory
+                $<TARGET_FILE_DIR:Document.Editor>/plugins
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                $<TARGET_FILE:ExamplePlugin>
+                $<TARGET_FILE_DIR:Document.Editor>/plugins/
+        COMMENT "Copying ExamplePlugin next to Document.Editor"
+    )
+endif()

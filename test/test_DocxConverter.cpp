@@ -18,6 +18,54 @@ class TestDocxConverter : public QObject
 {
     Q_OBJECT
 
+private:
+    static QTextTable *findFirstTable(QTextDocument *doc)
+    {
+        for (QTextBlock block = doc->begin(); block.isValid(); block = block.next()) {
+            QTextFrame *frame = doc->frameAt(block.position());
+            while (frame) {
+                if (QTextTable *table = qobject_cast<QTextTable *>(frame))
+                    return table;
+                frame = frame->parentFrame();
+            }
+        }
+        return nullptr;
+    }
+
+    static int countImageFragments(QTextDocument *doc)
+    {
+        int count = 0;
+        for (QTextBlock block = doc->begin(); block.isValid(); block = block.next()) {
+            for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
+                if (it.fragment().charFormat().isImageFormat())
+                    ++count;
+            }
+        }
+        return count;
+    }
+
+    static QString findAnchorHref(QTextDocument *doc)
+    {
+        for (QTextBlock block = doc->begin(); block.isValid(); block = block.next()) {
+            for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
+                QTextCharFormat cf = it.fragment().charFormat();
+                if (cf.isAnchor() && !cf.anchorHref().isEmpty())
+                    return cf.anchorHref();
+            }
+        }
+        return QString();
+    }
+
+    static bool hasListStyle(QTextDocument *doc, QTextListFormat::Style style)
+    {
+        for (QTextBlock block = doc->begin(); block.isValid(); block = block.next()) {
+            QTextList *list = block.textList();
+            if (list && list->format().style() == style)
+                return true;
+        }
+        return false;
+    }
+
 private slots:
     void testSaveAndLoadRoundTrip()
     {
@@ -200,6 +248,7 @@ private slots:
         QVERIFY(text.contains(QStringLiteral("Item A")));
         QVERIFY(text.contains(QStringLiteral("Item B")));
         QVERIFY(text.contains(QStringLiteral("Item C")));
+        QVERIFY(hasListStyle(&doc2, QTextListFormat::ListDisc));
     }
 
     void testPageSizeAndMargins()
@@ -282,6 +331,11 @@ private slots:
         QVERIFY(text.contains(QStringLiteral("Cell 0,1")));
         QVERIFY(text.contains(QStringLiteral("Cell 1,0")));
         QVERIFY(text.contains(QStringLiteral("Cell 2,1")));
+
+        QTextTable *loaded = findFirstTable(&doc2);
+        QVERIFY(loaded != nullptr);
+        QCOMPARE(loaded->rows(), 3);
+        QCOMPARE(loaded->columns(), 2);
     }
 
     void testMultiLevelListRoundTrip()
@@ -318,6 +372,8 @@ private slots:
         QVERIFY(text.contains(QStringLiteral("Level 0 - Item 1")));
         QVERIFY(text.contains(QStringLiteral("Level 1 - Item A")));
         QVERIFY(text.contains(QStringLiteral("Level 1 - Item B")));
+        QVERIFY(hasListStyle(&doc2, QTextListFormat::ListDecimal));
+        QVERIFY(hasListStyle(&doc2, QTextListFormat::ListLowerAlpha));
     }
 
     void testFontFamiliesRoundTrip()
@@ -395,6 +451,16 @@ private slots:
         bool ok = DocxConverter::loadFromDocx(docx, &doc2, margins, bg);
         QVERIFY(ok);
         QVERIFY(doc2.toPlainText().contains(QStringLiteral("After image")));
+        QCOMPARE(countImageFragments(&doc2), 1);
+        for (QTextBlock block = doc2.begin(); block.isValid(); block = block.next()) {
+            for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
+                if (it.fragment().charFormat().isImageFormat()) {
+                    QTextImageFormat ifmt = it.fragment().charFormat().toImageFormat();
+                    QCOMPARE(qRound(ifmt.width()), 40);
+                    QCOMPARE(qRound(ifmt.height()), 40);
+                }
+            }
+        }
     }
 
     void testHyperlinkRoundTrip()
@@ -424,6 +490,7 @@ private slots:
 
         QVERIFY(doc2.toPlainText().contains(QStringLiteral("Click here")));
         QVERIFY(doc2.toPlainText().contains(QStringLiteral("Normal text")));
+        QCOMPARE(findAnchorHref(&doc2), QStringLiteral("https://example.com"));
     }
 
     void testMergedCellsRoundTrip()
@@ -457,6 +524,12 @@ private slots:
         QString text = doc2.toPlainText();
         QVERIFY(text.contains(QStringLiteral("R0C0")));
         QVERIFY(text.contains(QStringLiteral("R1C1")));
+
+        QTextTable *loaded = findFirstTable(&doc2);
+        QVERIFY(loaded != nullptr);
+        QCOMPARE(loaded->rows(), 2);
+        QCOMPARE(loaded->columns(), 3);
+        QCOMPARE(loaded->cellAt(0, 0).columnSpan(), 2);
     }
 
     void testVerticalMergeRoundTrip()
@@ -487,16 +560,7 @@ private slots:
         bool ok = DocxConverter::loadFromDocx(docx, &doc2, margins, bg);
         QVERIFY(ok);
 
-        QTextTable *loadedTable = nullptr;
-        for (QTextBlock block = doc2.begin(); block.isValid(); block = block.next()) {
-            QTextFrame *frame = doc2.frameAt(block.position());
-            while (frame) {
-                loadedTable = qobject_cast<QTextTable *>(frame);
-                if (loadedTable) break;
-                frame = frame->parentFrame();
-            }
-            if (loadedTable) break;
-        }
+        QTextTable *loadedTable = findFirstTable(&doc2);
         QVERIFY(loadedTable != nullptr);
         QCOMPARE(loadedTable->rows(), 3);
         QCOMPARE(loadedTable->columns(), 2);
@@ -575,6 +639,16 @@ private slots:
         QVERIFY(ok);
 
         QVERIFY(doc2.toPlainText().contains(QStringLiteral("Heading Text")));
+
+        bool foundHeading = false;
+        for (QTextBlock block = doc2.begin(); block.isValid(); block = block.next()) {
+            if (block.text() == QStringLiteral("Heading Text")) {
+                foundHeading = true;
+                QCOMPARE(block.blockFormat().property(QTextFormat::UserProperty).toString(),
+                         QStringLiteral("Heading1"));
+            }
+        }
+        QVERIFY(foundHeading);
     }
 
     void testTabCharacter()

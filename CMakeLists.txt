@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(Document.Editor VERSION 1.0 LANGUAGES CXX)
+project(Document.Editor VERSION 1.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -19,7 +19,11 @@ find_package(Qt6 REQUIRED COMPONENTS
 
 add_compile_definitions(APP_VERSION="${PROJECT_VERSION}")
 
+add_subdirectory(third_party/miniz)
 add_subdirectory(src)
+
+# Example plugin — built so the plugin loading path is exercised.
+add_subdirectory(plugins/example)
 
 enable_testing()
 add_subdirectory(test)
