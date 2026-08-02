@@ -65,10 +65,12 @@ private:
     void sendCommand(const QString &cmd);
     void connectDataChannel();
     void startTransfer();
+    void finishTransfer();
     void abortTransfer(const QString &error);
 
     void onControlReadyRead();
     void onDataReadyRead();
     void onDataFinished();
     void onSocketError(QAbstractSocket::SocketError error);
+    void onDataError(QAbstractSocket::SocketError error);
 };

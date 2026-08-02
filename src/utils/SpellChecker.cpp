@@ -1,6 +1,7 @@
 #include "SpellChecker.h"
 
 #include <QFile>
+#include <QFileInfo>
 #include <QTextStream>
 #include <QStandardPaths>
 #include <QDir>
@@ -11,19 +12,25 @@
 
 SpellChecker::SpellChecker()
 {
-    loadSystemDictionary();
-    loadUserDictionary();
-}
-
-void SpellChecker::loadSystemDictionary()
-{
-    QStringList candidates = {
+    loadSystemDictionary({
         QStringLiteral("/usr/share/dict/words"),
         QStringLiteral("/usr/dict/words"),
         QStringLiteral("/usr/share/dict/american-english"),
         QStringLiteral("/usr/share/dict/british-english")
-    };
+    });
+    loadUserDictionary();
+}
 
+SpellChecker::SpellChecker(const QStringList &dictionaryPaths,
+                           const QString &userDictionaryPath)
+    : m_userDictionaryPath(userDictionaryPath)
+{
+    loadSystemDictionary(dictionaryPaths);
+    loadUserDictionary();
+}
+
+void SpellChecker::loadSystemDictionary(const QStringList &candidates)
+{
     for (const QString &path : candidates) {
         QFile file(path);
         if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
@@ -45,8 +52,10 @@ void SpellChecker::loadSystemDictionary()
 
 void SpellChecker::loadUserDictionary()
 {
-    QString path = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)
-                   + QStringLiteral("/user_dictionary.txt");
+    QString path = m_userDictionaryPath;
+    if (path.isEmpty())
+        path = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)
+               + QStringLiteral("/user_dictionary.txt");
     QFile file(path);
     if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
         QTextStream stream(&file);
@@ -61,9 +70,11 @@ void SpellChecker::loadUserDictionary()
 
 void SpellChecker::saveUserDictionary()
 {
-    QString dir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-    QDir().mkpath(dir);
-    QString path = dir + QStringLiteral("/user_dictionary.txt");
+    QString path = m_userDictionaryPath;
+    if (path.isEmpty())
+        path = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)
+               + QStringLiteral("/user_dictionary.txt");
+    QDir().mkpath(QFileInfo(path).absolutePath());
     QFile file(path);
     if (file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
         QTextStream stream(&file);

@@ -3,19 +3,22 @@
 #include <QFont>
 #include <QRect>
 #include <QSettings>
+#include <QTemporaryDir>
 #include "app/Settings.h"
 
 class TestSettings : public QObject
 {
     Q_OBJECT
+    QTemporaryDir m_tempDir;
 
 private slots:
     void initTestCase()
     {
-        QSettings existing(QSettings::IniFormat, QSettings::UserScope,
-            QStringLiteral("Semagsoft"), QStringLiteral("Document.Editor"));
-        existing.clear();
-        existing.sync();
+        // Redirect QSettings so tests never touch the user's real config.
+        QVERIFY(m_tempDir.isValid());
+        QSettings::setPath(QSettings::IniFormat, QSettings::UserScope,
+                           m_tempDir.path());
+        QSettings::setDefaultFormat(QSettings::IniFormat);
     }
 
     void testDefaults()

@@ -148,6 +148,76 @@ private slots:
         QVERIFY(plain.contains(QStringLiteral("Bold inside")));
         QVERIFY(plain.contains(QStringLiteral("normal again")));
     }
+
+    void testWindows1252EscapedHex()
+    {
+        // \'e9 is 0xE9 = "é" in Windows-1252. Decoding the bytes as UTF-8
+        // (the old behaviour) corrupted this.
+        QTextDocument doc;
+        bool ok = RtfConverter::loadFromRtf(
+            QByteArrayLiteral("{\\rtf1\\ansi\\deff0 caf\\'e9}"), &doc);
+        QVERIFY(ok);
+        QVERIFY(doc.toPlainText().trimmed().contains(QStringLiteral("café")));
+    }
+
+    void testWindows1252LiteralHighByte()
+    {
+        // A raw 0xE9 byte in the body, as emitted by many ANSI RTF writers.
+        QByteArray rtf = QByteArrayLiteral("{\\rtf1\\ansi\\deff0 caf\xE9}");
+        QTextDocument doc;
+        bool ok = RtfConverter::loadFromRtf(rtf, &doc);
+        QVERIFY(ok);
+        QVERIFY(doc.toPlainText().trimmed().contains(QStringLiteral("café")));
+    }
+
+    void testWindows1252SmartQuote()
+    {
+        // 0x93 = " in Windows-1252 (must not become a control char).
+        QByteArray rtf = QByteArrayLiteral("{\\rtf1\\ansi\\deff0 \\'93quoted\\'94}");
+        QTextDocument doc;
+        bool ok = RtfConverter::loadFromRtf(rtf, &doc);
+        QVERIFY(ok);
+        QVERIFY(doc.toPlainText().contains(QStringLiteral("\u201cquoted\u201d")));
+    }
+
+    void testColorTable()
+    {
+        QTextDocument doc;
+        QByteArray rtf = QByteArrayLiteral(
+            "{\\rtf1\\ansi\\deff0 {\\colortbl;\\red0\\green0\\blue0;"
+            "\\red255\\green0\\blue0;}\\cf2 red text}");
+        bool ok = RtfConverter::loadFromRtf(rtf, &doc);
+        QVERIFY(ok);
+
+        bool foundRed = false;
+        for (QTextBlock block = doc.begin(); block.isValid(); block = block.next()) {
+            for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
+                if (it.fragment().charFormat().foreground().color() == QColor(Qt::red))
+                    foundRed = true;
+            }
+        }
+        QVERIFY(foundRed);
+    }
+
+    void testColorTableDefaultIndex()
+    {
+        // \cf1 refers to the first color defined after the auto/black entry.
+        QTextDocument doc;
+        QByteArray rtf = QByteArrayLiteral(
+            "{\\rtf1\\ansi\\deff0 {\\colortbl;\\red0\\green128\\blue0;}"
+            "\\cf1 green text}");
+        bool ok = RtfConverter::loadFromRtf(rtf, &doc);
+        QVERIFY(ok);
+
+        bool foundGreen = false;
+        for (QTextBlock block = doc.begin(); block.isValid(); block = block.next()) {
+            for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
+                if (it.fragment().charFormat().foreground().color() == QColor(0, 128, 0))
+                    foundGreen = true;
+            }
+        }
+        QVERIFY(foundGreen);
+    }
 };
 
 QTEST_MAIN(TestRtfConverter)

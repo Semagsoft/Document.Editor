@@ -36,4 +36,8 @@ jobs:
         run: cmake --build build --parallel
 
       - name: Test
+        # GitHub runners have no X server; every test constructs a QApplication,
+        # so use Qt's offscreen platform plugin to run headlessly.
+        env:
+          QT_QPA_PLATFORM: offscreen
         run: ctest --test-dir build --output-on-failure

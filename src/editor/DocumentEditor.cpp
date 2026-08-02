@@ -14,12 +14,13 @@
 #include <QFileInfo>
 #include <QFontDatabase>
 #include <QKeyEvent>
-#include <QMenu>
 #include <QMessageBox>
 #include <QMimeData>
 #include <QRegularExpression>
 #include <QTextBlock>
 #include <QTextCursor>
+#include <QTextFragment>
+#include <QTextFrame>
 #include <QTextList>
 #include <QTextTable>
 
@@ -158,10 +159,41 @@ qreal DocumentEditor::zoomLevel() const { return m_zoomLevel; }
 
 void DocumentEditor::setZoomLevel(qreal level)
 {
-    m_zoomLevel = qBound(0.1, level, 5.0);
+    level = qBound(0.1, level, 5.0);
+    const qreal factor = m_zoomLevel > 0 ? level / m_zoomLevel : 1.0;
+    const bool scaleContent = !qFuzzyCompare(m_zoomLevel, level);
+    m_zoomLevel = level;
+
     QFont zoomedFont = m_baseFont;
     zoomedFont.setPointSizeF(qRound(m_baseFontPointSize * m_zoomLevel));
     setFont(zoomedFont);
+
+    // setFont() only rescales text that has no explicit char format. Scale
+    // runs that carry an explicit font size too, so loaded/formatted documents
+    // actually respond to zoom.
+    if (!scaleContent)
+        return;
+
+    QTextDocument *doc = document();
+    QTextCursor editCursor(doc);
+    editCursor.beginEditBlock();
+    for (QTextFrame::iterator fit = doc->rootFrame()->begin(); !fit.atEnd(); ++fit) {
+        const QTextBlock block = fit.currentBlock();
+        if (!block.isValid())
+            continue;
+        for (QTextBlock::iterator bit = block.begin(); !bit.atEnd(); ++bit) {
+            const QTextFragment fragment = bit.fragment();
+            if (!fragment.isValid() || fragment.charFormat().fontPointSize() <= 0)
+                continue;
+            QTextCharFormat fmt = fragment.charFormat();
+            fmt.setFontPointSize(fmt.fontPointSize() * factor);
+            QTextCursor c(doc);
+            c.setPosition(fragment.position());
+            c.setPosition(fragment.position() + fragment.length(), QTextCursor::KeepAnchor);
+            c.setCharFormat(fmt);
+        }
+    }
+    editCursor.endEditBlock();
 }
 
 void DocumentEditor::setBaseFont(const QFont& font)
@@ -738,17 +770,3 @@ void DocumentEditor::keyPressEvent(QKeyEvent* event)
     QTextEdit::keyPressEvent(event);
 }
 
-void DocumentEditor::contextMenuEvent(QContextMenuEvent* event)
-{
-    QMenu* menu = createStandardContextMenu();
-    menu->addSeparator();
-
-    QAction* upperAction = menu->addAction(tr("Uppercase"));
-    connect(upperAction, &QAction::triggered, this, &DocumentEditor::toUpperCase);
-
-    QAction* lowerAction = menu->addAction(tr("Lowercase"));
-    connect(lowerAction, &QAction::triggered, this, &DocumentEditor::toLowerCase);
-
-    menu->exec(event->globalPos());
-    delete menu;
-}

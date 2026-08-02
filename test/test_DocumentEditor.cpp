@@ -380,6 +380,44 @@ private slots:
         editor.setPageBackground(bg);
         QCOMPARE(editor.pageBackground(), bg);
     }
+
+    void testZoomScalesExplicitFontSizes()
+    {
+        DocumentEditor editor;
+
+        // Insert text with an explicit font size, then zoom and confirm the
+        // run actually grows (previously setZoomLevel left formatted text
+        // untouched).
+        QTextCursor cursor(editor.document());
+        QTextCharFormat fmt;
+        fmt.setFontPointSize(10);
+        cursor.insertText(QStringLiteral("zoom me"), fmt);
+
+        editor.setZoomLevel(2.0);
+        QCOMPARE(editor.zoomLevel(), 2.0);
+
+        bool foundScaled = false;
+        for (QTextBlock block = editor.document()->begin();
+             block.isValid(); block = block.next()) {
+            for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
+                if (it.fragment().charFormat().fontPointSize() > 10.0)
+                    foundScaled = true;
+            }
+        }
+        QVERIFY(foundScaled);
+
+        // Zooming back down restores the original size.
+        editor.setZoomLevel(1.0);
+        bool foundOriginal = false;
+        for (QTextBlock block = editor.document()->begin();
+             block.isValid(); block = block.next()) {
+            for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
+                if (qAbs(it.fragment().charFormat().fontPointSize() - 10.0) < 0.01)
+                    foundOriginal = true;
+            }
+        }
+        QVERIFY(foundOriginal);
+    }
 };
 
 QTEST_MAIN(TestDocumentEditor)

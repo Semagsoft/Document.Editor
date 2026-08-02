@@ -6,8 +6,6 @@
 
 class DocumentManager;
 class DocumentEditor;
-class Settings;
-class StatusBarManager;
 
 class DocumentService : public QObject
 {
@@ -15,8 +13,6 @@ class DocumentService : public QObject
 
 public:
     explicit DocumentService(DocumentManager *docManager,
-                             Settings *settings,
-                             StatusBarManager *statusBar,
                              QWidget *parentWidget);
 
     void newDocument();
@@ -59,9 +55,9 @@ private:
     static bool findTool(const QString &name, const QStringList &args = {});
     static QString findArchiver();
     static QString findCompressor();
+    static QStringList listArchiveContents(const QString &archiver,
+                                           const QString &path);
 
     DocumentManager *m_docManager;
-    Settings *m_settings;
-    StatusBarManager *m_statusBarManager;
     QWidget *m_parentWidget;
 };

@@ -25,6 +25,8 @@
 #include <QtNumeric>
 #include <QSet>
 #include <QDebug>
+#include <climits>
+#include <new>
 
 #define NS_W  QStringLiteral("http://schemas.openxmlformats.org/wordprocessingml/2006/main")
 #define NS_REL QStringLiteral("http://schemas.openxmlformats.org/package/2006/relationships")
@@ -675,6 +677,11 @@ bool DocxConverter::loadFromDocx(const QByteArray &zipData, QTextDocument *doc,
         return false;
     }
 
+    // Bound decompression: a tiny .docx can declare huge uncompressed sizes
+    // (zip bomb) or exceed INT_MAX, which would truncate the size_t cast below.
+    constexpr mz_uint64 kMaxEntrySize = 256ull * 1024 * 1024;
+    constexpr mz_uint64 kMaxTotalSize = 512ull * 1024 * 1024;
+    mz_uint64 totalSize = 0;
     QMap<QString, QByteArray> files;
     const mz_uint numFiles = mz_zip_reader_get_num_files(&zip);
     for (mz_uint i = 0; i < numFiles; ++i) {
@@ -683,12 +690,29 @@ bool DocxConverter::loadFromDocx(const QByteArray &zipData, QTextDocument *doc,
             continue;
         if (st.m_is_directory)
             continue;
+        if (st.m_uncomp_size > kMaxEntrySize
+            || st.m_uncomp_size > kMaxTotalSize - totalSize) {
+            qWarning() << "Skipping oversized ZIP entry:" << st.m_filename;
+            continue;
+        }
+        if (st.m_uncomp_size > static_cast<mz_uint64>(INT_MAX)) {
+            qWarning() << "Skipping ZIP entry too large for memory:" << st.m_filename;
+            continue;
+        }
+        const int size = static_cast<int>(st.m_uncomp_size);
         QByteArray data;
-        data.resize(static_cast<int>(st.m_uncomp_size));
-        if (!mz_zip_reader_extract_to_mem(&zip, i, data.data(), data.size(), 0)) {
+        try {
+            data.resize(size);
+        } catch (const std::bad_alloc &) {
+            qWarning() << "Out of memory extracting ZIP entry:" << st.m_filename;
             mz_zip_reader_end(&zip);
             return false;
         }
+        if (!mz_zip_reader_extract_to_mem(&zip, i, data.data(), size, 0)) {
+            mz_zip_reader_end(&zip);
+            return false;
+        }
+        totalSize += st.m_uncomp_size;
         files[QString::fromUtf8(st.m_filename)] = data;
     }
     mz_zip_reader_end(&zip);

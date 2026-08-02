@@ -105,7 +105,6 @@ signals:
 
 protected:
     void keyPressEvent(QKeyEvent* event) override;
-    void contextMenuEvent(QContextMenuEvent* event) override;
 
 private:
     void updateStats();

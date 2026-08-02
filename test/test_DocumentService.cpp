@@ -11,8 +11,6 @@
 #include "editor/DocumentTab.h"
 #include "editor/DocumentManager.h"
 #include "editor/DocumentEditor.h"
-#include "app/Settings.h"
-#include "mainwindow/StatusBarManager.h"
 
 class TestDocumentService : public QObject
 {
@@ -22,8 +20,6 @@ private:
     QMainWindow *m_mainWindow = nullptr;
     QMdiArea *m_mdiArea = nullptr;
     DocumentManager *m_docManager = nullptr;
-    Settings *m_settings = nullptr;
-    StatusBarManager *m_statusBar = nullptr;
     DocumentService *m_service = nullptr;
 
 private slots:
@@ -33,11 +29,8 @@ private slots:
         m_mdiArea = new QMdiArea(m_mainWindow);
         m_mainWindow->setCentralWidget(m_mdiArea);
         m_docManager = new DocumentManager(m_mdiArea, m_mainWindow, m_mainWindow);
-        m_settings = new Settings(m_mainWindow);
-        m_statusBar = new StatusBarManager(m_mainWindow->statusBar(), m_mainWindow);
 
-        m_service = new DocumentService(m_docManager, m_settings,
-                                         m_statusBar, m_mainWindow);
+        m_service = new DocumentService(m_docManager, m_mainWindow);
     }
 
     void cleanupTestCase()

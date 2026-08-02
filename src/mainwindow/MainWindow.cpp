@@ -78,7 +78,7 @@ MainWindow::MainWindow(QWidget* parent)
 
     m_docManager = new DocumentManager(m_mdiArea, this, this);
 
-    m_docService = new DocumentService(m_docManager, m_settings, m_statusBarManager, this);
+    m_docService = new DocumentService(m_docManager, this);
 
     connect(m_docService, &DocumentService::documentOpened, this, [this](const QString &path) {
         if (!path.isEmpty())
@@ -144,9 +144,8 @@ MainWindow::MainWindow(QWidget* parent)
     m_zoomDebounceTimer->setInterval(50);
     connect(m_zoomDebounceTimer, &QTimer::timeout, this, [this]() {
         int pct = qRound(m_zoomPendingLevel * 100.0);
-        if (auto *e = currentEditor()) {
+        if (auto *e = m_zoomPendingEditor.data())
             e->setZoomLevel(m_zoomPendingLevel);
-        }
         m_actionManager->zoomSlider()->setValue(pct);
         m_actionManager->zoomLabel()->setText(QStringLiteral(" %1%").arg(pct));
         m_statusBarManager->setZoomLevel(pct);
@@ -256,7 +255,6 @@ void MainWindow::createCentralArea()
 {
     m_mdiArea = new QMdiArea(this);
     m_mdiArea->setViewMode(QMdiArea::TabbedView);
-    m_mdiArea->setTabsClosable(true);
     m_mdiArea->setTabsMovable(true);
     m_mdiArea->setDocumentMode(true);
 
@@ -274,6 +272,9 @@ void MainWindow::applyTabSettings()
     m_mdiArea->setTabShape(m_settings->tabSizeMode() == 0
             ? QTabWidget::Rounded
             : QTabWidget::Triangular);
+    // Close-button mode: 0 = all tabs, 1 = active tab, 2 = none.
+    // QMdiArea has no per-tab close API, so "all" and "active" both enable them.
+    m_mdiArea->setTabsClosable(m_settings->tabCloseButtonMode() != 2);
 }
 
 void MainWindow::createStatusBar()
@@ -772,9 +773,11 @@ void MainWindow::connectViewActions()
     });
 
     connect(m_actionManager->zoomSlider(), &QSlider::valueChanged, this, [this](int value) {
-        if (!currentEditor())
+        DocumentEditor *e = currentEditor();
+        if (!e)
             return;
         m_zoomPendingLevel = value / 100.0;
+        m_zoomPendingEditor = e;
         m_zoomDebounceTimer->stop();
         m_zoomDebounceTimer->start();
     });

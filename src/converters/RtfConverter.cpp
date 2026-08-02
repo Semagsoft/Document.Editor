@@ -11,6 +11,37 @@
 #include <QColor>
 #include <QFont>
 
+// Windows-1252 mapping for the 0x80..0x9F range (everything else matches
+// Latin-1 1:1). RTF files are typically ANSI/Windows-1252, not UTF-8.
+static const QChar kCp1252High[32] = {
+    QChar(0x20AC), QChar(0x0081), QChar(0x201A), QChar(0x0192),
+    QChar(0x201E), QChar(0x2026), QChar(0x2020), QChar(0x2021),
+    QChar(0x02C6), QChar(0x2030), QChar(0x0160), QChar(0x2039),
+    QChar(0x0152), QChar(0x008D), QChar(0x017D), QChar(0x008F),
+    QChar(0x0090), QChar(0x2018), QChar(0x2019), QChar(0x201C),
+    QChar(0x201D), QChar(0x2022), QChar(0x2013), QChar(0x2014),
+    QChar(0x02DC), QChar(0x2122), QChar(0x0161), QChar(0x203A),
+    QChar(0x0153), QChar(0x009D), QChar(0x017E), QChar(0x0178),
+};
+
+static QChar fromCp1252Byte(int code)
+{
+    if (code >= 0x80 && code < 0xA0)
+        return kCp1252High[code - 0x80];
+    return QChar(static_cast<ushort>(code));
+}
+
+static QString decodeWindows1252(const QByteArray &data)
+{
+    QString out;
+    out.reserve(data.size());
+    for (char byte : data) {
+        const uchar b = static_cast<uchar>(byte);
+        out += fromCp1252Byte(b);
+    }
+    return out;
+}
+
 struct RtfFormatState {
     bool bold = false;
     bool italic = false;
@@ -85,6 +116,70 @@ static void applyBlockFormat(QTextCursor &cursor, const RtfFormatState &state)
     cursor.setBlockFormat(fmt);
 }
 
+static int parseColorTable(const QString &rtf, int i, QVector<QColor> &colorTable)
+{
+    // Parses {\colortbl;\redN\greenN\blueN;\redN\greenN\blueN;} starting just
+    // past the "colortbl" control word. Returns the index of the closing '}'.
+    QColor current;
+    bool haveColor = false;
+    while (i < rtf.length()) {
+        const QChar c = rtf[i];
+        if (c == QLatin1Char('{')) {
+            // Nested destination (e.g. \* ...) — skip it.
+            int depth = 1;
+            i++;
+            while (i < rtf.length() && depth > 0) {
+                if (rtf[i] == QLatin1Char('{')) depth++;
+                else if (rtf[i] == QLatin1Char('}')) depth--;
+                i++;
+            }
+        } else if (c == QLatin1Char('}')) {
+            break;
+        } else if (c == QLatin1Char(';')) {
+            if (haveColor)
+                colorTable.append(current);
+            current = QColor();
+            haveColor = false;
+            i++;
+        } else if (c == QLatin1Char('\\')) {
+            i++;
+            QString word;
+            while (i < rtf.length() && rtf[i].isLetter()) {
+                word += rtf[i];
+                i++;
+            }
+            int arg = 0;
+            bool negative = false;
+            if (i < rtf.length() && rtf[i] == QLatin1Char('-')) {
+                negative = true;
+                i++;
+            }
+            while (i < rtf.length() && rtf[i].isDigit()) {
+                arg = arg * 10 + (rtf[i].unicode() - QLatin1Char('0').unicode());
+                i++;
+            }
+            if (negative)
+                arg = -arg;
+            if (i < rtf.length() && rtf[i] == QLatin1Char(' '))
+                i++;
+            if (word == QLatin1String("red")) {
+                current.setRed(qBound(0, arg, 255));
+                haveColor = true;
+            } else if (word == QLatin1String("green")) {
+                current.setGreen(qBound(0, arg, 255));
+                haveColor = true;
+            } else if (word == QLatin1String("blue")) {
+                current.setBlue(qBound(0, arg, 255));
+                haveColor = true;
+            }
+            // cyan/magenta/yellow/black/tint/shade/font are ignored.
+        } else {
+            i++;
+        }
+    }
+    return i;
+}
+
 static bool loadRtfToDocument(const QString &rtf, QTextDocument *doc)
 {
     QTextCursor cursor(doc);
@@ -132,6 +227,25 @@ static bool loadRtfToDocument(const QString &rtf, QTextDocument *doc)
             // Line break
             if (next == QLatin1Char('\n') || next == QLatin1Char('\r')) {
                 i++;
+                continue;
+            }
+
+            // Hex-escaped byte: \'hh  (' is not a letter, so it is not caught
+            // by the control-word reader below). 0xE9 -> "é", 0x93 -> " in
+            // Windows-1252.
+            if (next == QLatin1Char('\'')) {
+                i++;
+                if (i + 2 <= rtf.length()) {
+                    QString hex = rtf.mid(i, 2);
+                    bool ok = false;
+                    int code = hex.toInt(&ok, 16);
+                    if (ok) {
+                        QChar ch = fromCp1252Byte(code);
+                        applyCharFormat(cursor, currentState);
+                        cursor.insertText(QString(ch));
+                    }
+                    i += 2;
+                }
                 continue;
             }
 
@@ -236,18 +350,6 @@ static bool loadRtfToDocument(const QString &rtf, QTextDocument *doc)
                 cursor.insertText(QStringLiteral("\t"));
             } else if (controlWord == QStringLiteral("row")) {
                 cursor.insertBlock();
-            } else if (controlWord == QStringLiteral("'")) {
-                if (i + 1 < rtf.length()) {
-                    QString hex = QString(rtf[i]) + (i + 1 < rtf.length() ? rtf[i + 1] : QLatin1Char('0'));
-                    bool ok;
-                    int code = hex.toInt(&ok, 16);
-                    if (ok) {
-                        QChar ch(static_cast<ushort>(code));
-                        applyCharFormat(cursor, currentState);
-                        cursor.insertText(QString(ch));
-                    }
-                    i += 2;
-                }
             } else if (controlWord == QStringLiteral("u") && hasNumeric) {
                 QChar ch(static_cast<ushort>(numericArg));
                 applyCharFormat(cursor, currentState);
@@ -258,8 +360,9 @@ static bool loadRtfToDocument(const QString &rtf, QTextDocument *doc)
             }
 
             // === Tables and groups ===
-            else if (controlWord == QStringLiteral("fonttbl")
-                     || controlWord == QStringLiteral("colortbl")
+            else if (controlWord == QStringLiteral("colortbl")) {
+                i = parseColorTable(rtf, i, colorTable);
+            } else if (controlWord == QStringLiteral("fonttbl")
                      || controlWord == QStringLiteral("stylesheet")
                      || controlWord == QStringLiteral("header")
                      || controlWord == QStringLiteral("footer")
@@ -325,7 +428,10 @@ static QString escapeRtfText(const QString &text)
 
 bool RtfConverter::loadFromRtf(const QByteArray &rtfData, QTextDocument *doc)
 {
-    QString text = QString::fromUtf8(rtfData);
+    // RTF is ANSI/Windows-1252 (or another code page) — not UTF-8. Decoding as
+    // UTF-8 corrupts every non-ASCII byte, breaking literal text and \'hh
+    // escapes that the parser below relies on.
+    QString text = decodeWindows1252(rtfData);
 
     // Verify it looks like RTF
     if (!text.startsWith(QLatin1Char('{')) && !text.contains(QStringLiteral("\\rtf")))

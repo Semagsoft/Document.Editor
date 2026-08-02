@@ -15,6 +15,7 @@ FtpClient::FtpClient(QObject* parent)
     m_data = new QTcpSocket(this);
     connect(m_data, &QTcpSocket::readyRead, this, &FtpClient::onDataReadyRead);
     connect(m_data, &QTcpSocket::disconnected, this, &FtpClient::onDataFinished);
+    connect(m_data, &QTcpSocket::errorOccurred, this, &FtpClient::onDataError);
 
     m_timeoutTimer = new QTimer(this);
     m_timeoutTimer->setSingleShot(true);
@@ -135,16 +136,14 @@ void FtpClient::onControlReadyRead()
             break;
 
         case State::Connected:
-            if (code == 230 || code == 331) {
-                if (code == 331)
-                    sendCommand(QStringLiteral("PASS %1").arg(m_password));
-                else
-                    m_state = State::LoggedIn;
-            }
-            if (code == 230)
+            if (code == 331)
+                sendCommand(QStringLiteral("PASS %1").arg(m_password));
+            else if (code == 230) {
                 m_state = State::LoggedIn;
-            if (m_state == State::LoggedIn)
                 sendCommand(QStringLiteral("PASV"));
+            } else {
+                abortTransfer(tr("Login failed: %1").arg(QString::fromUtf8(line)));
+            }
             break;
 
         case State::LoggedIn:
@@ -162,24 +161,30 @@ void FtpClient::onControlReadyRead()
                 } else {
                     abortTransfer(tr("Failed to parse PASV response"));
                 }
+            } else {
+                abortTransfer(tr("Failed to enter passive mode: %1").arg(QString::fromUtf8(line)));
             }
             break;
 
         case State::Passive:
-            if (code >= 200 && code < 300) {
+            // 1xx = data connection open (e.g. 150), begin transfer now
+            if (code >= 100 && code < 200) {
                 m_state = State::Transferring;
                 startTransfer();
+            } else if (code >= 200 && code < 300) {
+                // Some servers omit the 1xx preliminary reply
+                finishTransfer();
+            } else {
+                abortTransfer(tr("Transfer rejected: %1").arg(QString::fromUtf8(line)));
             }
             break;
 
         case State::Transferring:
+            // 226 = transfer complete
             if (code >= 200 && code < 300) {
-                // Transfer complete
-                m_state = State::Idle;
-                if (m_isUpload)
-                    emit uploadCompleted();
-                else
-                    emit downloadCompleted();
+                finishTransfer();
+            } else {
+                abortTransfer(tr("Transfer failed: %1").arg(QString::fromUtf8(line)));
             }
             break;
         }
@@ -201,6 +206,7 @@ void FtpClient::connectDataChannel()
 
 void FtpClient::startTransfer()
 {
+    m_timeoutTimer->start(kGlobalTimeoutMs);
     if (m_isUpload) {
         QFile file(m_localPath);
         if (!file.open(QIODevice::ReadOnly)) {
@@ -209,14 +215,31 @@ void FtpClient::startTransfer()
         }
         QByteArray data = file.readAll();
         file.close();
+        // Write the payload, then half-close the data channel. QAbstractSocket
+        // flushes any pending data before the connection actually closes, so
+        // the server sees a clean EOF and replies 226.
         m_data->write(data);
         m_data->disconnectFromHost();
         m_lastProgressBytes = data.size();
-        m_timeoutTimer->start(kGlobalTimeoutMs);
         emit transferProgress(data.size(), data.size());
     } else {
-        // Download: data arrives via onDataReadyRead
+        // Download: data arrives via onDataReadyRead until the server closes
+        // the data channel (onDataFinished) or the 226 reply is processed.
         m_dataBuffer.clear();
+    }
+}
+
+void FtpClient::finishTransfer()
+{
+    m_timeoutTimer->stop();
+    if (m_isUpload) {
+        m_state = State::Idle;
+        emit uploadCompleted();
+    } else if (m_state == State::Transferring) {
+        // 226 arrived before the data socket closed; complete here.
+        // If onDataFinished already handled it, m_state is Idle and this is a no-op.
+        m_state = State::Idle;
+        emit downloadCompleted();
     }
 }
 
@@ -230,15 +253,19 @@ void FtpClient::onDataReadyRead()
 
 void FtpClient::onDataFinished()
 {
-    if (!m_isUpload && !m_dataBuffer.isEmpty()) {
+    if (!m_isUpload) {
         QFile file(m_localPath);
         if (file.open(QIODevice::WriteOnly)) {
             file.write(m_dataBuffer);
             file.close();
         }
         m_lastProgressBytes = m_dataBuffer.size();
-        m_timeoutTimer->stop();
         emit transferProgress(m_dataBuffer.size(), m_dataBuffer.size());
+        if (m_state == State::Transferring) {
+            m_state = State::Idle;
+            m_timeoutTimer->stop();
+            emit downloadCompleted();
+        }
     }
     m_data->disconnect();
 }
@@ -247,6 +274,13 @@ void FtpClient::onSocketError(QAbstractSocket::SocketError error)
 {
     Q_UNUSED(error);
     abortTransfer(m_control->errorString());
+}
+
+void FtpClient::onDataError(QAbstractSocket::SocketError error)
+{
+    Q_UNUSED(error);
+    if (m_state == State::Passive || m_state == State::Transferring)
+        abortTransfer(m_data->errorString());
 }
 
 void FtpClient::abortTransfer(const QString& error)

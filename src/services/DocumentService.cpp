@@ -1,9 +1,7 @@
 #include "services/DocumentService.h"
-#include "app/Settings.h"
 #include "converters/FtpClient.h"
 #include "editor/DocumentEditor.h"
 #include "editor/DocumentManager.h"
-#include "mainwindow/StatusBarManager.h"
 
 #include <QApplication>
 #include <QColorDialog>
@@ -53,8 +51,40 @@ bool DocumentService::findTool(const QString &name, const QStringList &args)
 {
     QProcess proc;
     proc.start(name, args.isEmpty() ? QStringList{ QStringLiteral("--version") } : args);
+    // waitForStarted fails if the executable does not exist / cannot be launched;
+    // exitCode() alone would wrongly stay 0 for a never-started process.
+    if (!proc.waitForStarted(2000))
+        return false;
     waitForProcess(proc, 3000);
-    return proc.exitCode() == 0;
+    return proc.exitStatus() == QProcess::NormalExit && proc.exitCode() == 0;
+}
+
+QStringList DocumentService::listArchiveContents(const QString &archiver,
+                                                 const QString &path)
+{
+    QStringList names;
+    QProcess proc;
+    if (archiver == QStringLiteral("7z"))
+        proc.start(QStringLiteral("7z"), { QStringLiteral("l"), QStringLiteral("-slt"), path });
+    else
+        proc.start(QStringLiteral("unzip"), { QStringLiteral("-Z1"), path });
+    if (!proc.waitForStarted(2000))
+        return names;
+    waitForProcess(proc, 15000);
+    if (proc.exitStatus() != QProcess::NormalExit || proc.exitCode() != 0)
+        return names;
+    const QStringList lines =
+        QString::fromUtf8(proc.readAllStandardOutput()).split(QLatin1Char('\n'));
+    if (archiver == QStringLiteral("7z")) {
+        for (const QString &line : lines) {
+            if (line.startsWith(QLatin1String("Path = ")))
+                names << line.mid(7).trimmed();
+        }
+    } else {
+        names = lines;
+    }
+    names.removeAll(QString());
+    return names;
 }
 
 QString DocumentService::findArchiver()
@@ -194,13 +224,9 @@ void DocumentService::insertFooter(DocumentEditor *editor)
 }
 
 DocumentService::DocumentService(DocumentManager *docManager,
-                                 Settings *settings,
-                                 StatusBarManager *statusBar,
                                  QWidget *parentWidget)
     : QObject(parentWidget)
     , m_docManager(docManager)
-    , m_settings(settings)
-    , m_statusBarManager(statusBar)
     , m_parentWidget(parentWidget)
 {
 }
@@ -271,13 +297,33 @@ void DocumentService::importArchive()
                "  brew install 7zip unzip        (macOS)"));
         return;
     }
+
+    // Reject archives with entries that escape the extraction directory
+    // (zip-slip). 7z does not sanitize ".." entries, so validate before extracting.
+    const QStringList listing = listArchiveContents(archiver, path);
+    if (listing.isEmpty()) {
+        QMessageBox::warning(m_parentWidget, tr("Archive Import"),
+            tr("Could not read the archive contents."));
+        return;
+    }
+    for (const QString &entry : listing) {
+        const QString clean = QDir::cleanPath(entry);
+        if (QDir::isAbsolutePath(clean) || clean == QStringLiteral("..")
+            || clean.startsWith(QStringLiteral("../"))) {
+            QMessageBox::warning(m_parentWidget, tr("Archive Import"),
+                tr("Archive contains unsafe path entries and was not extracted:\n%1")
+                    .arg(entry));
+            return;
+        }
+    }
+
     QTemporaryDir tempDir;
     if (!tempDir.isValid())
         return;
     QProcess proc;
     proc.setWorkingDirectory(tempDir.path());
     if (archiver == QStringLiteral("7z"))
-        proc.start(QStringLiteral("7z"), { QStringLiteral("x"), path });
+        proc.start(QStringLiteral("7z"), { QStringLiteral("x"), path, QStringLiteral("-y") });
     else
         proc.start(QStringLiteral("unzip"), { path });
     waitForProcess(proc, 30000);
@@ -405,9 +451,9 @@ void DocumentService::exportPdf()
         printer.setPageLayout(layout);
     }
 
-    QPainter painter(&printer);
-    editor->document()->drawContents(&painter);
-    painter.end();
+    // print() paginates the document across all pages (drawContents only paints
+    // a single canvas, truncating multi-page documents to page one).
+    editor->document()->print(&printer);
     emit statusMessage(tr("Saved as PDF"), 3000);
 }
 
