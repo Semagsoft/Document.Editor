@@ -116,6 +116,37 @@ private slots:
         }
         QCOMPARE(imageCount, 2);
     }
+
+    void testListRoundTrip()
+    {
+        QTextDocument doc;
+        QTextCursor cursor(&doc);
+        QTextListFormat lf;
+        lf.setStyle(QTextListFormat::ListDisc);
+        cursor.insertText(QStringLiteral("Item A"));
+        cursor.insertBlock();
+        cursor.createList(lf);
+        cursor.insertText(QStringLiteral("Item B"));
+        cursor.insertBlock();
+        cursor.insertText(QStringLiteral("Item C"));
+
+        QString xaml = XamlConverter::saveToXaml(&doc, QMarginsF());
+        QVERIFY(!xaml.isEmpty());
+
+        QTextDocument doc2;
+        QMarginsF margins;
+        QColor bg;
+        bool ok = XamlConverter::loadFromXaml(xaml, &doc2, margins, bg);
+        QVERIFY(ok);
+        QCOMPARE(doc2.toPlainText(), doc.toPlainText());
+
+        int srcInList = 0, dstInList = 0;
+        for (QTextBlock b = doc.begin(); b.isValid(); b = b.next())
+            if (b.textList()) ++srcInList;
+        for (QTextBlock b = doc2.begin(); b.isValid(); b = b.next())
+            if (b.textList()) ++dstInList;
+        QCOMPARE(dstInList, srcInList);
+    }
 };
 
 QTEST_MAIN(TestXamlConverter)

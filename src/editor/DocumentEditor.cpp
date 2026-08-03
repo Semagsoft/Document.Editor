@@ -366,9 +366,7 @@ void DocumentEditor::clearFormatting()
     fmt.setFontUnderline(false);
     fmt.setFontStrikeOut(false);
     fmt.setVerticalAlignment(QTextCharFormat::AlignNormal);
-    fmt.setForeground(QColor());
-    fmt.setBackground(QColor());
-    cursor.mergeCharFormat(fmt);
+    cursor.setCharFormat(fmt);
     cursor.endEditBlock();
 }
 

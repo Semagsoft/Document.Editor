@@ -11,6 +11,7 @@
 #include <QColor>
 #include <QBuffer>
 #include <QImage>
+#include <QFile>
 
 #include "converters/DocxConverter.h"
 
@@ -666,6 +667,45 @@ private slots:
         bool ok = DocxConverter::loadFromDocx(docx, &doc2, margins, bg);
         QVERIFY(ok);
         QVERIFY(doc2.toPlainText().contains(QStringLiteral("Before\tAfter")));
+    }
+
+    void testRealFixtureLoads()
+    {
+        QFile file(QStringLiteral(DOCX_FIXTURE_DIR) + QStringLiteral("/merge_and_textbox.docx"));
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        QByteArray data = file.readAll();
+        QVERIFY(!data.isEmpty());
+
+        QTextDocument doc2;
+        QMarginsF margins;
+        QColor bg;
+        bool ok = DocxConverter::loadFromDocx(data, &doc2, margins, bg);
+        QVERIFY(ok);
+
+        QString text = doc2.toPlainText();
+        QVERIFY(text.contains(QStringLiteral("Fixture title")));
+        QVERIFY(text.contains(QStringLiteral("A1")));
+        QVERIFY(text.contains(QStringLiteral("B2")));
+        QVERIFY(text.contains(QStringLiteral("C3")));
+        QVERIFY(text.contains(QStringLiteral("D4")));
+
+        QTextTable *table = findFirstTable(&doc2);
+        QVERIFY(table != nullptr);
+        QCOMPARE(table->rows(), 3);
+        QCOMPARE(table->columns(), 2);
+        QCOMPARE(table->cellAt(0, 0).rowSpan(), 2);
+        QCOMPARE(table->cellAt(0, 1).rowSpan(), 1);
+
+        QByteArray resaved = DocxConverter::saveToDocx(&doc2, margins);
+        QVERIFY(!resaved.isEmpty());
+        QTextDocument doc3;
+        QMarginsF m3;
+        QColor bg3;
+        QVERIFY(DocxConverter::loadFromDocx(resaved, &doc3, m3, bg3));
+        QTextTable *table3 = findFirstTable(&doc3);
+        QVERIFY(table3 != nullptr);
+        QCOMPARE(table3->cellAt(0, 0).rowSpan(), 2);
+        QCOMPARE(table3->cellAt(0, 1).rowSpan(), 1);
     }
 };
 

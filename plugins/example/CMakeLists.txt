@@ -20,8 +20,10 @@ target_link_libraries(ExamplePlugin PRIVATE
 )
 
 # Ensure the plugin is placed in a discoverable location
+# LIBRARY covers shared libs (Linux/macOS), RUNTIME covers DLLs (Windows).
 install(TARGETS ExamplePlugin
     LIBRARY DESTINATION ${CMAKE_INSTALL_BINDIR}/plugins
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}/plugins
 )
 
 # During development, also drop the plugin next to the app binary so the

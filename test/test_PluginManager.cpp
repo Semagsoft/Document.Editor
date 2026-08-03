@@ -1,6 +1,7 @@
 #include <QTest>
 #include <QSignalSpy>
 #include <QDir>
+#include <QLibrary>
 #include <QTemporaryDir>
 #include "plugins/PluginManager.h"
 #include "plugins/PluginContext.h"
@@ -86,8 +87,8 @@ private slots:
         m_manager->loadPlugins(tempDir.path());
         m_manager->loadPlugins(tempDir.path());
         m_manager->loadPlugins(tempDir.path());
-        // No crash = success
-        QVERIFY(true);
+        // Repeated loads from an empty dir should remain a no-op
+        QCOMPARE(m_manager->pluginCount(), 0);
     }
 
     void testContextIsAccessible()
@@ -95,6 +96,27 @@ private slots:
         PluginContext *ctx = m_manager->context();
         QVERIFY(ctx != nullptr);
         QCOMPARE(ctx, m_context);
+    }
+
+    void testLoadRealPlugin()
+    {
+        QDir pluginDir(QStringLiteral(PLUGIN_FIXTURE_DIR));
+        QVERIFY2(pluginDir.exists(),
+                 qPrintable(QStringLiteral("Plugin dir missing: ") + pluginDir.absolutePath()));
+
+        QSignalSpy loadedSpy(m_manager, &PluginManager::pluginLoaded);
+        QSignalSpy errorSpy(m_manager, &PluginManager::pluginError);
+
+        m_manager->loadPlugins(pluginDir.path());
+
+        QVERIFY(m_manager->hasPlugin(QStringLiteral("ExamplePlugin")));
+        QVERIFY(m_manager->pluginNames().contains(QStringLiteral("ExamplePlugin")));
+        QVERIFY(m_manager->loadedPluginNames().contains(QStringLiteral("ExamplePlugin")));
+        QCOMPARE(errorSpy.count(), 0);
+        QVERIFY(loadedSpy.count() >= 1);
+
+        m_manager->unloadPlugins();
+        QCOMPARE(m_manager->pluginCount(), 0);
     }
 };
 

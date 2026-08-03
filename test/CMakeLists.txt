@@ -21,6 +21,8 @@ add_document_editor_test(test_XamlConverter test_XamlConverter.cpp)
 add_document_editor_test(test_RtfConverter test_RtfConverter.cpp)
 
 add_document_editor_test(test_DocxConverter test_DocxConverter.cpp)
+target_compile_definitions(test_DocxConverter PRIVATE
+    DOCX_FIXTURE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures")
 
 add_document_editor_test(test_FtpClient test_FtpClient.cpp)
 
@@ -31,6 +33,8 @@ add_document_editor_test(test_DocumentManager test_DocumentManager.cpp)
 
 # Plugin tests
 add_document_editor_test(test_PluginManager test_PluginManager.cpp)
+target_compile_definitions(test_PluginManager PRIVATE
+    PLUGIN_FIXTURE_DIR="${CMAKE_BINARY_DIR}/src/plugins")
 
 # Settings test
 add_document_editor_test(test_Settings test_Settings.cpp)

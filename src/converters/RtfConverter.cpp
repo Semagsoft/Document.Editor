@@ -108,7 +108,7 @@ static void applyBlockFormat(QTextCursor &cursor, const RtfFormatState &state)
     QTextBlockFormat fmt;
     fmt.setAlignment(state.alignment);
     if (state.firstLineIndent != 0)
-        fmt.setIndent(qMax(0, state.firstLineIndent / 240));
+        fmt.setTextIndent(state.firstLineIndent / 15.0);
     if (state.leftIndent > 0)
         fmt.setLeftMargin(state.leftIndent / 15.0);
     if (state.rightIndent > 0)
@@ -472,8 +472,8 @@ QByteArray RtfConverter::saveToRtf(const QTextDocument *doc)
             rtf += QStringLiteral("\\qj ");
 
         // Indent
-        if (blockFmt.indent() > 0)
-            rtf += QStringLiteral("\\fi%1 ").arg(blockFmt.indent() * 240);
+        if (blockFmt.textIndent() != 0)
+            rtf += QStringLiteral("\\fi%1 ").arg(qRound(blockFmt.textIndent() * 15));
         if (blockFmt.leftMargin() > 0)
             rtf += QStringLiteral("\\li%1 ").arg(static_cast<int>(blockFmt.leftMargin() * 15));
         if (blockFmt.rightMargin() > 0)

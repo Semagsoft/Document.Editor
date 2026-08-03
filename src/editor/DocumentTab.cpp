@@ -207,6 +207,11 @@ void DocumentTab::createContextMenu()
     QAction* ltrAction = formatMenu->addAction(tr("Left to Right"));
     QAction* rtlAction = formatMenu->addAction(tr("Right to Left"));
 
+    QMenu* pageMenu = m_contextMenu->addMenu(tr("Page"));
+    QAction* pageSizeAction = pageMenu->addAction(tr("Page Size..."));
+    QAction* pageMarginsAction = pageMenu->addAction(tr("Page Margins..."));
+    QAction* pageOrientationAction = pageMenu->addAction(tr("Orientation"));
+
     m_contextMenu->addSeparator();
 
     // Edit actions
@@ -284,6 +289,63 @@ void DocumentTab::createContextMenu()
     });
     connect(rtlAction, &QAction::triggered, this, [this]() {
         m_editor->setTextDirection(Qt::RightToLeft);
+    });
+    connect(pageSizeAction, &QAction::triggered, this, [this]() {
+        bool ok;
+        QString result = QInputDialog::getText(this, tr("Page Size"),
+            tr("Width x Height (points):"), QLineEdit::Normal,
+            QStringLiteral("%1 x %2")
+                .arg(m_editor->pageWidth())
+                .arg(m_editor->pageHeight()),
+            &ok);
+        if (!ok)
+            return;
+        QStringList parts = result.split(QStringLiteral("x"), Qt::SkipEmptyParts);
+        if (parts.size() != 2)
+            return;
+        bool wOk = false, hOk = false;
+        qreal w = parts[0].trimmed().toDouble(&wOk);
+        qreal h = parts[1].trimmed().toDouble(&hOk);
+        if (wOk && hOk && w > 0 && h > 0)
+            m_editor->setPageWidth(w), m_editor->setPageHeight(h);
+    });
+    connect(pageMarginsAction, &QAction::triggered, this, [this]() {
+        QMarginsF m = m_editor->pageMargins();
+        QInputDialog dlg;
+        bool ok;
+        QString text = QInputDialog::getText(this, tr("Page Margins"),
+            tr("Left, Top, Right, Bottom (points):"), QLineEdit::Normal,
+            QStringLiteral("%1, %2, %3, %4")
+                .arg(m.left()).arg(m.top()).arg(m.right()).arg(m.bottom()),
+            &ok);
+        if (!ok)
+            return;
+        const QStringList parts = text.split(QLatin1Char(','), Qt::SkipEmptyParts);
+        if (parts.size() != 4)
+            return;
+        QVector<qreal> vals;
+        for (const QString &p : parts) {
+            bool vOk = false;
+            qreal v = p.trimmed().toDouble(&vOk);
+            if (!vOk || v < 0)
+                return;
+            vals.append(v);
+        }
+        m_editor->setPageMargins(QMarginsF(vals[0], vals[1], vals[2], vals[3]));
+    });
+    connect(pageOrientationAction, &QAction::triggered, this, [this]() {
+        bool ok;
+        int cur = m_editor->pageWidth() >= m_editor->pageHeight() ? 1 : 0;
+        int idx = QInputDialog::getInt(this, tr("Orientation"),
+            tr("0 = Portrait, 1 = Landscape"), cur, 0, 1, 1, &ok);
+        if (!ok)
+            return;
+        qreal w = m_editor->pageWidth();
+        qreal h = m_editor->pageHeight();
+        if ((idx == 1 && w < h) || (idx == 0 && w > h)) {
+            m_editor->setPageWidth(h);
+            m_editor->setPageHeight(w);
+        }
     });
 
     // Connect edit actions

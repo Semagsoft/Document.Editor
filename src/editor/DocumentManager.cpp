@@ -75,7 +75,6 @@ bool DocumentManager::saveDocument(DocumentTab* tab)
         return false;
     }
 
-    emit documentSaved(tab);
     return true;
 }
 
@@ -106,7 +105,6 @@ bool DocumentManager::saveDocumentAs(DocumentTab* tab)
     }
 
     tab->setDocumentName(path);
-    emit documentSaved(tab);
     return true;
 }
 
@@ -132,7 +130,6 @@ bool DocumentManager::saveDocumentCopy(DocumentTab* tab)
     if (!tab->editor()->saveToFile(path))
         return false;
 
-    emit documentSaved(tab);
     return true;
 }
 
@@ -166,10 +163,8 @@ bool DocumentManager::closeDocument(DocumentTab* tab)
 
     QMdiSubWindow* sub = qobject_cast<QMdiSubWindow*>(tab->parentWidget());
     if (sub) {
-        QString name = editor->documentName();
         m_mdiArea->removeSubWindow(sub);
         delete sub;
-        emit documentClosed(name);
     }
     return true;
 }
@@ -183,8 +178,6 @@ void DocumentManager::closeAllDocuments()
         if (!closeDocument(tab))
             return;
     }
-    if (tabCount() == 0)
-        emit allDocumentsClosed();
 }
 
 void DocumentManager::closeAllButCurrent()

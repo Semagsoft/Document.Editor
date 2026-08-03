@@ -596,11 +596,11 @@ void DocumentService::pageSetup()
     if (dlg.exec() == QDialog::Accepted) {
         QPageSize pageSize = printer.pageLayout().pageSize();
         if (pageSize.isValid()) {
-            QSizeF pts = pageSize.sizePoints();
-            editor->setPageWidth(pts.width());
-            editor->setPageHeight(pts.height());
+            QSize px = pageSize.sizePixels(96);
+            editor->setPageWidth(px.width());
+            editor->setPageHeight(px.height());
         }
-        editor->setPageMargins(printer.pageLayout().marginsPoints());
+        editor->setPageMargins(printer.pageLayout().marginsPixels(96));
     }
 }
 

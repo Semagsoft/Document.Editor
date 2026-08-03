@@ -666,8 +666,10 @@ void MainWindow::connectReviewActions()
                     QTextCursor cursor(e->document());
                     cursor.movePosition(QTextCursor::Start);
                     cursor = e->document()->find(rep.original, cursor);
-                    while (!cursor.isNull()) {
+                    int replaced = 0;
+                    while (!cursor.isNull() && replaced < 1000) {
                         cursor.insertText(rep.replacement);
+                        ++replaced;
                         int pos = cursor.position();
                         cursor = e->document()->find(rep.original, cursor);
                         if (!cursor.isNull() && cursor.position() == pos)

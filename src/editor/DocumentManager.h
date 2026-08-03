@@ -36,9 +36,6 @@ public:
 
 signals:
     void activeTabChanged(DocumentTab *tab);
-    void documentSaved(DocumentTab *tab);
-    void documentClosed(const QString &name);
-    void allDocumentsClosed();
     void statusLineColumnChanged(int line, int col, int totalLines, int lineCount);
     void statusWordCountChanged(int wordCount);
 

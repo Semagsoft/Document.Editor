@@ -35,14 +35,14 @@
 #define NS_CT QStringLiteral("http://schemas.openxmlformats.org/package/2006/content-types")
 #define NS_R  QStringLiteral("http://schemas.openxmlformats.org/officeDocument/2006/relationships")
 
-static constexpr qreal EMU_PER_PT    = 12700.0;
-static constexpr qreal TWIP_PER_PT   = 20.0;
+static constexpr qreal EMU_PER_PX    = 9525.0;    // 914400 EMU per inch / 96 px per inch
+static constexpr qreal TWIP_PER_PX   = 15.0;      // 1440 twips per inch / 96 px per inch
 static constexpr qreal HALFPT_PER_PT = 2.0;
 
-static qreal     emuToPt(qlonglong emu)   { return static_cast<qreal>(emu) / EMU_PER_PT; }
-static qlonglong ptToEmu(qreal pt)        { return qRound64(pt * EMU_PER_PT); }
-static qreal     twipToPt(int twip)       { return static_cast<qreal>(twip) / TWIP_PER_PT; }
-static int       ptToTwip(qreal pt)       { return qRound(pt * TWIP_PER_PT); }
+static qreal     emuToPx(qlonglong emu)   { return static_cast<qreal>(emu) / EMU_PER_PX; }
+static qlonglong pxToEmu(qreal px)        { return qRound64(px * EMU_PER_PX); }
+static qreal     twipToPx(int twip)       { return static_cast<qreal>(twip) / TWIP_PER_PX; }
+static int       pxToTwip(qreal px)       { return qRound(px * TWIP_PER_PX); }
 static qreal     halfPtToPt(int half)     { return static_cast<qreal>(half) / HALFPT_PER_PT; }
 static int       ptToHalfPt(qreal pt)     { return qRound(pt * HALFPT_PER_PT); }
 static int       propToDocxLine(int pct)  { return qRound(pct * 240.0 / 100.0); }
@@ -79,12 +79,64 @@ static void skipElement(QXmlStreamReader &r)
     }
 }
 
-static void copyStartElement(QXmlStreamWriter &pw, const QXmlStreamReader &xml)
+// Tracks which namespace (prefix, uri) pairs are in scope while re-serializing
+// a fragment, so that prefixes inherited from ancestors of the source document
+// (declared on the <w:document> root) stay valid when the fragment is parsed in
+// isolation. Because QXmlStreamWriter scopes declarations per element, each
+// element (including siblings) must re-declare the prefixes it uses; tracking
+// only the current scope stack keeps the output well-formed without emitting
+// duplicate xmlns attributes for namespaces already in scope on an ancestor.
+struct NsTracker {
+    QList<QSet<QPair<QString, QString>>> scopes;
+
+    NsTracker() { scopes.append(QSet<QPair<QString, QString>>()); }
+
+    bool contains(const QString &prefix, const QString &uri) const
+    {
+        QPair<QString, QString> key(prefix, uri);
+        for (const auto &scope : scopes) {
+            if (scope.contains(key))
+                return true;
+        }
+        return false;
+    }
+
+    void pushScope() { scopes.append(QSet<QPair<QString, QString>>()); }
+
+    void popScope()
+    {
+        if (scopes.size() > 1)
+            scopes.removeLast();
+    }
+
+    void declare(QXmlStreamWriter &pw, const QString &prefix, const QString &uri)
+    {
+        if (prefix.isEmpty() || contains(prefix, uri))
+            return;
+        pw.writeNamespace(uri, prefix);
+        scopes.last().insert(QPair<QString, QString>(prefix, uri));
+    }
+};
+
+static void declareElementNamespaces(QXmlStreamWriter &pw, const QXmlStreamReader &xml,
+                                     NsTracker &ns)
 {
-    pw.writeStartElement(xml.qualifiedName().toString());
     const auto nsDecls = xml.namespaceDeclarations();
     for (const auto &nsd : nsDecls)
-        pw.writeNamespace(nsd.namespaceUri().toString(), nsd.prefix().toString());
+        ns.declare(pw, nsd.prefix().toString(), nsd.namespaceUri().toString());
+    if (!xml.prefix().isEmpty())
+        ns.declare(pw, xml.prefix().toString(), xml.namespaceUri().toString());
+    const auto attrs = xml.attributes();
+    for (const auto &attr : attrs) {
+        if (!attr.prefix().isEmpty())
+            ns.declare(pw, attr.prefix().toString(), attr.namespaceUri().toString());
+    }
+}
+
+static void copyStartElement(QXmlStreamWriter &pw, const QXmlStreamReader &xml, NsTracker &ns)
+{
+    pw.writeStartElement(xml.qualifiedName().toString());
+    declareElementNamespaces(pw, xml, ns);
     for (const auto &attr : xml.attributes())
         pw.writeAttribute(attr.qualifiedName().toString(), attr.value().toString());
 }
@@ -200,11 +252,11 @@ static PPrResult readPPr(QXmlStreamReader &r)
             QString firstLine = a.value(QLatin1String("w:firstLine")).toString();
             QString hanging = a.value(QLatin1String("w:hanging")).toString();
             if (!left.isEmpty())
-                res.blockFmt.setLeftMargin(twipToPt(left.toInt()));
+                res.blockFmt.setLeftMargin(twipToPx(left.toInt()));
             if (!firstLine.isEmpty())
-                res.blockFmt.setTextIndent(twipToPt(firstLine.toInt()));
+                res.blockFmt.setTextIndent(twipToPx(firstLine.toInt()));
             else if (!hanging.isEmpty())
-                res.blockFmt.setTextIndent(-twipToPt(hanging.toInt()));
+                res.blockFmt.setTextIndent(-twipToPx(hanging.toInt()));
         } else if (n == QLatin1String("numPr")) {
             while (r.readNext() != QXmlStreamReader::Invalid) {
                 if (r.isEndElement() && r.namespaceUri() == NS_W && r.name().toString() == QLatin1String("numPr"))
@@ -378,8 +430,8 @@ static QVector<RunFragment> collectRuns(QXmlStreamReader &r,
                 if (rns == NS_WP && rn == QLatin1String("extent")) {
                     QString cx = r.attributes().value(QLatin1String("cx")).toString();
                     QString cy = r.attributes().value(QLatin1String("cy")).toString();
-                    if (!cx.isEmpty()) f.imageWidth = emuToPt(cx.toLongLong());
-                    if (!cy.isEmpty()) f.imageHeight = emuToPt(cy.toLongLong());
+                    if (!cx.isEmpty()) f.imageWidth = emuToPx(cx.toLongLong());
+                    if (!cy.isEmpty()) f.imageHeight = emuToPx(cy.toLongLong());
                 }
                 if (rns == NS_A && rn == QLatin1String("blip")) {
                     QString embed = r.attributes().value(QLatin1String("r:embed")).toString();
@@ -440,21 +492,25 @@ static QString serializeElementXml(QXmlStreamReader &r)
     QString out;
     QXmlStreamWriter pw(&out);
     pw.setAutoFormatting(false);
+    NsTracker ns;
     pw.writeStartElement(r.qualifiedName().toString());
+    declareElementNamespaces(pw, r, ns);
+    ns.declare(pw, QStringLiteral("w"), NS_W);
+    ns.declare(pw, QStringLiteral("wp"), NS_WP);
+    ns.declare(pw, QStringLiteral("a"), NS_A);
+    ns.declare(pw, QStringLiteral("r"), NS_R);
     for (const auto &attr : r.attributes())
         pw.writeAttribute(attr.qualifiedName().toString(), attr.value().toString());
-    pw.writeNamespace(NS_W, QLatin1String("w"));
-    pw.writeNamespace(NS_WP, QLatin1String("wp"));
-    pw.writeNamespace(NS_A, QLatin1String("a"));
-    pw.writeNamespace(NS_R, QLatin1String("r"));
 
     int depth = 1;
     while (depth > 0 && r.readNext() != QXmlStreamReader::Invalid) {
         if (r.isStartElement()) {
-            copyStartElement(pw, r);
+            ns.pushScope();
+            copyStartElement(pw, r, ns);
             ++depth;
         } else if (r.isEndElement()) {
             pw.writeEndElement();
+            ns.popScope();
             --depth;
         } else if (r.isCharacters()) {
             pw.writeCharacters(r.text().toString());
@@ -504,6 +560,8 @@ static ParaBuffer parseParagraph(QXmlStreamReader &r,
                                   hyperlinkTargets.value(relId));
         }
     }
+    if (px.hasError())
+        qWarning() << "Failed to re-parse paragraph XML:" << px.errorString();
     return pb;
 }
 
@@ -518,21 +576,25 @@ static void parseTable(QXmlStreamReader &xml, QTextCursor &cursor,
     {
         QXmlStreamWriter pw(&tblXml);
         pw.setAutoFormatting(false);
+        NsTracker ns;
         pw.writeStartElement(QLatin1String("w:tbl"));
+        declareElementNamespaces(pw, xml, ns);
+        ns.declare(pw, QStringLiteral("w"), NS_W);
+        ns.declare(pw, QStringLiteral("wp"), NS_WP);
+        ns.declare(pw, QStringLiteral("a"), NS_A);
+        ns.declare(pw, QStringLiteral("r"), NS_R);
         for (const auto &attr : xml.attributes())
             pw.writeAttribute(attr.qualifiedName().toString(), attr.value().toString());
-        pw.writeNamespace(NS_W, QLatin1String("w"));
-            pw.writeNamespace(NS_WP, QLatin1String("wp"));
-            pw.writeNamespace(NS_A, QLatin1String("a"));
-            pw.writeNamespace(NS_R, QLatin1String("r"));
 
         int depth = 1;
         while (depth > 0 && xml.readNext() != QXmlStreamReader::Invalid) {
             if (xml.isStartElement()) {
-                copyStartElement(pw, xml);
+                ns.pushScope();
+                copyStartElement(pw, xml, ns);
                 ++depth;
             } else if (xml.isEndElement()) {
                 pw.writeEndElement();
+                ns.popScope();
                 --depth;
             } else if (xml.isCharacters()) {
                 pw.writeCharacters(xml.text().toString());
@@ -595,6 +657,9 @@ static void parseTable(QXmlStreamReader &xml, QTextCursor &cursor,
         }
     }
 
+    if (tx.hasError())
+        qWarning() << "Failed to re-parse table XML:" << tx.errorString();
+
     if (grid.isEmpty()) return;
 
     int rows = grid.size();
@@ -605,20 +670,36 @@ static void parseTable(QXmlStreamReader &xml, QTextCursor &cursor,
 
     QTextTable *table = cursor.insertTable(rows, cols);
 
+    // Collect vertical-merge ranges (per column) first, then apply each merge
+    // exactly once. Merging incrementally as rows are scanned would re-merge
+    // ranges that QTextTable has already folded together.
+    QVector<QVector<QPair<int, int>>> mergeRanges(cols);
     QVector<int> mergeStartRow(cols, -1);
     for (int r = 0; r < rows; ++r) {
         for (int c = 0; c < cols && c < grid[r].size(); ++c) {
             const CellContent &cc = grid[r][c];
             if (cc.vMergeContinue) {
-                if (mergeStartRow[c] >= 0 && mergeStartRow[c] < r)
-                    table->mergeCells(mergeStartRow[c], c, r - mergeStartRow[c] + 1, 1);
-                else
+                if (mergeStartRow[c] < 0)
                     mergeStartRow[c] = r;
             } else if (cc.vMergeRestart) {
+                if (mergeStartRow[c] >= 0 && mergeStartRow[c] < r)
+                    mergeRanges[c].append(qMakePair(mergeStartRow[c], r - 1));
                 mergeStartRow[c] = r;
             } else {
+                if (mergeStartRow[c] >= 0 && mergeStartRow[c] < r)
+                    mergeRanges[c].append(qMakePair(mergeStartRow[c], r - 1));
                 mergeStartRow[c] = -1;
             }
+        }
+    }
+    for (int c = 0; c < cols; ++c) {
+        if (mergeStartRow[c] >= 0 && mergeStartRow[c] < rows)
+            mergeRanges[c].append(qMakePair(mergeStartRow[c], rows - 1));
+    }
+    for (int c = 0; c < cols; ++c) {
+        for (const QPair<int, int> &range : mergeRanges[c]) {
+            if (range.second > range.first)
+                table->mergeCells(range.first, c, range.second - range.first + 1, 1);
         }
     }
 
@@ -763,6 +844,18 @@ bool DocxConverter::loadFromDocx(const QByteArray &zipData, QTextDocument *doc,
 
     QByteArray docXmlRaw = files[QLatin1String("word/document.xml")];
 
+    // Fail-safe: validate document.xml before mutating the target document so a
+    // malformed file cannot leave partial content behind on failure.
+    {
+        QXmlStreamReader validator(docXmlRaw);
+        while (!validator.atEnd())
+            validator.readNext();
+        if (validator.hasError()) {
+            qDebug() << "XML error in word/document.xml:" << validator.errorString();
+            return false;
+        }
+    }
+
     QXmlStreamReader xml(docXmlRaw);
 
     while (!xml.atEnd()) {
@@ -834,18 +927,18 @@ bool DocxConverter::loadFromDocx(const QByteArray &zipData, QTextDocument *doc,
                     auto a = xml.attributes();
                     QString w = a.value(QLatin1String("w:w")).toString();
                     QString h = a.value(QLatin1String("w:h")).toString();
-                    if (!w.isEmpty()) pgW = twipToPt(w.toInt());
-                    if (!h.isEmpty()) pgH = twipToPt(h.toInt());
+                    if (!w.isEmpty()) pgW = twipToPx(w.toInt());
+                    if (!h.isEmpty()) pgH = twipToPx(h.toInt());
                 } else if (sn == QLatin1String("pgMar")) {
                     auto a = xml.attributes();
                     QString top = a.value(QLatin1String("w:top")).toString();
                     QString bottom = a.value(QLatin1String("w:bottom")).toString();
                     QString left = a.value(QLatin1String("w:left")).toString();
                     QString right = a.value(QLatin1String("w:right")).toString();
-                    if (!top.isEmpty())    margins.setTop(twipToPt(top.toInt()));
-                    if (!bottom.isEmpty()) margins.setBottom(twipToPt(bottom.toInt()));
-                    if (!left.isEmpty())   margins.setLeft(twipToPt(left.toInt()));
-                    if (!right.isEmpty())  margins.setRight(twipToPt(right.toInt()));
+                    if (!top.isEmpty())    margins.setTop(twipToPx(top.toInt()));
+                    if (!bottom.isEmpty()) margins.setBottom(twipToPx(bottom.toInt()));
+                    if (!left.isEmpty())   margins.setLeft(twipToPx(left.toInt()));
+                    if (!right.isEmpty())  margins.setRight(twipToPx(right.toInt()));
                 } else {
                     skipElement(xml);
                 }
@@ -858,6 +951,7 @@ bool DocxConverter::loadFromDocx(const QByteArray &zipData, QTextDocument *doc,
 
     if (xml.hasError()) {
         qDebug() << "XML error:" << xml.errorString() << "at line" << xml.lineNumber();
+        doc->clear();
         return false;
     }
 
@@ -913,8 +1007,8 @@ static void writeImageRun(QXmlStreamWriter &w,
     w.writeStartElement(QLatin1String("wp:extent"));
     qreal iw = imgFmt.width() > 0 ? imgFmt.width() : img.width();
     qreal ih = imgFmt.height() > 0 ? imgFmt.height() : img.height();
-    w.writeAttribute(QLatin1String("cx"), QString::number(ptToEmu(iw)));
-    w.writeAttribute(QLatin1String("cy"), QString::number(ptToEmu(ih)));
+    w.writeAttribute(QLatin1String("cx"), QString::number(pxToEmu(iw)));
+    w.writeAttribute(QLatin1String("cy"), QString::number(pxToEmu(ih)));
     w.writeEndElement();
     w.writeStartElement(QLatin1String("wp:docPr"));
     w.writeAttribute(QLatin1String("id"), QString::number(imageCounter));
@@ -937,8 +1031,8 @@ static void writeImageRun(QXmlStreamWriter &w,
     w.writeAttribute(QLatin1String("y"), QLatin1String("0"));
     w.writeEndElement();
     w.writeStartElement(QLatin1String("a:ext"));
-    w.writeAttribute(QLatin1String("cx"), QString::number(ptToEmu(iw)));
-    w.writeAttribute(QLatin1String("cy"), QString::number(ptToEmu(ih)));
+    w.writeAttribute(QLatin1String("cx"), QString::number(pxToEmu(iw)));
+    w.writeAttribute(QLatin1String("cy"), QString::number(pxToEmu(ih)));
     w.writeEndElement();
     w.writeEndElement();
     w.writeStartElement(QLatin1String("a:prstGeom"));
@@ -1024,12 +1118,12 @@ static void writeTableXml(QXmlStreamWriter &w, QTextTable *table,
                 if (bf.leftMargin() > 0 || bf.textIndent() != 0) {
                     w.writeStartElement(QLatin1String("w:ind"));
                     if (bf.leftMargin() > 0)
-                        w.writeAttribute(QLatin1String("w:left"), QString::number(ptToTwip(bf.leftMargin())));
+                        w.writeAttribute(QLatin1String("w:left"), QString::number(pxToTwip(bf.leftMargin())));
                     if (bf.textIndent() != 0) {
                         if (bf.textIndent() > 0)
-                            w.writeAttribute(QLatin1String("w:firstLine"), QString::number(ptToTwip(bf.textIndent())));
+                            w.writeAttribute(QLatin1String("w:firstLine"), QString::number(pxToTwip(bf.textIndent())));
                         else
-                            w.writeAttribute(QLatin1String("w:hanging"), QString::number(ptToTwip(-bf.textIndent())));
+                            w.writeAttribute(QLatin1String("w:hanging"), QString::number(pxToTwip(-bf.textIndent())));
                     }
                     w.writeEndElement();
                 }
@@ -1303,12 +1397,12 @@ QByteArray DocxConverter::saveToDocx(const QTextDocument *doc,
             if (bf.leftMargin() > 0 || bf.textIndent() != 0) {
                 w.writeStartElement(QLatin1String("w:ind"));
                 if (bf.leftMargin() > 0)
-                    w.writeAttribute(QLatin1String("w:left"), QString::number(ptToTwip(bf.leftMargin())));
+                    w.writeAttribute(QLatin1String("w:left"), QString::number(pxToTwip(bf.leftMargin())));
                 if (bf.textIndent() != 0) {
                     if (bf.textIndent() > 0)
-                        w.writeAttribute(QLatin1String("w:firstLine"), QString::number(ptToTwip(bf.textIndent())));
+                        w.writeAttribute(QLatin1String("w:firstLine"), QString::number(pxToTwip(bf.textIndent())));
                     else
-                        w.writeAttribute(QLatin1String("w:hanging"), QString::number(ptToTwip(-bf.textIndent())));
+                        w.writeAttribute(QLatin1String("w:hanging"), QString::number(pxToTwip(-bf.textIndent())));
                 }
                 w.writeEndElement();
             }
@@ -1426,14 +1520,14 @@ QByteArray DocxConverter::saveToDocx(const QTextDocument *doc,
 
         w.writeStartElement(QLatin1String("w:sectPr"));
         w.writeStartElement(QLatin1String("w:pgSz"));
-        w.writeAttribute(QLatin1String("w:w"), QString::number(ptToTwip(doc->pageSize().width())));
-        w.writeAttribute(QLatin1String("w:h"), QString::number(ptToTwip(doc->pageSize().height())));
+        w.writeAttribute(QLatin1String("w:w"), QString::number(pxToTwip(doc->pageSize().width())));
+        w.writeAttribute(QLatin1String("w:h"), QString::number(pxToTwip(doc->pageSize().height())));
         w.writeEndElement();
         w.writeStartElement(QLatin1String("w:pgMar"));
-        w.writeAttribute(QLatin1String("w:top"), QString::number(ptToTwip(margins.top())));
-        w.writeAttribute(QLatin1String("w:right"), QString::number(ptToTwip(margins.right())));
-        w.writeAttribute(QLatin1String("w:bottom"), QString::number(ptToTwip(margins.bottom())));
-        w.writeAttribute(QLatin1String("w:left"), QString::number(ptToTwip(margins.left())));
+        w.writeAttribute(QLatin1String("w:top"), QString::number(pxToTwip(margins.top())));
+        w.writeAttribute(QLatin1String("w:right"), QString::number(pxToTwip(margins.right())));
+        w.writeAttribute(QLatin1String("w:bottom"), QString::number(pxToTwip(margins.bottom())));
+        w.writeAttribute(QLatin1String("w:left"), QString::number(pxToTwip(margins.left())));
         w.writeEndElement();
         if (pageBackground.isValid() && pageBackground != QColor(Qt::white)) {
             w.writeStartElement(QLatin1String("w:shd"));

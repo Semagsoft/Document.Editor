@@ -75,40 +75,40 @@ private slots:
 
     void testImportImageNoEditor()
     {
-        // Should not crash
+        // Should not crash and should not create an editor
         m_service->importImage();
-        QVERIFY(true);
+        QCOMPARE(m_docManager->tabCount(), 0);
     }
 
     void testExportImageWithNoEditor()
     {
         QCOMPARE(m_docManager->tabCount(), 0);
         m_service->exportImage();
-        QVERIFY(true);
+        QCOMPARE(m_docManager->tabCount(), 0);
     }
 
     void testExportPdfWithNoEditor()
     {
         m_service->exportPdf();
-        QVERIFY(true);
+        QCOMPARE(m_docManager->tabCount(), 0);
     }
 
     void testPrintDocumentWithNoEditor()
     {
         m_service->printDocument();
-        QVERIFY(true);
+        QCOMPARE(m_docManager->tabCount(), 0);
     }
 
     void testPageSetupWithNoEditor()
     {
         m_service->pageSetup();
-        QVERIFY(true);
+        QCOMPARE(m_docManager->tabCount(), 0);
     }
 
     void testRevertDocumentWithNoEditor()
     {
         m_service->revertDocument();
-        QVERIFY(true);
+        QCOMPARE(m_docManager->tabCount(), 0);
     }
 
     void testRevertDocumentWithUnsavedEditor()
@@ -119,7 +119,8 @@ private slots:
 
         // Reverting an unsaved new document should be a no-op
         m_service->revertDocument();
-        QVERIFY(true);
+        QCOMPARE(m_docManager->tabCount(), 1);
+        QVERIFY(m_docManager->activeEditor() == editor);
     }
 
     void testEmbedImageInDocumentValidPath()
