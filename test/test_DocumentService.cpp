@@ -131,7 +131,7 @@ private slots:
 
         // Create a small valid PNG file
         QTemporaryFile tmpPng;
-        tmpPng.open();
+        QVERIFY(tmpPng.open());
         QString pngPath = tmpPng.fileName() + QStringLiteral(".png");
         tmpPng.close();
 

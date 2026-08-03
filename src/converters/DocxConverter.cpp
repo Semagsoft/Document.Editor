@@ -367,6 +367,10 @@ struct ImageRel {
     QString target;
 };
 
+static QVector<RunFragment> collectTextboxParagraphs(QXmlStreamReader &r,
+                                                     const QMap<QString, ImageRel> &imagesByRelId,
+                                                     const QMap<QString, QString> &hyperlinkTargets);
+
 static QVector<RunFragment> collectRuns(QXmlStreamReader &r,
                                         const QMap<QString, ImageRel> &imagesByRelId,
                                         const QMap<QString, QString> &hyperlinkTargets = {},
@@ -439,6 +443,10 @@ static QVector<RunFragment> collectRuns(QXmlStreamReader &r,
                         f.imageData = imagesByRelId[embed].data;
                         f.imageFileName = imagesByRelId[embed].target;
                     }
+                }
+                if (rns == NS_W && rn == QLatin1String("txbxContent")) {
+                    QVector<RunFragment> txbx = collectTextboxParagraphs(r, imagesByRelId, hyperlinkTargets);
+                    fragments.append(txbx);
                 }
             }
             if (f.imageData.size() >= 4) {
@@ -563,6 +571,34 @@ static ParaBuffer parseParagraph(QXmlStreamReader &r,
     if (px.hasError())
         qWarning() << "Failed to re-parse paragraph XML:" << px.errorString();
     return pb;
+}
+
+// Reads the paragraphs inside a <w:txbxContent> textbox and returns them as a
+// run stream. The textbox is a distinct visual box, so its paragraphs are
+// flattened into the enclosing body paragraph separated by line breaks.
+static QVector<RunFragment> collectTextboxParagraphs(QXmlStreamReader &r,
+                                                     const QMap<QString, ImageRel> &imagesByRelId,
+                                                     const QMap<QString, QString> &hyperlinkTargets)
+{
+    QVector<RunFragment> fragments;
+    while (r.readNext() != QXmlStreamReader::Invalid) {
+        if (r.isEndElement() && r.namespaceUri().toString() == NS_W
+            && r.name().toString() == QLatin1String("txbxContent"))
+            break;
+        if (!r.isStartElement())
+            continue;
+        if (r.namespaceUri().toString() == NS_W && r.name().toString() == QLatin1String("p")) {
+            RunFragment br;
+            br.isLineBreak = true;
+            fragments.append(br);
+            ParaBuffer pb = parseParagraph(r, imagesByRelId, hyperlinkTargets);
+            for (const RunFragment &rf : pb.runs)
+                fragments.append(rf);
+        } else {
+            skipElement(r);
+        }
+    }
+    return fragments;
 }
 
 static void parseTable(QXmlStreamReader &xml, QTextCursor &cursor,

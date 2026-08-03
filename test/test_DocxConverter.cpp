@@ -690,6 +690,7 @@ private slots:
         QVERIFY(text.contains(QStringLiteral("D4")));
         QVERIFY(text.contains(QStringLiteral("Merged")));
         QVERIFY(text.contains(QStringLiteral("Continuation text")));
+        QVERIFY(text.contains(QStringLiteral("Box text")));
 
         QTextTable *table = findFirstTable(&doc2);
         QVERIFY(table != nullptr);
@@ -711,6 +712,7 @@ private slots:
         QString text3 = doc3.toPlainText();
         QVERIFY(text3.contains(QStringLiteral("Merged")));
         QVERIFY(text3.contains(QStringLiteral("Continuation text")));
+        QVERIFY(text3.contains(QStringLiteral("Box text")));
     }
 };
 

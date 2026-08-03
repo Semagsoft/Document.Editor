@@ -128,7 +128,7 @@ private slots:
         tab->editor()->textCursor().insertText(QStringLiteral("test"));
 
         QTemporaryFile tmp;
-        tmp.open();
+        QVERIFY(tmp.open());
         QString path = tmp.fileName() + QStringLiteral(".txt");
         tmp.close();
 
