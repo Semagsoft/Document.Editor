@@ -610,11 +610,13 @@ static void parseTable(QXmlStreamReader &xml, QTextCursor &cursor,
     struct CellContent {
         QVector<ParaBuffer> paragraphs;
         int colSpan = 1;
+        int gridCol = 0;
         bool vMergeRestart = false;
         bool vMergeContinue = false;
     };
     QVector<QVector<CellContent>> grid;
     int currentRow = -1;
+    int rowColCursor = 0;
 
     QXmlStreamReader tx(tblXml);
     while (!tx.atEnd()) {
@@ -623,6 +625,7 @@ static void parseTable(QXmlStreamReader &xml, QTextCursor &cursor,
         if (tx.name().toString() == QLatin1String("tr")) {
             grid.append(QVector<CellContent>());
             ++currentRow;
+            rowColCursor = 0;
         } else if (tx.name().toString() == QLatin1String("tc") && currentRow >= 0) {
             CellContent cell;
             while (!tx.atEnd()) {
@@ -652,8 +655,11 @@ static void parseTable(QXmlStreamReader &xml, QTextCursor &cursor,
                     cell.paragraphs.append(parseParagraph(tx, imagesByRelId, hyperlinkTargets));
                 }
             }
-            if (currentRow >= 0 && currentRow < grid.size())
+            if (currentRow >= 0 && currentRow < grid.size()) {
+                cell.gridCol = rowColCursor;
+                rowColCursor += cell.colSpan;
                 grid[currentRow].append(cell);
+            }
         }
     }
 
@@ -676,19 +682,20 @@ static void parseTable(QXmlStreamReader &xml, QTextCursor &cursor,
     QVector<QVector<QPair<int, int>>> mergeRanges(cols);
     QVector<int> mergeStartRow(cols, -1);
     for (int r = 0; r < rows; ++r) {
-        for (int c = 0; c < cols && c < grid[r].size(); ++c) {
+        for (int c = 0; c < grid[r].size(); ++c) {
             const CellContent &cc = grid[r][c];
+            const int gc = cc.gridCol;
             if (cc.vMergeContinue) {
-                if (mergeStartRow[c] < 0)
-                    mergeStartRow[c] = r;
+                if (mergeStartRow[gc] < 0)
+                    mergeStartRow[gc] = r;
             } else if (cc.vMergeRestart) {
-                if (mergeStartRow[c] >= 0 && mergeStartRow[c] < r)
-                    mergeRanges[c].append(qMakePair(mergeStartRow[c], r - 1));
-                mergeStartRow[c] = r;
+                if (mergeStartRow[gc] >= 0 && mergeStartRow[gc] < r)
+                    mergeRanges[gc].append(qMakePair(mergeStartRow[gc], r - 1));
+                mergeStartRow[gc] = r;
             } else {
-                if (mergeStartRow[c] >= 0 && mergeStartRow[c] < r)
-                    mergeRanges[c].append(qMakePair(mergeStartRow[c], r - 1));
-                mergeStartRow[c] = -1;
+                if (mergeStartRow[gc] >= 0 && mergeStartRow[gc] < r)
+                    mergeRanges[gc].append(qMakePair(mergeStartRow[gc], r - 1));
+                mergeStartRow[gc] = -1;
             }
         }
     }
@@ -696,29 +703,19 @@ static void parseTable(QXmlStreamReader &xml, QTextCursor &cursor,
         if (mergeStartRow[c] >= 0 && mergeStartRow[c] < rows)
             mergeRanges[c].append(qMakePair(mergeStartRow[c], rows - 1));
     }
-    for (int c = 0; c < cols; ++c) {
-        for (const QPair<int, int> &range : mergeRanges[c]) {
-            if (range.second > range.first)
-                table->mergeCells(range.first, c, range.second - range.first + 1, 1);
-        }
-    }
-
+    // Fill every cell (including vMerge continuation cells) BEFORE applying
+    // merges: QTextTable::mergeCells moves the content of the merged cells
+    // into the target cell, so text in continuation cells is preserved.
     for (int r = 0; r < rows; ++r) {
-        for (int c = 0; c < cols && c < grid[r].size(); ++c) {
-            if (grid[r][c].vMergeContinue)
-                continue;
-            if (grid[r][c].colSpan > 1) {
-                int span = qMin(grid[r][c].colSpan, cols - c);
-                if (span > 1)
-                    table->mergeCells(r, c, 1, span);
-            }
-            QTextTableCell cell = table->cellAt(r, c);
+        for (int i = 0; i < grid[r].size(); ++i) {
+            const CellContent &cc = grid[r][i];
+            QTextTableCell cell = table->cellAt(r, cc.gridCol);
             QTextCursor cellCursor = cell.firstCursorPosition();
             cellCursor.movePosition(QTextCursor::NextBlock, QTextCursor::KeepAnchor);
             cellCursor.removeSelectedText();
 
             bool firstPara = true;
-            for (const ParaBuffer &pb : grid[r][c].paragraphs) {
+            for (const ParaBuffer &pb : cc.paragraphs) {
                 if (firstPara) {
                     cellCursor.setBlockFormat(pb.blockFmt);
                     firstPara = false;
@@ -743,6 +740,24 @@ static void parseTable(QXmlStreamReader &xml, QTextCursor &cursor,
                 }
 
                 insertRunsIntoCursor(cellCursor, pb.runs, doc);
+            }
+        }
+    }
+
+    for (int c = 0; c < cols; ++c) {
+        for (const QPair<int, int> &range : mergeRanges[c]) {
+            if (range.second > range.first)
+                table->mergeCells(range.first, c, range.second - range.first + 1, 1);
+        }
+    }
+
+    for (int r = 0; r < rows; ++r) {
+        for (int i = 0; i < grid[r].size(); ++i) {
+            const CellContent &cc = grid[r][i];
+            if (cc.colSpan > 1) {
+                int span = qMin(cc.colSpan, cols - cc.gridCol);
+                if (span > 1)
+                    table->mergeCells(r, cc.gridCol, 1, span);
             }
         }
     }
