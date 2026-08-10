@@ -1372,7 +1372,6 @@ QByteArray DocxConverter::saveToDocx(const QTextDocument *doc,
 
     int imageCounter = 0;
     int relationCounter = 1;
-    int hyperlinkCounter = 0;
     QStringList imageRels;
     QStringList imageTargets;
     QMap<QString, QString> hyperlinkUrlToRelId;

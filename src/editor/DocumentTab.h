@@ -33,6 +33,7 @@ public:
     RulerWidget *ruler() const;
     void setRulerVisible(bool visible);
     void setRulerUnit(RulerWidget::Unit unit);
+    void syncRuler();
 
 signals:
     void titleChanged(const QString &title);
@@ -40,6 +41,7 @@ signals:
 private:
     void createContextMenu();
     void updateTitle();
+    void updateRulerChip();
 
     DocumentEditor *m_editor = nullptr;
     QScrollArea *m_scrollArea = nullptr;

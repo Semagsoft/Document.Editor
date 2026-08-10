@@ -16,6 +16,7 @@
 #include <QColorDialog>
 #include <QComboBox>
 #include <QDesktopServices>
+#include <QFontDialog>
 #include <QImage>
 #include <QInputDialog>
 #include <QKeyEvent>
@@ -83,6 +84,7 @@ MainWindow::MainWindow(QWidget* parent)
     connect(m_docService, &DocumentService::documentOpened, this, [this](const QString &path) {
         if (!path.isEmpty())
             m_settings->addRecentFile(path);
+        connectEditorActionSignals(currentEditor());
         m_actionManager->updateEditorActions(currentEditor(), m_docManager, m_statusBarManager);
         applyEditorSettings(currentEditor());
         applyRulerToTabs();
@@ -149,6 +151,7 @@ MainWindow::MainWindow(QWidget* parent)
         m_actionManager->zoomSlider()->setValue(pct);
         m_actionManager->zoomLabel()->setText(QStringLiteral(" %1%").arg(pct));
         m_statusBarManager->setZoomLevel(pct);
+        applyRulerToTabs();
     });
 
     // Startup behavior: create/open per settings (unless files were passed on the CLI)
@@ -206,6 +209,7 @@ void MainWindow::applyRulerToTabs()
     for (DocumentTab* tab : m_docManager->allTabs()) {
         tab->setRulerVisible(visible);
         tab->setRulerUnit(unit);
+        tab->syncRuler();
     }
 }
 
@@ -448,6 +452,50 @@ void MainWindow::connectFormatActions()
         if (auto *e = currentEditor()) e->toggleSuperscript(); });
     connect(m_actionManager->clearFormattingAction(), &QAction::triggered, this, [this]() {
         if (auto *e = currentEditor()) e->clearFormatting(); });
+    connect(m_actionManager->fontFaceAction(), &QAction::triggered, this, [this]() {
+        if (auto *e = currentEditor()) {
+            bool ok = false;
+            QFont font = QFontDialog::getFont(&ok, e->currentFont(), this);
+            if (ok) {
+                QTextCharFormat fmt;
+                fmt.setFont(font);
+                e->textCursor().mergeCharFormat(fmt);
+            }
+        }
+    });
+    connect(m_actionManager->fontSizeAction(), &QAction::triggered, this, [this]() {
+        if (auto *e = currentEditor()) {
+            bool ok = false;
+            int size = QInputDialog::getInt(this, tr("Font Size"), tr("Size:"),
+                qRound(e->currentFont().pointSizeF()), 1, 999, 1, &ok);
+            if (ok) {
+                QTextCharFormat fmt;
+                fmt.setFontPointSize(size);
+                e->textCursor().mergeCharFormat(fmt);
+            }
+        }
+    });
+    connect(m_actionManager->fontColorAction(), &QAction::triggered, this, [this]() {
+        if (auto *e = currentEditor()) {
+            QColor color = QColorDialog::getColor(e->textColor(), this, tr("Font Color"));
+            if (color.isValid()) {
+                QTextCharFormat fmt;
+                fmt.setForeground(color);
+                e->textCursor().mergeCharFormat(fmt);
+            }
+        }
+    });
+    connect(m_actionManager->highlightColorAction(), &QAction::triggered, this, [this]() {
+        if (auto *e = currentEditor()) {
+            QColor color = QColorDialog::getColor(e->textBackgroundColor(),
+                this, tr("Highlight Color"));
+            if (color.isValid()) {
+                QTextCharFormat fmt;
+                fmt.setBackground(color);
+                e->textCursor().mergeCharFormat(fmt);
+            }
+        }
+    });
     connect(m_actionManager->alignLeftAction(), &QAction::triggered, this, [this]() {
         if (auto *e = currentEditor()) e->setParagraphAlignment(Qt::AlignLeft); });
     connect(m_actionManager->alignCenterAction(), &QAction::triggered, this, [this]() {
@@ -756,6 +804,7 @@ void MainWindow::connectViewActions()
         m_actionManager->zoomSlider()->setValue(pct);
         m_actionManager->zoomLabel()->setText(QStringLiteral(" %1%").arg(pct));
         m_statusBarManager->setZoomLevel(pct);
+        applyRulerToTabs();
     };
 
     connect(m_actionManager->zoomInAction(), &QAction::triggered, this, [this, updateZoomDisplay]() {
@@ -830,9 +879,31 @@ void MainWindow::connectHelpActions()
     });
 }
 
+void MainWindow::connectEditorActionSignals(DocumentEditor* editor)
+{
+    if (m_actionSignalsEditor == editor)
+        return;
+    if (m_actionSignalsEditor) {
+        disconnect(m_actionSignalsEditor, &QTextEdit::textChanged, this, nullptr);
+        disconnect(m_actionSignalsEditor, &QTextEdit::cursorPositionChanged, this, nullptr);
+    }
+    m_actionSignalsEditor = editor;
+    if (!editor)
+        return;
+    connect(editor, &QTextEdit::textChanged, this, [this]() {
+        if (auto *e = currentEditor())
+            m_actionManager->updateEditorActions(e, m_docManager, m_statusBarManager);
+    });
+    connect(editor, &QTextEdit::cursorPositionChanged, this, [this]() {
+        if (auto *e = currentEditor())
+            m_actionManager->updateEditorActions(e, m_docManager, m_statusBarManager);
+    });
+}
+
 void MainWindow::connectDocumentSignals()
 {
     connect(m_docManager, &DocumentManager::activeTabChanged, this, [this](DocumentTab* tab) {
+        connectEditorActionSignals(tab ? tab->editor() : nullptr);
         m_actionManager->updateEditorActions(currentEditor(), m_docManager, m_statusBarManager);
         if (tab) {
             applyEditorSettings(tab->editor());

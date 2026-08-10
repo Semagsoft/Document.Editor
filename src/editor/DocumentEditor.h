@@ -96,7 +96,7 @@ public:
     void refreshStats();
 
     // File I/O
-    bool loadFromFile(const QString& filename);
+    bool loadFromFile(const QString& filename, QString* errorDetail = nullptr);
     bool saveToFile(const QString& filename);
 
 signals:

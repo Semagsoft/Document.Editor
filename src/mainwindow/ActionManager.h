@@ -74,6 +74,10 @@ public:
     QAction* subscriptAction() const;
     QAction* superscriptAction() const;
     QAction* clearFormattingAction() const;
+    QAction* fontFaceAction() const;
+    QAction* fontSizeAction() const;
+    QAction* fontColorAction() const;
+    QAction* highlightColorAction() const;
     QComboBox* fontCombo() const;
     QComboBox* fontSizeCombo() const;
 
@@ -220,6 +224,10 @@ private:
     QAction* m_subscriptAction = nullptr;
     QAction* m_superscriptAction = nullptr;
     QAction* m_clearFormattingAction = nullptr;
+    QAction* m_fontFaceAction = nullptr;
+    QAction* m_fontSizeAction = nullptr;
+    QAction* m_fontColorAction = nullptr;
+    QAction* m_highlightColorAction = nullptr;
     QComboBox* m_fontCombo = nullptr;
     QComboBox* m_fontSizeCombo = nullptr;
 

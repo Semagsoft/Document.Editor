@@ -173,6 +173,108 @@ bool XamlConverter::loadFromXaml(const QString &xml, QTextDocument *doc,
                     }
                 }
 
+            } else if (name == QStringLiteral("Table")) {
+                QXmlStreamAttributes attrs = reader.attributes();
+                int rows = qMax(1, attrs.value(QStringLiteral("Rows")).toInt());
+                int cols = qMax(1, attrs.value(QStringLiteral("Cols")).toInt());
+                QTextTable *table = cursor.insertTable(rows, cols);
+                if (firstParagraph)
+                    firstParagraph = false;
+
+                int row = -1;
+                int col = -1;
+                while (!reader.atEnd() && !reader.hasError()) {
+                    reader.readNext();
+                    if (reader.isStartElement()) {
+                        if (reader.name() == QStringLiteral("TableRow")) {
+                            ++row;
+                            col = -1;
+                        } else if (reader.name() == QStringLiteral("TableCell")) {
+                            ++col;
+                            if (row < 0 || col < 0 || row >= rows || col >= cols)
+                                continue;
+                            QTextTableCell cell = table->cellAt(row, col);
+                            QTextCursor cellCursor = cell.firstCursorPosition();
+
+                            bool cellFirstParagraph = true;
+                            while (!reader.atEnd() && !reader.hasError()) {
+                                reader.readNext();
+                                if (reader.isStartElement()) {
+                                    if (reader.name() == QStringLiteral("Paragraph")) {
+                                        QTextBlockFormat blockFmt;
+                                        QXmlStreamAttributes pattr = reader.attributes();
+                                        if (pattr.hasAttribute(QStringLiteral("Alignment"))) {
+                                            QString align = pattr.value(
+                                                QStringLiteral("Alignment")).toString();
+                                            if (align == QStringLiteral("Center"))
+                                                blockFmt.setAlignment(Qt::AlignCenter);
+                                            else if (align == QStringLiteral("Right"))
+                                                blockFmt.setAlignment(Qt::AlignRight);
+                                            else
+                                                blockFmt.setAlignment(Qt::AlignLeft);
+                                        }
+                                        if (cellFirstParagraph) {
+                                            cellCursor.setBlockFormat(blockFmt);
+                                            cellFirstParagraph = false;
+                                        } else {
+                                            cellCursor.insertBlock(blockFmt);
+                                        }
+
+                                        while (!reader.atEnd() && !reader.hasError()) {
+                                            reader.readNext();
+                                            if (reader.isStartElement()) {
+                                                if (reader.name() == QStringLiteral("Run")) {
+                                                    QTextCharFormat cf;
+                                                    QXmlStreamAttributes rattrs =
+                                                        reader.attributes();
+                                                    if (rattrs.hasAttribute(
+                                                            QStringLiteral("Bold"))
+                                                        && rattrs.value(
+                                                            QStringLiteral("Bold"))
+                                                            == QStringLiteral("True"))
+                                                        cf.setFontWeight(QFont::Bold);
+                                                    if (rattrs.hasAttribute(
+                                                            QStringLiteral("Italic"))
+                                                        && rattrs.value(
+                                                            QStringLiteral("Italic"))
+                                                            == QStringLiteral("True"))
+                                                        cf.setFontItalic(true);
+                                                    if (rattrs.hasAttribute(
+                                                            QStringLiteral("Underline"))
+                                                        && rattrs.value(
+                                                            QStringLiteral("Underline"))
+                                                            == QStringLiteral("True"))
+                                                        cf.setFontUnderline(true);
+                                                    QString text = reader.readElementText();
+                                                    cellCursor.insertText(text, cf);
+                                                } else if (reader.name()
+                                                           == QStringLiteral("LineBreak")) {
+                                                    cellCursor.insertText(
+                                                        QStringLiteral("\n"));
+                                                }
+                                            } else if (reader.isEndElement()
+                                                       && reader.name()
+                                                           == QStringLiteral("Paragraph")) {
+                                                break;
+                                            }
+                                        }
+                                    }
+                                } else if (reader.isEndElement()
+                                           && reader.name() == QStringLiteral("TableCell")) {
+                                    break;
+                                }
+                            }
+                        }
+                    } else if (reader.isEndElement()
+                               && reader.name() == QStringLiteral("Table")) {
+                        break;
+                    }
+                }
+
+                // Continue appending after the table.
+                cursor = QTextCursor(doc);
+                cursor.setPosition(table->lastPosition());
+
             } else if (name == QStringLiteral("Image")) {
                 QXmlStreamAttributes attrs = reader.attributes();
                 QString source = attrs.value(QStringLiteral("Source")).toString();
@@ -241,7 +343,8 @@ static void writeTable(QXmlStreamWriter &writer, QTextTable *table)
             writer.writeStartElement(QStringLiteral("TableCell"));
             QTextCursor cellCursor = cell.firstCursorPosition();
             QTextBlock block = cellCursor.block();
-            while (block.isValid() && block.blockFormat() != cell.lastCursorPosition().block().blockFormat()) {
+            const int cellEnd = cell.lastPosition();
+            while (block.isValid() && block.position() <= cellEnd) {
                 QTextBlockFormat bf = block.blockFormat();
                 writer.writeStartElement(QStringLiteral("Paragraph"));
                 if (bf.alignment() == Qt::AlignCenter)

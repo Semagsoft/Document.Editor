@@ -49,6 +49,7 @@ DocumentTab::DocumentTab(const QString& title, QWidget* parent)
 
     connect(m_editor, &DocumentEditor::cursorPositionUpdated, this, [this]() {
         updateTitle();
+        updateRulerChip();
     });
 }
 
@@ -85,6 +86,7 @@ void DocumentTab::setPageSize(qreal width, qreal height)
 {
     m_editor->setPageWidth(width);
     m_editor->setPageHeight(height);
+    syncRuler();
 }
 
 void DocumentTab::updateTitle()
@@ -92,6 +94,8 @@ void DocumentTab::updateTitle()
     QString title = m_tabTitle;
     if (m_editor && m_editor->isModified())
         title += QStringLiteral(" *");
+    else if (m_editor && m_editor->isReadOnlyFile())
+        title += QStringLiteral(" [Read Only]");
     emit titleChanged(title);
 }
 
@@ -370,9 +374,33 @@ RulerWidget* DocumentTab::ruler() const
     return m_ruler;
 }
 
+void DocumentTab::syncRuler()
+{
+    // The editor's page width is stored in 96-DPI pixels; convert it to the
+    // ruler's unit so the ruler reflects the actual page width.
+    const qreal pageWidthPx = m_editor->pageWidth();
+    const qreal widthInUnits = (m_ruler->unit() == RulerWidget::Centimeters)
+        ? pageWidthPx * 2.54 / 96.0
+        : pageWidthPx / 96.0;
+    m_ruler->setLength(widthInUnits);
+    m_ruler->setZoom(m_editor->zoomLevel());
+}
+
+void DocumentTab::updateRulerChip()
+{
+    if (!m_ruler->isVisible())
+        return;
+    const QRect cursorRect = m_editor->cursorRect();
+    const QPoint topLeft = m_editor->viewport()->mapTo(m_ruler, cursorRect.topLeft());
+    const QPoint bottomRight = m_editor->viewport()->mapTo(m_ruler, cursorRect.bottomRight());
+    m_ruler->setChipPosition((topLeft.x() + bottomRight.x()) / 2.0);
+}
+
 void DocumentTab::setRulerVisible(bool visible)
 {
     m_ruler->setVisible(visible);
+    if (visible)
+        syncRuler();
 }
 
 void DocumentTab::setRulerUnit(RulerWidget::Unit unit)

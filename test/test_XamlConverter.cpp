@@ -147,6 +147,83 @@ private slots:
             if (b.textList()) ++dstInList;
         QCOMPARE(dstInList, srcInList);
     }
+
+    void testTableRoundTrip()
+    {
+        QTextDocument doc;
+        QTextCursor cursor(&doc);
+        cursor.insertText(QStringLiteral("Before table"));
+
+        QTextTable *table = cursor.insertTable(2, 2);
+
+        QTextTableCell cell00 = table->cellAt(0, 0);
+        QTextCursor c00 = cell00.firstCursorPosition();
+        c00.insertText(QStringLiteral("First para"));
+        c00.insertBlock();
+        c00.insertText(QStringLiteral("Second para"));
+
+        QTextTableCell cell01 = table->cellAt(0, 1);
+        QTextCursor c01 = cell01.firstCursorPosition();
+        c01.insertText(QStringLiteral("Cell A"));
+
+        QTextTableCell cell10 = table->cellAt(1, 0);
+        QTextCursor c10 = cell10.firstCursorPosition();
+        c10.insertText(QStringLiteral("Cell B"));
+
+        QTextTableCell cell11 = table->cellAt(1, 1);
+        QTextCursor c11 = cell11.firstCursorPosition();
+        c11.insertText(QStringLiteral("Cell C"));
+
+        cursor.movePosition(QTextCursor::End);
+        cursor.insertText(QStringLiteral("After table"));
+
+        QString xaml = XamlConverter::saveToXaml(&doc, QMarginsF());
+        QVERIFY(!xaml.isEmpty());
+        QVERIFY(xaml.contains(QStringLiteral("<Table")));
+
+        QTextDocument doc2;
+        QMarginsF margins;
+        QColor bg;
+        bool ok = XamlConverter::loadFromXaml(xaml, &doc2, margins, bg);
+        QVERIFY(ok);
+
+        // Text before and after the table must be preserved.
+        QString text = doc2.toPlainText();
+        QVERIFY(text.contains(QStringLiteral("Before table")));
+        QVERIFY(text.contains(QStringLiteral("After table")));
+
+        // The table structure must survive the round trip.
+        QTextTable *loaded = nullptr;
+        for (QTextFrame *frame = doc2.rootFrame(); frame; frame = frame->parentFrame()) {
+            for (QTextFrame::iterator it = frame->begin(); !it.atEnd(); ++it) {
+                if (QTextFrame *child = it.currentFrame()) {
+                    if (QTextTable *t = qobject_cast<QTextTable *>(child)) {
+                        loaded = t;
+                        break;
+                    }
+                }
+            }
+            if (loaded)
+                break;
+        }
+        QVERIFY(loaded);
+        QCOMPARE(loaded->rows(), 2);
+        QCOMPARE(loaded->columns(), 2);
+
+        // Cell content must be intact (multi-paragraph cell included).
+        QTextCursor l00 = loaded->cellAt(0, 0).firstCursorPosition();
+        QTextBlock block = l00.block();
+        QCOMPARE(block.text(), QStringLiteral("First para"));
+        block = block.next();
+        QVERIFY(block.isValid());
+        QCOMPARE(block.text(), QStringLiteral("Second para"));
+        QCOMPARE(loaded->cellAt(0, 1).firstCursorPosition().block().text(),
+                 QStringLiteral("Cell A"));
+        QCOMPARE(loaded->cellAt(1, 0).firstCursorPosition().block().text(),
+                 QStringLiteral("Cell B"));
+        QCOMPARE(loaded->cellAt(1, 1).firstCursorPosition().block().text(),
+                 QStringLiteral("Cell C"));
+    }
 };
 
 QTEST_MAIN(TestXamlConverter)

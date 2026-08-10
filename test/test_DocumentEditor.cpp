@@ -4,6 +4,7 @@
 #include <QTextCursor>
 #include <QTextCharFormat>
 #include <QTextBlock>
+#include <QTextTable>
 #include <QFont>
 #include <QTemporaryFile>
 #include <QFile>
@@ -417,6 +418,68 @@ private slots:
             }
         }
         QVERIFY(foundOriginal);
+    }
+
+    void testReadOnlyFile()
+    {
+        DocumentEditor editor;
+        QTextCursor cursor(editor.document());
+        cursor.insertText(QStringLiteral("Hello Read-Only"));
+
+        QTemporaryFile tmpFile;
+        tmpFile.open();
+        QString path = tmpFile.fileName() + QStringLiteral(".txt");
+        tmpFile.close();
+
+        QVERIFY(editor.saveToFile(path));
+        QVERIFY(editor.saveToFile(path)); // writeable round trip is fine
+
+        QFile::setPermissions(path,
+            QFileDevice::ReadOwner | QFileDevice::ReadUser |
+            QFileDevice::ReadGroup | QFileDevice::ReadOther);
+
+        DocumentEditor editor2;
+        QVERIFY(editor2.loadFromFile(path));
+        QVERIFY(editor2.isReadOnlyFile());
+        QVERIFY(editor2.isReadOnly());
+
+        // Saving back to a read-only path must be refused.
+        QVERIFY(!editor2.saveToFile(path));
+
+        // Save As to a new writable path re-enables editing.
+        QString path2 = path + QStringLiteral(".copy");
+        QVERIFY(editor2.saveToFile(path2));
+        editor2.setDocumentName(path2);
+        QVERIFY(!editor2.isReadOnlyFile());
+        QVERIFY(!editor2.isReadOnly());
+
+        QFile::remove(path);
+        QFile::remove(path2);
+    }
+
+    void testZoomScalesTableContent()
+    {
+        DocumentEditor editor;
+
+        QTextCursor cursor(editor.document());
+        QTextTable *table = cursor.insertTable(1, 1);
+        QTextTableCell cell = table->cellAt(0, 0);
+        QTextCursor cellCursor = cell.firstCursorPosition();
+        QTextCharFormat fmt;
+        fmt.setFontPointSize(10);
+        cellCursor.insertText(QStringLiteral("table zoom"), fmt);
+
+        editor.setZoomLevel(2.0);
+
+        bool foundScaled = false;
+        for (QTextBlock block = editor.document()->begin();
+             block.isValid(); block = block.next()) {
+            for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
+                if (it.fragment().charFormat().fontPointSize() > 10.0)
+                    foundScaled = true;
+            }
+        }
+        QVERIFY(foundScaled);
     }
 };
 

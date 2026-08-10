@@ -40,9 +40,11 @@ DocumentTab* DocumentManager::createDocument(const QString& title)
 DocumentTab* DocumentManager::openDocument(const QString& path)
 {
     DocumentTab* tab = new DocumentTab();
-    if (!tab->editor()->loadFromFile(path)) {
+    QString errorDetail;
+    if (!tab->editor()->loadFromFile(path, &errorDetail)) {
+        QString detail = errorDetail.isEmpty() ? tr("Unknown error.") : errorDetail;
         QMessageBox::warning(m_mainWindow, tr("Error"),
-            tr("Could not open file:\n%1").arg(path));
+            tr("Could not open file:\n%1\n\n%2").arg(path, detail));
         delete tab;
         return nullptr;
     }
@@ -68,6 +70,12 @@ bool DocumentManager::saveDocument(DocumentTab* tab)
     DocumentEditor* editor = tab->editor();
     if (editor->documentName().isEmpty())
         return saveDocumentAs(tab);
+
+    if (editor->isReadOnlyFile()) {
+        QMessageBox::warning(m_mainWindow, tr("Read-Only File"),
+            tr("The file is read-only.\nSave a copy with File > Save As."));
+        return false;
+    }
 
     if (!editor->saveToFile(editor->documentName())) {
         QMessageBox::warning(m_mainWindow, tr("Error"),

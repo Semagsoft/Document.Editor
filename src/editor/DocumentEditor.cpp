@@ -14,7 +14,6 @@
 #include <QFileInfo>
 #include <QFontDatabase>
 #include <QKeyEvent>
-#include <QMessageBox>
 #include <QMimeData>
 #include <QRegularExpression>
 #include <QTextBlock>
@@ -102,6 +101,7 @@ void DocumentEditor::setDocumentName(const QString& name)
     QFileInfo fi(name);
     if (fi.exists())
         m_readOnlyFile = !fi.isWritable();
+    setReadOnly(m_readOnlyFile);
 }
 
 bool DocumentEditor::isModified() const { return m_fileChanged; }
@@ -177,22 +177,33 @@ void DocumentEditor::setZoomLevel(qreal level)
     QTextDocument *doc = document();
     QTextCursor editCursor(doc);
     editCursor.beginEditBlock();
-    for (QTextFrame::iterator fit = doc->rootFrame()->begin(); !fit.atEnd(); ++fit) {
-        const QTextBlock block = fit.currentBlock();
-        if (!block.isValid())
-            continue;
-        for (QTextBlock::iterator bit = block.begin(); !bit.atEnd(); ++bit) {
-            const QTextFragment fragment = bit.fragment();
-            if (!fragment.isValid() || fragment.charFormat().fontPointSize() <= 0)
+
+    // Walk every frame (root + table cells) so formatted runs inside tables
+    // respond to zoom too. A rootFrame()-only iteration skips child frames.
+    auto scaleFragments = [this, factor, doc](auto &&self, QTextFrame *frame) -> void {
+        for (QTextFrame::iterator fit = frame->begin(); !fit.atEnd(); ++fit) {
+            if (QTextFrame *child = fit.currentFrame()) {
+                self(self, child);
                 continue;
-            QTextCharFormat fmt = fragment.charFormat();
-            fmt.setFontPointSize(fmt.fontPointSize() * factor);
-            QTextCursor c(doc);
-            c.setPosition(fragment.position());
-            c.setPosition(fragment.position() + fragment.length(), QTextCursor::KeepAnchor);
-            c.setCharFormat(fmt);
+            }
+            const QTextBlock block = fit.currentBlock();
+            if (!block.isValid())
+                continue;
+            for (QTextBlock::iterator bit = block.begin(); !bit.atEnd(); ++bit) {
+                const QTextFragment fragment = bit.fragment();
+                if (!fragment.isValid() || fragment.charFormat().fontPointSize() <= 0)
+                    continue;
+                QTextCharFormat fmt = fragment.charFormat();
+                fmt.setFontPointSize(fmt.fontPointSize() * factor);
+                QTextCursor c(doc);
+                c.setPosition(fragment.position());
+                c.setPosition(fragment.position() + fragment.length(), QTextCursor::KeepAnchor);
+                c.setCharFormat(fmt);
+            }
         }
-    }
+    };
+    scaleFragments(scaleFragments, doc->rootFrame());
+
     editCursor.endEditBlock();
 }
 
@@ -564,18 +575,21 @@ void DocumentEditor::setSpellCheckEnabled(bool enabled)
 // File I/O
 // ============================================================
 
-bool DocumentEditor::loadFromFile(const QString& filename)
+bool DocumentEditor::loadFromFile(const QString& filename, QString* errorDetail)
 {
     QFile file(filename);
-    if (!file.open(QIODevice::ReadOnly))
+    if (!file.open(QIODevice::ReadOnly)) {
+        if (errorDetail)
+            *errorDetail = tr("The file could not be read.");
         return false;
+    }
 
     constexpr qint64 kMaxFileSize = 50 * 1024 * 1024;
     constexpr qint64 kMaxFileSizeMB = 50;
     if (file.size() > kMaxFileSize) {
         file.close();
-        QMessageBox::warning(this, tr("File Too Large"),
-            tr("The file is too large to open (max %1 MB).").arg(kMaxFileSizeMB));
+        if (errorDetail)
+            *errorDetail = tr("The file is too large to open (max %1 MB).").arg(kMaxFileSizeMB);
         return false;
     }
 
@@ -599,15 +613,15 @@ bool DocumentEditor::loadFromFile(const QString& filename)
     } else if (ext == QStringLiteral("docx")) {
         ok = DocxConverter::loadFromDocx(data, document(), m_pageMargins, m_pageBackground);
         if (!ok) {
-            QMessageBox::warning(this, tr("Cannot Open File"),
-                tr("The file could not be opened as a Word (.docx) document."));
+            if (errorDetail)
+                *errorDetail = tr("The file could not be opened as a Word (.docx) document.");
             return false;
         }
     } else if (ext == QStringLiteral("rtf")) {
         ok = RtfConverter::loadFromRtf(data, document());
         if (!ok) {
-            QMessageBox::warning(this, tr("Cannot Open File"),
-                tr("The file could not be opened as a Rich Text Format (.rtf) document."));
+            if (errorDetail)
+                *errorDetail = tr("The file could not be opened as a Rich Text Format (.rtf) document.");
             return false;
         }
     } else if (ext == QStringLiteral("txt")) {
@@ -616,8 +630,8 @@ bool DocumentEditor::loadFromFile(const QString& filename)
     } else if (ext.isEmpty()) {
         // No extension — treat as plain text but reject binary content
         if (isLikelyBinary(data)) {
-            QMessageBox::warning(this, tr("Cannot Open File"),
-                tr("The file appears to be a binary format that cannot be opened."));
+            if (errorDetail)
+                *errorDetail = tr("The file appears to be a binary format that cannot be opened.");
             return false;
         }
         setPlainText(QString::fromUtf8(data));
@@ -625,8 +639,8 @@ bool DocumentEditor::loadFromFile(const QString& filename)
     } else {
         // Unknown extension — treat as plain text but reject binary content
         if (isLikelyBinary(data)) {
-            QMessageBox::warning(this, tr("Cannot Open File"),
-                tr("The file format \"%1\" is not supported.").arg(ext));
+            if (errorDetail)
+                *errorDetail = tr("The file format \"%1\" is not supported.").arg(ext);
             return false;
         }
         setPlainText(QString::fromUtf8(data));
@@ -634,7 +648,7 @@ bool DocumentEditor::loadFromFile(const QString& filename)
     }
 
     if (ok) {
-        m_documentName = filename;
+        setDocumentName(filename);
         m_fileChanged = false;
         emit modifiedChanged(false);
         document()->setModified(false);

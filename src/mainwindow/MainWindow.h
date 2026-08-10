@@ -56,6 +56,7 @@ private:
     void connectViewActions();
     void connectHelpActions();
     void connectDocumentSignals();
+    void connectEditorActionSignals(DocumentEditor* editor);
     void loadSettings();
     void saveSettings();
     void applyTabSettings();
@@ -86,4 +87,5 @@ private:
     QTimer* m_zoomDebounceTimer = nullptr;
     qreal m_zoomPendingLevel = 1.0;
     QPointer<DocumentEditor> m_zoomPendingEditor;
+    QPointer<DocumentEditor> m_actionSignalsEditor;
 };

@@ -78,6 +78,10 @@ QAction* ActionManager::strikethroughAction() const { return m_strikethroughActi
 QAction* ActionManager::subscriptAction() const { return m_subscriptAction; }
 QAction* ActionManager::superscriptAction() const { return m_superscriptAction; }
 QAction* ActionManager::clearFormattingAction() const { return m_clearFormattingAction; }
+QAction* ActionManager::fontFaceAction() const { return m_fontFaceAction; }
+QAction* ActionManager::fontSizeAction() const { return m_fontSizeAction; }
+QAction* ActionManager::fontColorAction() const { return m_fontColorAction; }
+QAction* ActionManager::highlightColorAction() const { return m_highlightColorAction; }
 QComboBox* ActionManager::fontCombo() const { return m_fontCombo; }
 QComboBox* ActionManager::fontSizeCombo() const { return m_fontSizeCombo; }
 
@@ -300,10 +304,10 @@ void ActionManager::setupActions(QMainWindow* mainWindow)
     m_clearFormattingAction = m_formatMenu->addAction(QObject::tr("&Clear Formatting"));
 
     QMenu* fontSubMenu = m_formatMenu->addMenu(QObject::tr("&Font"));
-    fontSubMenu->addAction(QObject::tr("Font &Face..."));
-    fontSubMenu->addAction(QObject::tr("Font &Size..."));
-    fontSubMenu->addAction(QObject::tr("Font &Color..."));
-    fontSubMenu->addAction(QObject::tr("&Highlight Color..."));
+    m_fontFaceAction = fontSubMenu->addAction(QObject::tr("Font &Face..."));
+    m_fontSizeAction = fontSubMenu->addAction(QObject::tr("Font &Size..."));
+    m_fontColorAction = fontSubMenu->addAction(QObject::tr("Font &Color..."));
+    m_highlightColorAction = fontSubMenu->addAction(QObject::tr("&Highlight Color..."));
 
     QMenu* styleSubMenu = m_formatMenu->addMenu(QObject::tr("S&tyle"));
     m_boldAction = styleSubMenu->addAction(QObject::tr("&Bold"));
@@ -597,7 +601,7 @@ void ActionManager::updateEditorActions(DocumentEditor* editor, DocumentManager*
 {
     bool hasDoc = editor != nullptr;
 
-    m_saveAction->setEnabled(hasDoc);
+    m_saveAction->setEnabled(hasDoc && !editor->isReadOnlyFile());
     m_saveAsAction->setEnabled(hasDoc);
     m_saveCopyAction->setEnabled(hasDoc);
     m_saveAllAction->setEnabled(hasDoc && docManager->tabCount() > 1);

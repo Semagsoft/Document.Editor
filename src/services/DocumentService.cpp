@@ -2,6 +2,7 @@
 #include "converters/FtpClient.h"
 #include "editor/DocumentEditor.h"
 #include "editor/DocumentManager.h"
+#include "editor/DocumentTab.h"
 
 #include <QApplication>
 #include <QColorDialog>
@@ -253,8 +254,11 @@ void DocumentService::openDocument(const QString &path)
     if (filePath.isEmpty())
         return;
 
-    if (m_docManager->openDocument(filePath))
+    if (m_docManager->openDocument(filePath)) {
+        if (DocumentEditor *e = m_docManager->activeEditor(); e && e->isReadOnlyFile())
+            emit statusMessage(tr("Opened read-only — save with File > Save As"), 5000);
         emit documentOpened(filePath);
+    }
 }
 
 void DocumentService::importFtp()
@@ -601,6 +605,8 @@ void DocumentService::pageSetup()
             editor->setPageHeight(px.height());
         }
         editor->setPageMargins(printer.pageLayout().marginsPixels(96));
+        if (DocumentTab *tab = m_docManager->activeTab())
+            tab->syncRuler();
     }
 }
 
@@ -616,5 +622,10 @@ void DocumentService::revertDocument()
         if (btn != QMessageBox::Yes)
             return;
     }
-    e->loadFromFile(e->documentName());
+    QString errorDetail;
+    if (!e->loadFromFile(e->documentName(), &errorDetail)) {
+        QString detail = errorDetail.isEmpty() ? tr("Unknown error.") : errorDetail;
+        QMessageBox::warning(m_parentWidget, tr("Error"),
+            tr("Could not revert file:\n%1\n\n%2").arg(e->documentName(), detail));
+    }
 }
