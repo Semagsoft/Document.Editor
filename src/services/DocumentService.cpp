@@ -6,6 +6,7 @@
 
 #include <QApplication>
 #include <QColorDialog>
+#include <QCryptographicHash>
 #include <QDate>
 #include <QDir>
 #include <QFile>
@@ -66,22 +67,34 @@ static bool findTool(const QString &name, const QStringList &args = {})
     return proc.exitStatus() == QProcess::NormalExit && proc.exitCode() == 0;
 }
 
+// 7-Zip and UnZip do not accept "--version": 7z exits 7 and unzip exits 10,
+// so probe with their documented info flags instead.
 static QString findArchiver()
 {
-    if (findTool(QStringLiteral("7z")))
+    if (findTool(QStringLiteral("7z"), { QStringLiteral("i") }))
         return QStringLiteral("7z");
-    if (findTool(QStringLiteral("unzip")))
+    if (findTool(QStringLiteral("unzip"), { QStringLiteral("-v") }))
         return QStringLiteral("unzip");
     return {};
 }
 
 static QString findCompressor()
 {
-    if (findTool(QStringLiteral("7z")))
+    if (findTool(QStringLiteral("7z"), { QStringLiteral("i") }))
         return QStringLiteral("7z");
     if (findTool(QStringLiteral("zip"), { QStringLiteral("--version") }))
         return QStringLiteral("zip");
     return {};
+}
+
+QString DocumentService::detectArchiver()
+{
+    return findArchiver();
+}
+
+QString DocumentService::detectCompressor()
+{
+    return findCompressor();
 }
 
 static QStringList listArchiveContents(const QString &archiver, const QString &path)
@@ -216,7 +229,13 @@ void DocumentService::embedImageInDocument(DocumentEditor *editor, const QString
     QImage image(path);
     if (image.isNull())
         return;
-    QString name = QStringLiteral("embed_%1").arg(QFileInfo(path).fileName());
+    // Key the resource by the full path so two images that share a basename
+    // (e.g. different folders) do not overwrite each other's resource, while
+    // embedding the same file twice reuses the already-stored image.
+    const QString name = QStringLiteral("embed_%1")
+        .arg(QString::fromLatin1(QCryptographicHash::hash(path.toUtf8(),
+                                                          QCryptographicHash::Sha1)
+                                     .toHex()));
     editor->document()->addResource(QTextDocument::ImageResource, QUrl(name), image);
     QTextImageFormat fmt;
     fmt.setName(name);

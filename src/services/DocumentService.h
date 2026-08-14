@@ -35,6 +35,9 @@ public:
     static void embedImageInDocument(DocumentEditor *editor, const QString &path,
                                      qreal width = 0, qreal height = 0);
 
+    static QString detectArchiver();
+    static QString detectCompressor();
+
     static void insertTableInteractive(QWidget *parent, DocumentEditor *editor);
     static void insertImageInteractive(QWidget *parent, DocumentEditor *editor);
     static void insertShapeInteractive(QWidget *parent, DocumentEditor *editor);
