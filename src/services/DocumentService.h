@@ -6,6 +6,7 @@
 
 class DocumentManager;
 class DocumentEditor;
+class QTemporaryDir;
 
 class DocumentService : public QObject
 {
@@ -52,12 +53,12 @@ signals:
     void statusMessage(const QString &message, int timeout);
 
 private:
-    static bool findTool(const QString &name, const QStringList &args = {});
-    static QString findArchiver();
-    static QString findCompressor();
-    static QStringList listArchiveContents(const QString &archiver,
-                                           const QString &path);
+    void runArchiveExportAsync(const QString &src, const QString &path);
+    void runArchiveImportAsync(const QString &path);
+    void runSoundExportAsync(const QString &path, const QString &text);
 
     DocumentManager *m_docManager;
     QWidget *m_parentWidget;
+    QTemporaryDir *m_exportTempDir = nullptr;
+    QTemporaryDir *m_importTempDir = nullptr;
 };

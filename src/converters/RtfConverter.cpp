@@ -345,7 +345,7 @@ static bool loadRtfToDocument(const QString &rtf, QTextDocument *doc)
             else if (controlWord == QStringLiteral("tab")) {
                 cursor.insertText(QStringLiteral("\t"));
             } else if (controlWord == QStringLiteral("line")) {
-                cursor.insertText(QStringLiteral("\n"));
+                cursor.insertText(QString(QChar::LineSeparator));
             } else if (controlWord == QStringLiteral("cell")) {
                 cursor.insertText(QStringLiteral("\t"));
             } else if (controlWord == QStringLiteral("row")) {
@@ -416,6 +416,8 @@ static QString escapeRtfText(const QString &text)
             result += QStringLiteral("\\}");
         else if (c == QLatin1Char('\n'))
             result += QStringLiteral("\\par ");
+        else if (c == QChar::LineSeparator)
+            result += QStringLiteral("\\line ");
         else if (c == QLatin1Char('\t'))
             result += QStringLiteral("\\tab ");
         else if (c.unicode() > 127)

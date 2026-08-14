@@ -11,6 +11,7 @@
 #include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QFutureWatcher>
 #include <QImage>
 #include <QInputDialog>
 #include <QMessageBox>
@@ -28,6 +29,8 @@
 #include <QTime>
 #include <QTemporaryDir>
 #include <QUrl>
+
+#include <QtConcurrent>
 
 #include "dialogs/InsertChartDialog.h"
 #include "dialogs/InsertDateDialog.h"
@@ -48,7 +51,10 @@ static void waitForProcess(QProcess &proc, int timeoutMs)
     proc.waitForFinished(1000);
 }
 
-bool DocumentService::findTool(const QString &name, const QStringList &args)
+// Tool probing and subprocess execution run on a background thread (see the
+// *Async helpers below) so the GUI thread never blocks on the 2-60s waits.
+
+static bool findTool(const QString &name, const QStringList &args = {})
 {
     QProcess proc;
     proc.start(name, args.isEmpty() ? QStringList{ QStringLiteral("--version") } : args);
@@ -60,8 +66,25 @@ bool DocumentService::findTool(const QString &name, const QStringList &args)
     return proc.exitStatus() == QProcess::NormalExit && proc.exitCode() == 0;
 }
 
-QStringList DocumentService::listArchiveContents(const QString &archiver,
-                                                 const QString &path)
+static QString findArchiver()
+{
+    if (findTool(QStringLiteral("7z")))
+        return QStringLiteral("7z");
+    if (findTool(QStringLiteral("unzip")))
+        return QStringLiteral("unzip");
+    return {};
+}
+
+static QString findCompressor()
+{
+    if (findTool(QStringLiteral("7z")))
+        return QStringLiteral("7z");
+    if (findTool(QStringLiteral("zip"), { QStringLiteral("--version") }))
+        return QStringLiteral("zip");
+    return {};
+}
+
+static QStringList listArchiveContents(const QString &archiver, const QString &path)
 {
     QStringList names;
     QProcess proc;
@@ -88,22 +111,103 @@ QStringList DocumentService::listArchiveContents(const QString &archiver,
     return names;
 }
 
-QString DocumentService::findArchiver()
+struct ArchiveExportResult { bool toolMissing = false; bool success = false; };
+
+static ArchiveExportResult runArchiveExport(const QString &src, const QString &path)
 {
-    if (findTool(QStringLiteral("7z")))
-        return QStringLiteral("7z");
-    if (findTool(QStringLiteral("unzip")))
-        return QStringLiteral("unzip");
-    return {};
+    ArchiveExportResult res;
+    const QString compressor = findCompressor();
+    if (compressor.isEmpty()) {
+        res.toolMissing = true;
+        return res;
+    }
+    QProcess proc;
+    proc.setWorkingDirectory(QFileInfo(src).absolutePath());
+    if (compressor == QStringLiteral("7z"))
+        proc.start(QStringLiteral("7z"), { QStringLiteral("a"), path, QFileInfo(src).fileName() });
+    else
+        proc.start(QStringLiteral("zip"), { path, QFileInfo(src).fileName() });
+    waitForProcess(proc, 30000);
+    res.success = proc.exitStatus() == QProcess::NormalExit && proc.exitCode() == 0;
+    return res;
 }
 
-QString DocumentService::findCompressor()
+struct ArchiveImportProbe {
+    bool toolMissing = false;
+    bool listFailed = false;
+    bool unsafe = false;
+    QString unsafeEntry;
+    QString archiver;
+    QStringList listing;
+};
+
+static ArchiveImportProbe probeArchiveImport(const QString &path)
 {
-    if (findTool(QStringLiteral("7z")))
-        return QStringLiteral("7z");
-    if (findTool(QStringLiteral("zip"), { QStringLiteral("--version") }))
-        return QStringLiteral("zip");
-    return {};
+    ArchiveImportProbe probe;
+    const QString archiver = findArchiver();
+    if (archiver.isEmpty()) {
+        probe.toolMissing = true;
+        return probe;
+    }
+    probe.archiver = archiver;
+    // Reject archives with entries that escape the extraction directory
+    // (zip-slip). 7z does not sanitize ".." entries, so validate before extracting.
+    const QStringList listing = listArchiveContents(archiver, path);
+    if (listing.isEmpty()) {
+        probe.listFailed = true;
+        return probe;
+    }
+    for (const QString &entry : listing) {
+        const QString clean = QDir::cleanPath(entry);
+        if (QDir::isAbsolutePath(clean) || clean == QStringLiteral("..")
+            || clean.startsWith(QStringLiteral("../"))) {
+            probe.unsafe = true;
+            probe.unsafeEntry = entry;
+            return probe;
+        }
+    }
+    probe.listing = listing;
+    return probe;
+}
+
+struct ArchiveImportOutcome { bool extractFailed = false; };
+
+static ArchiveImportOutcome runArchiveImport(const QString &archiver,
+                                             const QString &path,
+                                             const QString &destDir)
+{
+    ArchiveImportOutcome outcome;
+    QProcess proc;
+    proc.setWorkingDirectory(destDir);
+    if (archiver == QStringLiteral("7z"))
+        proc.start(QStringLiteral("7z"), { QStringLiteral("x"), path, QStringLiteral("-y") });
+    else
+        proc.start(QStringLiteral("unzip"), { path });
+    waitForProcess(proc, 30000);
+    outcome.extractFailed = proc.exitStatus() != QProcess::NormalExit || proc.exitCode() != 0;
+    return outcome;
+}
+
+struct SoundExportResult { bool success = false; };
+
+static SoundExportResult runSoundExport(const QString &path, const QString &text)
+{
+    if (findTool(QStringLiteral("espeak"), { QStringLiteral("--version") })) {
+        QProcess proc;
+        proc.start(QStringLiteral("espeak"), { QStringLiteral("-w"), path, text });
+        waitForProcess(proc, 60000);
+        if (proc.exitStatus() == QProcess::NormalExit && proc.exitCode() == 0)
+            return { true };
+    }
+    if (findTool(QStringLiteral("spd-say"), { QStringLiteral("--version") })) {
+        QProcess proc;
+        proc.start(QStringLiteral("spd-say"),
+                   { QStringLiteral("-w"), path, QStringLiteral("-o"), text });
+        waitForProcess(proc, 60000);
+        if (proc.exitStatus() == QProcess::NormalExit && proc.exitCode() == 0)
+            return { true };
+    }
+    return { false };
 }
 
 void DocumentService::embedImageInDocument(DocumentEditor *editor, const QString &path,
@@ -291,63 +395,83 @@ void DocumentService::importArchive()
         QString(), tr("Archives (*.zip *.tar.gz *.tar);;All Files (*)"));
     if (path.isEmpty())
         return;
-    QString archiver = findArchiver();
-    if (archiver.isEmpty()) {
-        QMessageBox::warning(m_parentWidget, tr("Archive Import"),
-            tr("No archive tool found.\n\n"
-               "Install 7-Zip (7z) or unzip:\n"
-               "  sudo apt install 7zip unzip   (Debian/Ubuntu)\n"
-               "  sudo dnf install 7zip unzip   (Fedora)\n"
-               "  brew install 7zip unzip        (macOS)"));
-        return;
-    }
+    runArchiveImportAsync(path);
+}
 
-    // Reject archives with entries that escape the extraction directory
-    // (zip-slip). 7z does not sanitize ".." entries, so validate before extracting.
-    const QStringList listing = listArchiveContents(archiver, path);
-    if (listing.isEmpty()) {
-        QMessageBox::warning(m_parentWidget, tr("Archive Import"),
-            tr("Could not read the archive contents."));
-        return;
-    }
-    for (const QString &entry : listing) {
-        const QString clean = QDir::cleanPath(entry);
-        if (QDir::isAbsolutePath(clean) || clean == QStringLiteral("..")
-            || clean.startsWith(QStringLiteral("../"))) {
+void DocumentService::runArchiveImportAsync(const QString &path)
+{
+    emit statusMessage(tr("Reading archive..."), 5000);
+    auto *probeWatcher = new QFutureWatcher<ArchiveImportProbe>(this);
+    connect(probeWatcher, &QFutureWatcher<ArchiveImportProbe>::finished, this,
+            [this, probeWatcher, path]() {
+        const ArchiveImportProbe probe = probeWatcher->result();
+        probeWatcher->deleteLater();
+        if (probe.toolMissing) {
             QMessageBox::warning(m_parentWidget, tr("Archive Import"),
-                tr("Archive contains unsafe path entries and was not extracted:\n%1")
-                    .arg(entry));
+                tr("No archive tool found.\n\n"
+                   "Install 7-Zip (7z) or unzip:\n"
+                   "  sudo apt install 7zip unzip   (Debian/Ubuntu)\n"
+                   "  sudo dnf install 7zip unzip   (Fedora)\n"
+                   "  brew install 7zip unzip        (macOS)"));
             return;
         }
-    }
+        if (probe.unsafe) {
+            QMessageBox::warning(m_parentWidget, tr("Archive Import"),
+                tr("Archive contains unsafe path entries and was not extracted:\n%1")
+                    .arg(probe.unsafeEntry));
+            return;
+        }
+        if (probe.listFailed) {
+            QMessageBox::warning(m_parentWidget, tr("Archive Import"),
+                tr("Could not read the archive contents."));
+            return;
+        }
 
-    QTemporaryDir tempDir;
-    if (!tempDir.isValid())
-        return;
-    QProcess proc;
-    proc.setWorkingDirectory(tempDir.path());
-    if (archiver == QStringLiteral("7z"))
-        proc.start(QStringLiteral("7z"), { QStringLiteral("x"), path, QStringLiteral("-y") });
-    else
-        proc.start(QStringLiteral("unzip"), { path });
-    waitForProcess(proc, 30000);
-    if (proc.exitCode() != 0) {
-        QMessageBox::warning(m_parentWidget, tr("Archive Import"),
-            tr("Failed to extract archive."));
-        return;
-    }
-    QDir dir(tempDir.path());
-    QStringList filters = { QStringLiteral("*.xaml"), QStringLiteral("*.html"),
-        QStringLiteral("*.htm"), QStringLiteral("*.rtf"),
-        QStringLiteral("*.txt") };
-    QStringList files = dir.entryList(filters, QDir::Files, QDir::Name);
-    if (files.isEmpty()) {
-        QMessageBox::information(m_parentWidget, tr("Archive Import"),
-            tr("No supported documents found in the archive."));
-        return;
-    }
-    for (const QString &f : files)
-        openDocument(dir.absoluteFilePath(f));
+        // Extract to a temp dir kept alive until the documents are opened.
+        m_importTempDir = new QTemporaryDir();
+        if (!m_importTempDir->isValid()) {
+            delete m_importTempDir;
+            m_importTempDir = nullptr;
+            return;
+        }
+        emit statusMessage(tr("Extracting archive..."), 5000);
+        auto *extractWatcher = new QFutureWatcher<ArchiveImportOutcome>(this);
+        connect(extractWatcher, &QFutureWatcher<ArchiveImportOutcome>::finished, this,
+                [this, extractWatcher, probe]() {
+            const ArchiveImportOutcome outcome = extractWatcher->result();
+            extractWatcher->deleteLater();
+            if (outcome.extractFailed || !m_importTempDir) {
+                delete m_importTempDir;
+                m_importTempDir = nullptr;
+                QMessageBox::warning(m_parentWidget, tr("Archive Import"),
+                    tr("Failed to extract archive."));
+                return;
+            }
+            QDir dir(m_importTempDir->path());
+            const QStringList filters = { QStringLiteral("*.xaml"), QStringLiteral("*.html"),
+                QStringLiteral("*.htm"), QStringLiteral("*.rtf"),
+                QStringLiteral("*.txt") };
+            const QStringList files = dir.entryList(filters, QDir::Files, QDir::Name);
+            if (files.isEmpty()) {
+                delete m_importTempDir;
+                m_importTempDir = nullptr;
+                QMessageBox::information(m_parentWidget, tr("Archive Import"),
+                    tr("No supported documents found in the archive."));
+                return;
+            }
+            for (const QString &f : files)
+                openDocument(dir.absoluteFilePath(f));
+            delete m_importTempDir;
+            m_importTempDir = nullptr;
+        });
+        extractWatcher->setFuture(QtConcurrent::run([probe, path,
+                                                     dest = m_importTempDir->path()]() {
+            return runArchiveImport(probe.archiver, path, dest);
+        }));
+    });
+    probeWatcher->setFuture(QtConcurrent::run([path]() {
+        return probeArchiveImport(path);
+    }));
 }
 
 void DocumentService::importImage()
@@ -448,10 +572,17 @@ void DocumentService::exportPdf()
     const qreal pageW = editor->pageWidth();
     const qreal pageH = editor->pageHeight();
     if (pageW > 0 && pageH > 0) {
-        QPageLayout layout(QPageSize(QSizeF(pageW, pageH), QPageSize::Point),
-                           QPageLayout::Portrait,
-                           editor->pageMargins(),
-                           QPageLayout::Point);
+        // The on-screen document is modeled in 96-DPI pixels; QPrinter works in
+        // points (1/72"). Convert so an 8.5"x11" page exports at Letter size.
+        const qreal pxToPt = 72.0 / 96.0;
+        const QMarginsF m = editor->pageMargins();
+        const QMarginsF marginsPt(m.left() * pxToPt, m.top() * pxToPt,
+                                  m.right() * pxToPt, m.bottom() * pxToPt);
+        const bool landscape = pageW > pageH;
+        QPageLayout layout(
+            QPageSize(QSizeF(pageW * pxToPt, pageH * pxToPt), QPageSize::Point),
+            landscape ? QPageLayout::Landscape : QPageLayout::Portrait,
+            marginsPt, QPageLayout::Point);
         printer.setPageLayout(layout);
     }
 
@@ -473,40 +604,56 @@ void DocumentService::exportArchive()
     if (!path.endsWith(QStringLiteral(".zip"), Qt::CaseInsensitive))
         path += QStringLiteral(".zip");
     QString src = editor->documentName();
-    QTemporaryDir tmpDir;
     if (src.isEmpty()) {
-        if (!tmpDir.isValid())
+        // Materialize the unsaved document to a temp file that outlives the
+        // async worker (kept alive by m_exportTempDir until the job finishes).
+        m_exportTempDir = new QTemporaryDir();
+        if (!m_exportTempDir->isValid()) {
+            delete m_exportTempDir;
+            m_exportTempDir = nullptr;
             return;
-        QString tmpFile = tmpDir.path() + QStringLiteral("/document.xaml");
-        editor->saveToFile(tmpFile);
+        }
+        QString tmpFile = m_exportTempDir->path() + QStringLiteral("/document.xaml");
+        if (!editor->saveToFile(tmpFile)) {
+            delete m_exportTempDir;
+            m_exportTempDir = nullptr;
+            return;
+        }
         src = tmpFile;
     }
-    QString compressor = findCompressor();
-    if (compressor.isEmpty()) {
-        QMessageBox::warning(m_parentWidget, tr("Archive Export"),
-            tr("No archive tool found.\n\n"
-               "Install 7-Zip (7z) or zip:\n"
-               "  sudo apt install 7zip zip   (Debian/Ubuntu)\n"
-               "  sudo dnf install 7zip zip   (Fedora)\n"
-               "  brew install 7zip zip        (macOS)"));
-        return;
-    }
-    QProcess proc;
-    if (compressor == QStringLiteral("7z")) {
-        proc.setWorkingDirectory(QFileInfo(src).absolutePath());
-        proc.start(QStringLiteral("7z"), { QStringLiteral("a"), path, QFileInfo(src).fileName() });
-    } else {
-        QStringList args;
-        args << path << QFileInfo(src).fileName();
-        proc.setWorkingDirectory(QFileInfo(src).absolutePath());
-        proc.start(QStringLiteral("zip"), args);
-    }
-    waitForProcess(proc, 30000);
-    if (proc.exitCode() == 0)
-        emit statusMessage(tr("Archive saved"), 3000);
-    else
-        QMessageBox::warning(m_parentWidget, tr("Archive Export"),
-            tr("Failed to create archive."));
+    runArchiveExportAsync(src, path);
+}
+
+void DocumentService::runArchiveExportAsync(const QString &src, const QString &path)
+{
+    emit statusMessage(tr("Creating archive..."), 5000);
+    auto *watcher = new QFutureWatcher<ArchiveExportResult>(this);
+    connect(watcher, &QFutureWatcher<ArchiveExportResult>::finished, this,
+            [this, watcher]() {
+        const ArchiveExportResult res = watcher->result();
+        watcher->deleteLater();
+        if (m_exportTempDir) {
+            delete m_exportTempDir;
+            m_exportTempDir = nullptr;
+        }
+        if (res.toolMissing) {
+            QMessageBox::warning(m_parentWidget, tr("Archive Export"),
+                tr("No archive tool found.\n\n"
+                   "Install 7-Zip (7z) or zip:\n"
+                   "  sudo apt install 7zip zip   (Debian/Ubuntu)\n"
+                   "  sudo dnf install 7zip zip   (Fedora)\n"
+                   "  brew install 7zip zip        (macOS)"));
+            return;
+        }
+        if (res.success)
+            emit statusMessage(tr("Archive saved"), 3000);
+        else
+            QMessageBox::warning(m_parentWidget, tr("Archive Export"),
+                tr("Failed to create archive."));
+    });
+    watcher->setFuture(QtConcurrent::run([src, path]() {
+        return runArchiveExport(src, path);
+    }));
 }
 
 void DocumentService::exportImage()
@@ -552,30 +699,31 @@ void DocumentService::exportSound()
             tr("No text content to export."));
         return;
     }
-    if (findTool(QStringLiteral("espeak"), { QStringLiteral("--version") })) {
-        QProcess proc;
-        proc.start(QStringLiteral("espeak"), { QStringLiteral("-w"), path, text });
-        waitForProcess(proc, 60000);
-        if (proc.exitCode() == 0) {
+    runSoundExportAsync(path, text);
+}
+
+void DocumentService::runSoundExportAsync(const QString &path, const QString &text)
+{
+    emit statusMessage(tr("Exporting to sound..."), 5000);
+    auto *watcher = new QFutureWatcher<SoundExportResult>(this);
+    connect(watcher, &QFutureWatcher<SoundExportResult>::finished, this,
+            [this, watcher]() {
+        const SoundExportResult res = watcher->result();
+        watcher->deleteLater();
+        if (res.success) {
             emit statusMessage(tr("Sound exported as WAV"), 3000);
             return;
         }
-    }
-    if (findTool(QStringLiteral("spd-say"), { QStringLiteral("--version") })) {
-        QProcess proc;
-        proc.start(QStringLiteral("spd-say"), { QStringLiteral("-w"), path, QStringLiteral("-o"), text });
-        waitForProcess(proc, 60000);
-        if (proc.exitCode() == 0) {
-            emit statusMessage(tr("Sound exported as WAV"), 3000);
-            return;
-        }
-    }
-    QMessageBox::warning(m_parentWidget, tr("Export to Sound"),
-        tr("No speech synthesis engine found.\n\n"
-           "Install espeak or speech-dispatcher:\n"
-           "  sudo apt install espeak          (Debian/Ubuntu)\n"
-           "  sudo dnf install espeak          (Fedora)\n"
-           "  brew install espeak              (macOS)"));
+        QMessageBox::warning(m_parentWidget, tr("Export to Sound"),
+            tr("No speech synthesis engine found.\n\n"
+               "Install espeak or speech-dispatcher:\n"
+               "  sudo apt install espeak          (Debian/Ubuntu)\n"
+               "  sudo dnf install espeak          (Fedora)\n"
+               "  brew install espeak              (macOS)"));
+    });
+    watcher->setFuture(QtConcurrent::run([path, text]() {
+        return runSoundExport(path, text);
+    }));
 }
 
 void DocumentService::printDocument()

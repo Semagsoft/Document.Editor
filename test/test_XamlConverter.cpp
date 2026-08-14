@@ -72,6 +72,62 @@ private slots:
         QVERIFY(xaml.contains(QStringLiteral("Bold=\"True\"")));
     }
 
+    void testSoftLineBreakRoundTrip()
+    {
+        QTextDocument doc;
+        QTextCursor cursor(&doc);
+        cursor.insertText(QStringLiteral("one"));
+        cursor.insertText(QString(QChar::LineSeparator));
+        cursor.insertText(QStringLiteral("two"));
+
+        QString xaml = XamlConverter::saveToXaml(&doc, QMarginsF());
+        QVERIFY(xaml.contains(QStringLiteral("LineBreak")));
+
+        QTextDocument doc2;
+        QMarginsF margins;
+        QColor bg;
+        bool ok = XamlConverter::loadFromXaml(xaml, &doc2, margins, bg);
+        QVERIFY(ok);
+        QCOMPARE(doc2.blockCount(), 1); // a soft break must not split the paragraph
+        QVERIFY(doc2.begin().text().contains(QString(QChar::LineSeparator)));
+    }
+
+    void testFontFamilyDoesNotClobberBold()
+    {
+        QTextDocument doc;
+        QTextCursor cursor(&doc);
+        QTextCharFormat fmt;
+        fmt.setFontWeight(QFont::Bold);
+        fmt.setFontItalic(true);
+        fmt.setFontFamilies({ QStringLiteral("Comic Sans MS") });
+        cursor.insertText(QStringLiteral("styled text"), fmt);
+
+        QString xaml = XamlConverter::saveToXaml(&doc, QMarginsF());
+        QVERIFY(xaml.contains(QStringLiteral("Bold=\"True\"")));
+        QVERIFY(xaml.contains(QStringLiteral("Italic=\"True\"")));
+        QVERIFY(xaml.contains(QStringLiteral("Comic Sans MS")));
+
+        QTextDocument doc2;
+        QMarginsF margins;
+        QColor bg;
+        bool ok = XamlConverter::loadFromXaml(xaml, &doc2, margins, bg);
+        QVERIFY(ok);
+
+        QTextCharFormat loaded;
+        for (QTextBlock block = doc2.begin(); block.isValid(); block = block.next()) {
+            for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
+                QTextFragment f = it.fragment();
+                if (f.text().contains(QStringLiteral("styled"))) {
+                    loaded = f.charFormat();
+                    break;
+                }
+            }
+        }
+        QCOMPARE(loaded.fontWeight(), QFont::Bold);
+        QVERIFY(loaded.fontItalic());
+        QVERIFY(loaded.fontFamilies().toStringList().contains(QStringLiteral("Comic Sans MS")));
+    }
+
     void testMultipleImagesSameParagraph()
     {
         QTextDocument doc;

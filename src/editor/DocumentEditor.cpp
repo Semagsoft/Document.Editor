@@ -18,6 +18,7 @@
 #include <QRegularExpression>
 #include <QTextBlock>
 #include <QTextCursor>
+#include <QTextDocumentFragment>
 #include <QTextFragment>
 #include <QTextFrame>
 #include <QTextList>
@@ -596,6 +597,11 @@ bool DocumentEditor::loadFromFile(const QString& filename, QString* errorDetail)
     QByteArray data = file.readAll();
     file.close();
 
+    // Preserve the current content so that a failed load (e.g. revert of a
+    // corrupt file) leaves the document and any unsaved edits intact instead
+    // of replacing them with partially-parsed or raw markup.
+    QTextDocument *backup = document()->clone();
+
     QFileInfo fi(filename);
     QString ext = fi.suffix().toLower();
 
@@ -603,27 +609,20 @@ bool DocumentEditor::loadFromFile(const QString& filename, QString* errorDetail)
     if (ext == QStringLiteral("xaml") || ext == QStringLiteral("dexml")) {
         QString xml = QString::fromUtf8(data);
         ok = XamlConverter::loadFromXaml(xml, document(), m_pageMargins, m_pageBackground);
-        if (!ok) {
-            setPlainText(xml);
-        }
+        if (!ok && errorDetail)
+            *errorDetail = tr("The file could not be opened as an XAML document.");
     } else if (ext == QStringLiteral("html") || ext == QStringLiteral("htm")) {
         QString html = QString::fromUtf8(data);
         setHtml(html);
         ok = true;
     } else if (ext == QStringLiteral("docx")) {
         ok = DocxConverter::loadFromDocx(data, document(), m_pageMargins, m_pageBackground);
-        if (!ok) {
-            if (errorDetail)
-                *errorDetail = tr("The file could not be opened as a Word (.docx) document.");
-            return false;
-        }
+        if (!ok && errorDetail)
+            *errorDetail = tr("The file could not be opened as a Word (.docx) document.");
     } else if (ext == QStringLiteral("rtf")) {
         ok = RtfConverter::loadFromRtf(data, document());
-        if (!ok) {
-            if (errorDetail)
-                *errorDetail = tr("The file could not be opened as a Rich Text Format (.rtf) document.");
-            return false;
-        }
+        if (!ok && errorDetail)
+            *errorDetail = tr("The file could not be opened as a Rich Text Format (.rtf) document.");
     } else if (ext == QStringLiteral("txt")) {
         setPlainText(QString::fromUtf8(data));
         ok = true;
@@ -632,6 +631,7 @@ bool DocumentEditor::loadFromFile(const QString& filename, QString* errorDetail)
         if (isLikelyBinary(data)) {
             if (errorDetail)
                 *errorDetail = tr("The file appears to be a binary format that cannot be opened.");
+            delete backup;
             return false;
         }
         setPlainText(QString::fromUtf8(data));
@@ -641,21 +641,44 @@ bool DocumentEditor::loadFromFile(const QString& filename, QString* errorDetail)
         if (isLikelyBinary(data)) {
             if (errorDetail)
                 *errorDetail = tr("The file format \"%1\" is not supported.").arg(ext);
+            delete backup;
             return false;
         }
         setPlainText(QString::fromUtf8(data));
         ok = true;
     }
 
-    if (ok) {
-        setDocumentName(filename);
-        m_fileChanged = false;
-        emit modifiedChanged(false);
-        document()->setModified(false);
-        updateStats();
+    if (!ok) {
+        restoreDocument(backup);
+        delete backup;
+        return false;
     }
 
-    return ok;
+    delete backup;
+
+    setDocumentName(filename);
+    m_fileChanged = false;
+    emit modifiedChanged(false);
+    document()->setModified(false);
+    updateStats();
+
+    return true;
+}
+
+void DocumentEditor::restoreDocument(const QTextDocument *source)
+{
+    QTextDocument *doc = document();
+    const QSizeF pageSize = source->pageSize();
+    const qreal margin = source->documentMargin();
+
+    QTextCursor cursor(doc);
+    cursor.select(QTextCursor::Document);
+    cursor.removeSelectedText();
+    cursor.insertFragment(QTextDocumentFragment(source));
+
+    doc->setPageSize(pageSize);
+    doc->setDocumentMargin(margin);
+    doc->setModified(false);
 }
 
 bool DocumentEditor::isLikelyBinary(const QByteArray &data) const
@@ -697,20 +720,26 @@ bool DocumentEditor::saveToFile(const QString& filename)
     bool ok = false;
     if (ext == QStringLiteral("xaml") || ext == QStringLiteral("dexml")) {
         QByteArray xml = XamlConverter::saveToXaml(document(), m_pageMargins, m_pageBackground).toUtf8();
-        ok = file.write(xml) > 0;
+        ok = file.write(xml) == xml.size();
     } else if (ext == QStringLiteral("html") || ext == QStringLiteral("htm")) {
         QByteArray html = toHtml().toUtf8();
-        ok = file.write(html) > 0;
+        ok = file.write(html) == html.size();
     } else if (ext == QStringLiteral("docx")) {
         QByteArray docxData = DocxConverter::saveToDocx(document(), m_pageMargins, m_pageBackground);
-        ok = file.write(docxData) > 0;
+        ok = file.write(docxData) == docxData.size();
     } else if (ext == QStringLiteral("rtf")) {
-        ok = file.write(RtfConverter::saveToRtf(document())) > 0;
+        QByteArray rtf = RtfConverter::saveToRtf(document());
+        ok = file.write(rtf) == rtf.size();
     } else {
         QByteArray text = toPlainText().toUtf8();
-        ok = file.write(text) > 0;
+        ok = file.write(text) == text.size();
     }
 
+    if (ok) {
+        // A write() may return fewer bytes than requested (or fail late); flush
+        // and check the device error state before reporting success.
+        ok = file.flush() && file.error() == QFileDevice::NoError;
+    }
     file.close();
 
     if (ok) {

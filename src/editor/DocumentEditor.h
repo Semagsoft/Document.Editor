@@ -111,6 +111,7 @@ private:
     void connectDocumentSignals();
     void scheduleStatsUpdate();
     bool isLikelyBinary(const QByteArray &data) const;
+    void restoreDocument(const QTextDocument *source);
 
     QString m_documentName;
     bool m_fileChanged = false;

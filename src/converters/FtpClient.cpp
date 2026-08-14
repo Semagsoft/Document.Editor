@@ -53,6 +53,12 @@ void FtpClient::upload(const QString& localPath, const QString& remoteUrl,
     m_password = password.isEmpty() ? QStringLiteral("anonymous@") : password;
     m_isUpload = true;
 
+    // Reset sockets from any previous session: connectToHost() on an already
+    // connected socket does not reliably start a fresh FTP session.
+    m_replyBuffer.clear();
+    m_control->abort();
+    m_data->abort();
+
     m_state = State::Connecting;
     m_control->connectToHost(m_host, m_port);
     m_elapsedTimer.start();
@@ -71,6 +77,12 @@ void FtpClient::download(const QString& remoteUrl, const QString& localPath,
     m_username = username.isEmpty() ? QStringLiteral("anonymous") : username;
     m_password = password.isEmpty() ? QStringLiteral("anonymous@") : password;
     m_isUpload = false;
+
+    // Reset sockets from any previous session: connectToHost() on an already
+    // connected socket does not reliably start a fresh FTP session.
+    m_replyBuffer.clear();
+    m_control->abort();
+    m_data->abort();
 
     m_state = State::Connecting;
     m_control->connectToHost(m_host, m_port);
@@ -126,10 +138,22 @@ void FtpClient::onControlReadyRead()
 
         switch (m_state) {
         case State::Connecting:
-        case State::Idle:
             if (code == 220) {
                 m_state = State::Connected;
                 sendCommand(QStringLiteral("USER %1").arg(m_username));
+            } else {
+                abortTransfer(tr("Unexpected FTP response: %1").arg(QString::fromUtf8(line)));
+            }
+            break;
+
+        case State::Idle:
+            // Accept an unsolicited greeting, and ignore benign 2xx replies
+            // (e.g. a late 226) that follow a completed/cancelled transfer.
+            if (code == 220) {
+                m_state = State::Connected;
+                sendCommand(QStringLiteral("USER %1").arg(m_username));
+            } else if (code >= 200 && code < 300) {
+                // no-op
             } else {
                 abortTransfer(tr("Unexpected FTP response: %1").arg(QString::fromUtf8(line)));
             }
@@ -261,13 +285,15 @@ void FtpClient::onDataFinished()
         }
         m_lastProgressBytes = m_dataBuffer.size();
         emit transferProgress(m_dataBuffer.size(), m_dataBuffer.size());
-        if (m_state == State::Transferring) {
+        // A download may finish in Passive (before the 1xx/150 is processed)
+        // or Transferring state, depending on whether the data socket closed
+        // before or after the control reply arrived.
+        if (m_state == State::Transferring || m_state == State::Passive) {
             m_state = State::Idle;
             m_timeoutTimer->stop();
             emit downloadCompleted();
         }
     }
-    m_data->disconnect();
 }
 
 void FtpClient::onSocketError(QAbstractSocket::SocketError error)
@@ -278,7 +304,10 @@ void FtpClient::onSocketError(QAbstractSocket::SocketError error)
 
 void FtpClient::onDataError(QAbstractSocket::SocketError error)
 {
-    Q_UNUSED(error);
+    // RemoteHostClosedError is the normal server-side EOF at the end of a
+    // download; it is completed by onDataFinished()/the 226 reply, not a failure.
+    if (error == QAbstractSocket::RemoteHostClosedError)
+        return;
     if (m_state == State::Passive || m_state == State::Transferring)
         abortTransfer(m_data->errorString());
 }

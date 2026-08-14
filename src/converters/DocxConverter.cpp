@@ -53,9 +53,24 @@ static int       docxLineToProportional(int line)
 }
 
 // Streams zip output into a QByteArray (the write target for the DOCX writer).
-static size_t zipAppendCallback(void *pOpaque, mz_uint64 fileOfs, const void *pBuf, size_t n)
+// Writes a run's text, splitting on soft line separators (U+2028) so that each
+// line break becomes a w:br element instead of a literal control character.
+static void writeTextWithBreaks(QXmlStreamWriter &w, const QString &text)
 {
-    QByteArray *buffer = static_cast<QByteArray *>(pOpaque);
+    const QStringList parts = text.split(QChar::LineSeparator);
+    for (int i = 0; i < parts.size(); ++i) {
+        if (!parts.at(i).isEmpty())
+            w.writeTextElement(QLatin1String("w:t"), parts.at(i));
+        if (i + 1 < parts.size()) {
+            w.writeStartElement(QLatin1String("w:r"));
+            w.writeEmptyElement(QLatin1String("w:br"));
+            w.writeEndElement();
+        }
+    }
+}
+
+static size_t zipAppendCallback(void *pOpaque, mz_uint64 fileOfs, const void *pBuf, size_t n)
+{    QByteArray *buffer = static_cast<QByteArray *>(pOpaque);
     if (fileOfs > static_cast<mz_uint64>(buffer->size()))
         return 0;
     if (fileOfs < static_cast<mz_uint64>(buffer->size()))
@@ -465,7 +480,9 @@ static void insertRunsIntoCursor(QTextCursor &cursor, const QVector<RunFragment>
     static quint64 s_embeddedImageSeq = 0;
     for (const RunFragment &rf : runs) {
         if (rf.isLineBreak) {
-            cursor.insertText(QStringLiteral("\n"), rf.charFmt);
+            // U+2028 is a within-block line separator; "\n" would split the
+            // paragraph and corrupt lists.
+            cursor.insertText(QString(QChar::LineSeparator), rf.charFmt);
         } else if (rf.isTab) {
             cursor.insertText(QStringLiteral("\t"), rf.charFmt);
         } else if (rf.isImage) {
@@ -1200,13 +1217,6 @@ static void writeTableXml(QXmlStreamWriter &w, QTextTable *table,
                         continue;
                     }
 
-                    if (text == QLatin1String("\n")) {
-                        w.writeStartElement(QLatin1String("w:r"));
-                        w.writeEmptyElement(QLatin1String("w:br"));
-                        w.writeEndElement();
-                        continue;
-                    }
-
                     w.writeStartElement(QLatin1String("w:r"));
                     w.writeStartElement(QLatin1String("w:rPr"));
 
@@ -1255,7 +1265,7 @@ static void writeTableXml(QXmlStreamWriter &w, QTextTable *table,
                     }
 
                     w.writeEndElement();
-                    w.writeTextElement(QLatin1String("w:t"), text);
+                    writeTextWithBreaks(w, text);
                     w.writeEndElement();
                 }
 
@@ -1490,13 +1500,6 @@ QByteArray DocxConverter::saveToDocx(const QTextDocument *doc,
                     continue;
                 }
 
-                if (text == QLatin1String("\n")) {
-                    w.writeStartElement(QLatin1String("w:r"));
-                    w.writeEmptyElement(QLatin1String("w:br"));
-                    w.writeEndElement();
-                    continue;
-                }
-
                 bool isLink = cf.isAnchor() && !cf.anchorHref().isEmpty();
                 if (isLink) {
                     QString href = cf.anchorHref();
@@ -1557,7 +1560,7 @@ QByteArray DocxConverter::saveToDocx(const QTextDocument *doc,
                 }
 
                 w.writeEndElement();
-                w.writeTextElement(QLatin1String("w:t"), text);
+                writeTextWithBreaks(w, text);
                 w.writeEndElement();
                 if (isLink)
                     w.writeEndElement();

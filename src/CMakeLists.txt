@@ -104,6 +104,7 @@ target_link_libraries(de_objects PUBLIC
     Qt6::TextToSpeech
     Qt6::Xml
     Qt6::Charts
+    Qt6::Concurrent
 )
 
 add_executable(Document.Editor main.cpp ${RESOURCES} $<TARGET_OBJECTS:de_objects>)

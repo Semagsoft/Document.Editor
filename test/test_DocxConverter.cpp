@@ -669,6 +669,30 @@ private slots:
         QVERIFY(doc2.toPlainText().contains(QStringLiteral("Before\tAfter")));
     }
 
+    void testSoftLineBreakRoundTrip()
+    {
+        // A within-block line break (U+2028) must survive as a line break, not
+        // become a paragraph break (which would inflate blockCount).
+        QTextDocument doc;
+        QTextCursor cursor(&doc);
+        cursor.insertText(QStringLiteral("line1"));
+        cursor.insertText(QString(QChar::LineSeparator));
+        cursor.insertText(QStringLiteral("line2"));
+
+        QByteArray docx = DocxConverter::saveToDocx(&doc, QMarginsF());
+        QVERIFY(!docx.isEmpty());
+
+        QTextDocument doc2;
+        QMarginsF margins;
+        QColor bg;
+        bool ok = DocxConverter::loadFromDocx(docx, &doc2, margins, bg);
+        QVERIFY(ok);
+        QCOMPARE(doc2.blockCount(), 1); // must stay a single paragraph
+        QVERIFY(doc2.begin().text().contains(QString(QChar::LineSeparator)));
+        QCOMPARE(doc2.begin().text().remove(QString(QChar::LineSeparator)).trimmed(),
+                 QStringLiteral("line1line2"));
+    }
+
     void testRealFixtureLoads()
     {
         QFile file(QStringLiteral(DOCX_FIXTURE_DIR) + QStringLiteral("/merge_and_textbox.docx"));

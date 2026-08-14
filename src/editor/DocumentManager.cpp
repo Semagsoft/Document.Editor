@@ -5,6 +5,8 @@
 #include <QWidget>
 
 #include <QApplication>
+#include <QCloseEvent>
+#include <QEvent>
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QMdiArea>
@@ -235,11 +237,34 @@ void DocumentManager::setupSubWindow(QMdiSubWindow* subWindow, DocumentTab* tab)
     subWindow->setAttribute(Qt::WA_DeleteOnClose);
     subWindow->setWindowIcon(qApp->style()->standardIcon(QStyle::SP_FileIcon));
 
+    // Route the tab close button (and any other subwindow close) through
+    // closeDocument() so unsaved changes prompt and are not silently lost.
+    subWindow->installEventFilter(this);
+
     QPointer<QMdiSubWindow> safeSubWindow(subWindow);
     connect(tab, &DocumentTab::titleChanged, this, [safeSubWindow](const QString& title) {
         if (safeSubWindow)
             safeSubWindow->setWindowTitle(title);
     });
+}
+
+bool DocumentManager::eventFilter(QObject* obj, QEvent* event)
+{
+    if (event->type() == QEvent::Close) {
+        QMdiSubWindow* subWindow = qobject_cast<QMdiSubWindow*>(obj);
+        if (subWindow) {
+            DocumentTab* tab = qobject_cast<DocumentTab*>(subWindow->widget());
+            if (tab) {
+                // Consume the event: closeDocument() either showed the prompt
+                // and cancelled (ignore) or already removed/deleted the tab.
+                if (closeDocument(tab))
+                    return true;
+                event->ignore();
+                return true;
+            }
+        }
+    }
+    return QObject::eventFilter(obj, event);
 }
 
 void DocumentManager::onSubWindowActivated(QMdiSubWindow* subWindow)

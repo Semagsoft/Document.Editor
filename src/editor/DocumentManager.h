@@ -39,6 +39,9 @@ signals:
     void statusLineColumnChanged(int line, int col, int totalLines, int lineCount);
     void statusWordCountChanged(int wordCount);
 
+protected:
+    bool eventFilter(QObject *obj, QEvent *event) override;
+
 private:
     void setupSubWindow(QMdiSubWindow *subWindow, DocumentTab *tab);
     void onSubWindowActivated(QMdiSubWindow *subWindow);

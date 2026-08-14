@@ -13,6 +13,46 @@
 #include <QImage>
 #include <QUrl>
 
+// Writes a Run (splitting on soft line separators U+2028 into LineBreak
+// elements) with the character formatting of the source fragment.
+static void writeXamlRun(QXmlStreamWriter &writer, const QTextCharFormat &cf,
+                         const QString &text)
+{
+    const QStringList parts = text.split(QChar::LineSeparator);
+    for (int i = 0; i < parts.size(); ++i) {
+        if (i > 0)
+            writer.writeEmptyElement(QStringLiteral("LineBreak"));
+        if (parts.at(i).isEmpty())
+            continue;
+
+        writer.writeStartElement(QStringLiteral("Run"));
+        if (cf.fontWeight() == QFont::Bold)
+            writer.writeAttribute(QStringLiteral("Bold"), QStringLiteral("True"));
+        if (cf.fontItalic())
+            writer.writeAttribute(QStringLiteral("Italic"), QStringLiteral("True"));
+        if (cf.fontUnderline())
+            writer.writeAttribute(QStringLiteral("Underline"), QStringLiteral("True"));
+        if (cf.fontStrikeOut())
+            writer.writeAttribute(QStringLiteral("Strikethrough"), QStringLiteral("True"));
+        if (cf.verticalAlignment() == QTextCharFormat::AlignSubScript)
+            writer.writeAttribute(QStringLiteral("Subscript"), QStringLiteral("True"));
+        if (cf.verticalAlignment() == QTextCharFormat::AlignSuperScript)
+            writer.writeAttribute(QStringLiteral("Superscript"), QStringLiteral("True"));
+        writer.writeAttribute(QStringLiteral("FontFamily"), cf.font().family());
+        if (cf.fontPointSize() > 0)
+            writer.writeAttribute(QStringLiteral("FontSize"),
+                                  QString::number(cf.fontPointSize()));
+        QColor fgColor = cf.foreground().color();
+        if (fgColor.isValid() && fgColor != QColor(Qt::black))
+            writer.writeAttribute(QStringLiteral("Foreground"), fgColor.name());
+        QColor bgColor = cf.background().color();
+        if (bgColor.isValid() && bgColor != QColor(Qt::transparent))
+            writer.writeAttribute(QStringLiteral("Background"), bgColor.name());
+        writer.writeCharacters(parts.at(i));
+        writer.writeEndElement();
+    }
+}
+
 bool XamlConverter::loadFromXaml(const QString &xml, QTextDocument *doc,
                                   QMarginsF &outMargins, QColor &outPageBackground)
 {
@@ -104,8 +144,10 @@ bool XamlConverter::loadFromXaml(const QString &xml, QTextDocument *doc,
                     attrs.value(QStringLiteral("Superscript")) == QStringLiteral("True"))
                     charFmt.setVerticalAlignment(QTextCharFormat::AlignSuperScript);
                 if (attrs.hasAttribute(QStringLiteral("FontFamily"))) {
-                    QFont f(attrs.value(QStringLiteral("FontFamily")).toString());
-                    charFmt.setFont(f);
+                    // setFont() would overwrite the Bold/Italic/Underline flags
+                    // set above; setFontFamilies() only changes the family.
+                    charFmt.setFontFamilies(
+                        { attrs.value(QStringLiteral("FontFamily")).toString() });
                 }
                 if (attrs.hasAttribute(QStringLiteral("FontSize")))
                     charFmt.setFontPointSize(attrs.value(QStringLiteral("FontSize")).toDouble());
@@ -124,7 +166,7 @@ bool XamlConverter::loadFromXaml(const QString &xml, QTextDocument *doc,
                 cursor.insertText(text, charFmt);
 
             } else if (name == QStringLiteral("LineBreak")) {
-                cursor.insertText(QStringLiteral("\n"));
+                cursor.insertText(QString(QChar::LineSeparator));
 
             } else if (name == QStringLiteral("List")) {
                 QXmlStreamAttributes attrs = reader.attributes();
@@ -358,20 +400,7 @@ static void writeTable(QXmlStreamWriter &writer, QTextTable *table)
                     QTextCharFormat cf = fragment.charFormat();
                     QString text = fragment.text();
 
-                    if (text == QStringLiteral("\n")) {
-                        writer.writeEmptyElement(QStringLiteral("LineBreak"));
-                        continue;
-                    }
-
-                    writer.writeStartElement(QStringLiteral("Run"));
-                    if (cf.fontWeight() == QFont::Bold)
-                        writer.writeAttribute(QStringLiteral("Bold"), QStringLiteral("True"));
-                    if (cf.fontItalic())
-                        writer.writeAttribute(QStringLiteral("Italic"), QStringLiteral("True"));
-                    if (cf.fontUnderline())
-                        writer.writeAttribute(QStringLiteral("Underline"), QStringLiteral("True"));
-                    writer.writeCharacters(text);
-                    writer.writeEndElement();
+                    writeXamlRun(writer, cf, text);
                 }
                 writer.writeEndElement();
                 block = block.next();
@@ -444,22 +473,7 @@ QString XamlConverter::saveToXaml(const QTextDocument *doc,
                         QTextCharFormat charFmt = fragment.charFormat();
                         QString text = fragment.text();
 
-                        if (text == QStringLiteral("\n")) {
-                            writer.writeEmptyElement(QStringLiteral("LineBreak"));
-                            continue;
-                        }
-
-                        writer.writeStartElement(QStringLiteral("Run"));
-                        if (charFmt.fontWeight() == QFont::Bold)
-                            writer.writeAttribute(QStringLiteral("Bold"), QStringLiteral("True"));
-                        if (charFmt.fontItalic())
-                            writer.writeAttribute(QStringLiteral("Italic"), QStringLiteral("True"));
-                        if (charFmt.fontUnderline())
-                            writer.writeAttribute(QStringLiteral("Underline"), QStringLiteral("True"));
-                        if (charFmt.fontStrikeOut())
-                            writer.writeAttribute(QStringLiteral("Strikethrough"), QStringLiteral("True"));
-                        writer.writeCharacters(text);
-                        writer.writeEndElement();
+                        writeXamlRun(writer, charFmt, text);
                     }
                     writer.writeEndElement(); // Paragraph
                     writer.writeEndElement(); // ListItem
@@ -547,43 +561,7 @@ QString XamlConverter::saveToXaml(const QTextDocument *doc,
                 // Fallback: write as runs with path reference
             }
 
-            if (text == QStringLiteral("\n")) {
-                writer.writeEmptyElement(QStringLiteral("LineBreak"));
-                continue;
-            }
-
-            writer.writeStartElement(QStringLiteral("Run"));
-
-            if (charFmt.fontWeight() == QFont::Bold)
-                writer.writeAttribute(QStringLiteral("Bold"), QStringLiteral("True"));
-            if (charFmt.fontItalic())
-                writer.writeAttribute(QStringLiteral("Italic"), QStringLiteral("True"));
-            if (charFmt.fontUnderline())
-                writer.writeAttribute(QStringLiteral("Underline"), QStringLiteral("True"));
-            if (charFmt.fontStrikeOut())
-                writer.writeAttribute(QStringLiteral("Strikethrough"), QStringLiteral("True"));
-            if (charFmt.verticalAlignment() == QTextCharFormat::AlignSubScript)
-                writer.writeAttribute(QStringLiteral("Subscript"), QStringLiteral("True"));
-            if (charFmt.verticalAlignment() == QTextCharFormat::AlignSuperScript)
-                writer.writeAttribute(QStringLiteral("Superscript"), QStringLiteral("True"));
-
-            writer.writeAttribute(QStringLiteral("FontFamily"),
-                                  charFmt.font().family());
-
-            if (charFmt.fontPointSize() > 0)
-                writer.writeAttribute(QStringLiteral("FontSize"),
-                                      QString::number(charFmt.fontPointSize()));
-
-            QColor fgColor = charFmt.foreground().color();
-            if (fgColor.isValid() && fgColor != QColor(Qt::black))
-                writer.writeAttribute(QStringLiteral("Foreground"), fgColor.name());
-
-            QColor bgColor = charFmt.background().color();
-            if (bgColor.isValid() && bgColor != QColor(Qt::transparent))
-                writer.writeAttribute(QStringLiteral("Background"), bgColor.name());
-
-            writer.writeCharacters(text);
-            writer.writeEndElement();
+            writeXamlRun(writer, charFmt, text);
         }
 
         writer.writeEndElement();

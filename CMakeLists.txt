@@ -15,6 +15,7 @@ find_package(Qt6 REQUIRED COMPONENTS
     TextToSpeech
     Xml
     Charts
+    Concurrent
 )
 
 add_compile_definitions(APP_VERSION="${PROJECT_VERSION}")

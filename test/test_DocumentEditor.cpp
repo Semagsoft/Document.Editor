@@ -320,6 +320,33 @@ private slots:
         QCOMPARE(editor.pageHeight(), w);
     }
 
+    void testFailedLoadPreservesContent()
+    {
+        DocumentEditor editor;
+        QTextCursor cursor(editor.document());
+        cursor.insertText(QStringLiteral("unsaved edits that must survive"));
+
+        QString errorDetail;
+        QVERIFY(!editor.loadFromFile(QStringLiteral("nonexistent.docx"), &errorDetail));
+        // Failed load/revert must leave the current content untouched.
+        QCOMPARE(editor.toPlainText(), QStringLiteral("unsaved edits that must survive"));
+
+        // Corrupt .docx bytes: the converter fails and the prior content stays.
+        const QString path = QDir::tempPath() + QStringLiteral("/doceditor_corrupt_%1.docx")
+            .arg(QUuid::createUuid().toString(QUuid::WithoutBraces));
+        {
+            QFile corrupt(path);
+            QVERIFY(corrupt.open(QIODevice::WriteOnly | QIODevice::Truncate));
+            corrupt.write(QByteArrayLiteral("this is definitely not a zip file"));
+            corrupt.close();
+        }
+
+        QString err2;
+        QVERIFY(!editor.loadFromFile(path, &err2));
+        QCOMPARE(editor.toPlainText(), QStringLiteral("unsaved edits that must survive"));
+        QFile::remove(path);
+    }
+
     void testFindWord()
     {
         DocumentEditor editor;
