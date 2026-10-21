@@ -578,10 +578,25 @@ void DocumentEditor::setSpellCheckEnabled(bool enabled)
 
 bool DocumentEditor::loadFromFile(const QString& filename, QString* errorDetail)
 {
+    // Validate input filename
+    if (filename.isEmpty()) {
+        if (errorDetail)
+            *errorDetail = tr("Filename cannot be empty.");
+        return false;
+    }
+    
+    // Check for path traversal attempts
+    QFileInfo fi(filename);
+    if (fi.isAbsolute() && !QDir::cleanPath(fi.absoluteFilePath()).startsWith(QDir::cleanPath(fi.absolutePath()))) {
+        if (errorDetail)
+            *errorDetail = tr("Invalid file path detected.");
+        return false;
+    }
+
     QFile file(filename);
     if (!file.open(QIODevice::ReadOnly)) {
         if (errorDetail)
-            *errorDetail = tr("The file could not be read.");
+            *errorDetail = tr("The file could not be read: %1").arg(file.errorString());
         return false;
     }
 
@@ -708,9 +723,24 @@ bool DocumentEditor::isLikelyBinary(const QByteArray &data) const
 
 bool DocumentEditor::saveToFile(const QString& filename)
 {
-    QFile file(filename);
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate))
+    // Validate input filename
+    if (filename.isEmpty()) {
+        qWarning() << "Cannot save to empty filename";
         return false;
+    }
+    
+    // Check for path traversal attempts
+    QFileInfo fi(filename);
+    if (fi.isAbsolute() && !QDir::cleanPath(fi.absoluteFilePath()).startsWith(QDir::cleanPath(fi.absolutePath()))) {
+        qWarning() << "Invalid file path detected in saveToFile:" << filename;
+        return false;
+    }
+
+    QFile file(filename);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+        qWarning() << "Failed to open file for writing:" << filename << "Error:" << file.errorString();
+        return false;
+    }
 
     QFileInfo fi(filename);
     QString ext = fi.suffix().toLower();

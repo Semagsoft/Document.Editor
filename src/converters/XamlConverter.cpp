@@ -361,6 +361,7 @@ bool XamlConverter::loadFromXaml(const QString &xml, QTextDocument *doc,
 
     if (reader.hasError()) {
         doc->clear();
+        qDebug() << "XML parsing error in XAML:" << reader.errorString() << "at line" << reader.lineNumber();
         return false;
     }
 

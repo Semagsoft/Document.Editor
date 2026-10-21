@@ -182,6 +182,11 @@ static int parseColorTable(const QString &rtf, int i, QVector<QColor> &colorTabl
 
 static bool loadRtfToDocument(const QString &rtf, QTextDocument *doc)
 {
+    if (rtf.isEmpty()) {
+        qWarning() << "RTF document is empty";
+        return false;
+    }
+    
     QTextCursor cursor(doc);
     QStack<RtfFormatState> stateStack;
     RtfFormatState currentState;
@@ -430,14 +435,21 @@ static QString escapeRtfText(const QString &text)
 
 bool RtfConverter::loadFromRtf(const QByteArray &rtfData, QTextDocument *doc)
 {
+    if (rtfData.isEmpty()) {
+        qWarning() << "RTF data is empty";
+        return false;
+    }
+    
     // RTF is ANSI/Windows-1252 (or another code page) — not UTF-8. Decoding as
     // UTF-8 corrupts every non-ASCII byte, breaking literal text and \'hh
     // escapes that the parser below relies on.
     QString text = decodeWindows1252(rtfData);
 
     // Verify it looks like RTF
-    if (!text.startsWith(QLatin1Char('{')) && !text.contains(QStringLiteral("\\rtf")))
+    if (!text.startsWith(QLatin1Char('{')) && !text.contains(QStringLiteral("\\rtf"))) {
+        qWarning() << "Invalid RTF format - missing RTF header or braces";
         return false;
+    }
 
     doc->clear();
     return loadRtfToDocument(text, doc);

@@ -819,6 +819,11 @@ static void parseTable(QXmlStreamReader &xml, QTextCursor &cursor,
 bool DocxConverter::loadFromDocx(const QByteArray &zipData, QTextDocument *doc,
                                   QMarginsF &outMargins, QColor &outPageBackground)
 {
+    if (zipData.isEmpty()) {
+        qWarning() << "DOCX data is empty";
+        return false;
+    }
+    
     mz_zip_archive zip;
     mz_zip_zero_struct(&zip);
     if (!mz_zip_reader_init_mem(&zip, zipData.constData(), zipData.size(), 0)) {
@@ -919,7 +924,8 @@ bool DocxConverter::loadFromDocx(const QByteArray &zipData, QTextDocument *doc,
         while (!validator.atEnd())
             validator.readNext();
         if (validator.hasError()) {
-            qDebug() << "XML error in word/document.xml:" << validator.errorString();
+            qDebug() << "XML validation error in word/document.xml at line" << validator.lineNumber() 
+                     << "column" << validator.columnNumber() << ":" << validator.errorString();
             return false;
         }
     }
