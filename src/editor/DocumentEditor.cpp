@@ -597,10 +597,11 @@ bool DocumentEditor::loadFromFile(const QString& filename, QString* errorDetail)
     QByteArray data = file.readAll();
     file.close();
 
-    // Preserve the current content so that a failed load (e.g. revert of a
-    // corrupt file) leaves the document and any unsaved edits intact instead
-    // of replacing them with partially-parsed or raw markup.
-    QTextDocument *backup = document()->clone();
+    // Load into a temporary document so a failed parse never partially mutates
+    // the live editor document.
+    QTextDocument tempDoc;
+    tempDoc.setPageSize(document()->pageSize());
+    tempDoc.setDocumentMargin(document()->documentMargin());
 
     QFileInfo fi(filename);
     QString ext = fi.suffix().toLower();
@@ -608,53 +609,50 @@ bool DocumentEditor::loadFromFile(const QString& filename, QString* errorDetail)
     bool ok = false;
     if (ext == QStringLiteral("xaml") || ext == QStringLiteral("dexml")) {
         QString xml = QString::fromUtf8(data);
-        ok = XamlConverter::loadFromXaml(xml, document(), m_pageMargins, m_pageBackground);
+        ok = XamlConverter::loadFromXaml(xml, &tempDoc, m_pageMargins, m_pageBackground);
         if (!ok && errorDetail)
             *errorDetail = tr("The file could not be opened as an XAML document.");
     } else if (ext == QStringLiteral("html") || ext == QStringLiteral("htm")) {
         QString html = QString::fromUtf8(data);
-        setHtml(html);
+        tempDoc.setHtml(html);
         ok = true;
     } else if (ext == QStringLiteral("docx")) {
-        ok = DocxConverter::loadFromDocx(data, document(), m_pageMargins, m_pageBackground);
+        ok = DocxConverter::loadFromDocx(data, &tempDoc, m_pageMargins, m_pageBackground);
         if (!ok && errorDetail)
             *errorDetail = tr("The file could not be opened as a Word (.docx) document.");
     } else if (ext == QStringLiteral("rtf")) {
-        ok = RtfConverter::loadFromRtf(data, document());
+        ok = RtfConverter::loadFromRtf(data, &tempDoc);
         if (!ok && errorDetail)
             *errorDetail = tr("The file could not be opened as a Rich Text Format (.rtf) document.");
     } else if (ext == QStringLiteral("txt")) {
-        setPlainText(QString::fromUtf8(data));
+        tempDoc.setPlainText(QString::fromUtf8(data));
         ok = true;
     } else if (ext.isEmpty()) {
-        // No extension — treat as plain text but reject binary content
         if (isLikelyBinary(data)) {
             if (errorDetail)
                 *errorDetail = tr("The file appears to be a binary format that cannot be opened.");
-            delete backup;
             return false;
         }
-        setPlainText(QString::fromUtf8(data));
+        tempDoc.setPlainText(QString::fromUtf8(data));
         ok = true;
     } else {
-        // Unknown extension — treat as plain text but reject binary content
         if (isLikelyBinary(data)) {
             if (errorDetail)
                 *errorDetail = tr("The file format \"%1\" is not supported.").arg(ext);
-            delete backup;
             return false;
         }
-        setPlainText(QString::fromUtf8(data));
+        tempDoc.setPlainText(QString::fromUtf8(data));
         ok = true;
     }
 
     if (!ok) {
-        restoreDocument(backup);
-        delete backup;
+        if (errorDetail && errorDetail->isEmpty())
+            *errorDetail = tr("The file could not be read.");
         return false;
     }
 
-    delete backup;
+    // Success: apply the fully-loaded temporary document to the live document.
+    restoreDocument(&tempDoc);
 
     setDocumentName(filename);
     m_fileChanged = false;

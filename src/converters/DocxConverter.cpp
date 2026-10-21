@@ -848,10 +848,10 @@ bool DocxConverter::loadFromDocx(const QByteArray &zipData, QTextDocument *doc,
             qWarning() << "Skipping ZIP entry too large for memory:" << st.m_filename;
             continue;
         }
-        const int size = static_cast<int>(st.m_uncomp_size);
+        const mz_uint size = static_cast<mz_uint>(st.m_uncomp_size);
         QByteArray data;
         try {
-            data.resize(size);
+            data.resize(static_cast<int>(size));
         } catch (const std::bad_alloc &) {
             qWarning() << "Out of memory extracting ZIP entry:" << st.m_filename;
             mz_zip_reader_end(&zip);

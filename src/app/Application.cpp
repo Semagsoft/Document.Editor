@@ -11,7 +11,9 @@ Application::Application(int &argc, char **argv)
     setApplicationVersion(QStringLiteral(APP_VERSION));
     setOrganizationDomain(QStringLiteral("documenteditor.net"));
 
-    setStyle(QStyleFactory::create(QStringLiteral("Fusion")));
+    QStyle *style = QStyleFactory::create(QStringLiteral("Fusion"));
+    if (style)
+        setStyle(style);
 
     m_settings = new Settings(this);
 
