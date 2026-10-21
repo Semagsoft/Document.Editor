@@ -100,9 +100,11 @@ void FtpClient::cancel()
 {
     if (m_data->state() != QTcpSocket::UnconnectedState)
         m_data->disconnectFromHost();
-    if (m_control->state() != QTcpSocket::UnconnectedState) {
+    if (m_control->state() == QTcpSocket::ConnectedState) {
         sendCommand(QStringLiteral("QUIT"));
         m_control->disconnectFromHost();
+    } else if (m_control->state() != QTcpSocket::UnconnectedState) {
+        m_control->abort();
     }
     m_state = State::Idle;
     m_replyBuffer.clear();

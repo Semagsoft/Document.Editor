@@ -201,7 +201,7 @@ bool XamlConverter::loadFromXaml(const QString &xml, QTextDocument *doc,
                                         QString t = reader.readElementText();
                                         cursor.insertText(t, cf);
                                     } else if (reader.name().toString() == QStringLiteral("LineBreak")) {
-                                        cursor.insertText(QStringLiteral("\n"));
+                                        cursor.insertText(QString(QChar::LineSeparator));
                                     }
                                 } else if (reader.isEndElement()) {
                                     if (reader.name().toString() == QStringLiteral("ListItem"))
