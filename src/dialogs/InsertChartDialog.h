@@ -3,6 +3,8 @@
 #include <QDialog>
 #include <QPixmap>
 
+#include "ChartData.h"
+
 class QListWidget;
 
 class InsertChartDialog : public QDialog

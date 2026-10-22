@@ -10,6 +10,7 @@
 #include <QApplication>
 #include <QBuffer>
 #include <QClipboard>
+#include <QDir>
 #include <QFile>
 #include <QFileInfo>
 #include <QFontDatabase>
@@ -618,7 +619,6 @@ bool DocumentEditor::loadFromFile(const QString& filename, QString* errorDetail)
     tempDoc.setPageSize(document()->pageSize());
     tempDoc.setDocumentMargin(document()->documentMargin());
 
-    QFileInfo fi(filename);
     QString ext = fi.suffix().toLower();
 
     bool ok = false;
@@ -742,7 +742,6 @@ bool DocumentEditor::saveToFile(const QString& filename)
         return false;
     }
 
-    QFileInfo fi(filename);
     QString ext = fi.suffix().toLower();
 
     bool ok = false;
