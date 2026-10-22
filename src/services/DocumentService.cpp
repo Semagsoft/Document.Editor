@@ -34,6 +34,7 @@
 #include <QtConcurrent>
 
 #include "dialogs/InsertChartDialog.h"
+#include "dialogs/ChartData.h"
 #include "dialogs/InsertDateDialog.h"
 #include "dialogs/InsertImageDialog.h"
 #include "dialogs/InsertLineDialog.h"
@@ -278,9 +279,27 @@ void DocumentService::insertChartInteractive(QWidget *parent, DocumentEditor *ed
 {
     InsertChartDialog dlg(parent);
     if (dlg.exec() == QDialog::Accepted) {
-        QPixmap chart = dlg.generateChart(dlg.chartType());
-        if (!chart.isNull())
-            editor->textCursor().insertImage(chart.toImage());
+        ChartData data = dlg.chartData();
+        QPixmap chart = dlg.generateChart(data.type);
+        if (!chart.isNull()) {
+            // Embed chart data as a custom resource so it can be edited/reloaded
+            const QString resourceName = QStringLiteral("chart_%1").arg(data.title);
+            QByteArray chartJson;
+            // Minimal JSON representation for persistence
+            chartJson.append(QStringLiteral("{\"type\":\"%1\",\"title\":\"%2\"}")
+                .arg(data.type, data.title).toUtf8());
+            editor->document()->addResource(QTextDocument::ImageResource,
+                QUrl(resourceName), chartJson);
+
+            // Insert image referencing the resource; store type in image format name for editing
+            QTextImageFormat fmt;
+            fmt.setName(resourceName);
+            fmt.setWidth(chart.width());
+            fmt.setHeight(chart.height());
+            fmt.setProperty(QTextFormat::ImageName, resourceName);
+            fmt.setProperty(QTextFormat::UserProperty, data.type);
+            editor->textCursor().insertImage(fmt);
+        }
     }
 }
 

@@ -24,6 +24,7 @@ set(SOURCES
     dialogs/InsertImageDialog.cpp
     dialogs/InsertShapeDialog.cpp
     dialogs/InsertChartDialog.cpp
+    dialogs/ChartData.cpp
     dialogs/InsertVideoDialog.cpp
     dialogs/InsertLineDialog.cpp
     dialogs/FindDialog.cpp
@@ -69,6 +70,7 @@ set(HEADERS
     dialogs/InsertImageDialog.h
     dialogs/InsertShapeDialog.h
     dialogs/InsertChartDialog.h
+    dialogs/ChartData.h
     dialogs/InsertVideoDialog.h
     dialogs/InsertLineDialog.h
     dialogs/FindDialog.h

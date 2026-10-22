@@ -1,4 +1,5 @@
 #include "InsertChartDialog.h"
+#include "ChartData.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -57,6 +58,11 @@ InsertChartDialog::InsertChartDialog(QWidget *parent)
 QString InsertChartDialog::chartType() const
 {
     return m_chartList->currentItem() ? m_chartList->currentItem()->text() : QString();
+}
+
+ChartData InsertChartDialog::chartData() const
+{
+    return ChartData::defaultData(chartType());
 }
 
 static int chartTypeIndex(const QString &type)

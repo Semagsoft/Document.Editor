@@ -13,6 +13,7 @@ public:
     explicit InsertChartDialog(QWidget *parent = nullptr);
 
     QString chartType() const;
+    ChartData chartData() const;
     QPixmap generateChart(const QString &type) const;
 
 private:
