@@ -705,11 +705,20 @@ void DocumentService::exportImage()
         return;
     QTextDocument *doc = editor->document();
     QSizeF pageSize = doc->pageSize();
-    QPixmap pixmap(pageSize.toSize());
+    int pageCount = doc->pageCount();
+    if (pageCount < 1)
+        pageCount = 1;
+
+    int pageW = qRound(pageSize.width());
+    int pageH = qRound(pageSize.height());
+    // Render every page stacked vertically so multi-page documents export
+    // completely (drawContents only paints page one when the pixmap is
+    // single-page sized).
+    QPixmap pixmap(pageW, pageH * pageCount);
     pixmap.fill(Qt::white);
 
-    // Inset the content by the configured page margins (relative to whatever the
-    // document's root frame already uses) so the image matches print/PDF output.
+    // Inset the content by the configured page margins so the image matches
+    // print/PDF output.
     QPainter painter(&pixmap);
     const QMarginsF margins = editor->pageMargins();
     const QTextFrameFormat frameFmt = doc->rootFrame()->frameFormat();
@@ -720,6 +729,8 @@ void DocumentService::exportImage()
 
     if (!pixmap.save(path))
         QMessageBox::warning(m_parentWidget, tr("Export Error"), tr("Could not save image."));
+    else
+        emit statusMessage(tr("Exported %1 page(s) as image").arg(pageCount), 3000);
 }
 
 void DocumentService::exportSound()

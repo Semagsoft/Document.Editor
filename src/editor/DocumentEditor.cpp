@@ -25,6 +25,37 @@
 #include <QTextList>
 #include <QTextTable>
 
+// Returns true if `path` is safe to open or write. Rejects:
+//   * empty names
+//   * any ".." path component (directory traversal)
+//   * absolute paths that escape the allowed root (documents folder or the
+//     current document's directory, whichever applies)
+static bool isSafeFilePath(const QString& path, const QString& allowedRoot = QString())
+{
+    if (path.isEmpty())
+        return false;
+
+    QString cleaned = QDir::cleanPath(path);
+    if (cleaned.isEmpty() || cleaned == QLatin1String("."))
+        return false;
+
+    // Reject any ".." component — this is the core traversal guard.
+    const QStringList parts = cleaned.split(QLatin1Char('/'), Qt::SkipEmptyParts);
+    for (const QString& part : parts) {
+        if (part == QLatin1String(".."))
+            return false;
+    }
+
+    // If an allowed root is given, absolute paths must stay within it.
+    if (!allowedRoot.isEmpty() && QDir::isAbsolutePath(cleaned)) {
+        QString root = QDir::cleanPath(allowedRoot);
+        if (!cleaned.startsWith(root + QLatin1String("/")) && cleaned != root)
+            return false;
+    }
+
+    return true;
+}
+
 DocumentEditor::DocumentEditor(QWidget* parent)
     : QTextEdit(parent)
 {
@@ -534,6 +565,36 @@ void DocumentEditor::toLowerCase()
     cursor.endEditBlock();
 }
 
+void DocumentEditor::toTitleCase()
+{
+    QTextCursor cursor = textCursor();
+    cursor.beginEditBlock();
+    if (!cursor.hasSelection())
+        cursor.select(QTextCursor::WordUnderCursor);
+    cursor.insertText(TextUtils::titleCase(cursor.selectedText()));
+    cursor.endEditBlock();
+}
+
+void DocumentEditor::toSentenceCase()
+{
+    QTextCursor cursor = textCursor();
+    cursor.beginEditBlock();
+    if (!cursor.hasSelection())
+        cursor.select(QTextCursor::WordUnderCursor);
+    cursor.insertText(TextUtils::sentenceCase(cursor.selectedText()));
+    cursor.endEditBlock();
+}
+
+void DocumentEditor::toToggleCase()
+{
+    QTextCursor cursor = textCursor();
+    cursor.beginEditBlock();
+    if (!cursor.hasSelection())
+        cursor.select(QTextCursor::WordUnderCursor);
+    cursor.insertText(TextUtils::toggleCase(cursor.selectedText()));
+    cursor.endEditBlock();
+}
+
 // ============================================================
 // Spell Check
 // ============================================================
@@ -585,15 +646,15 @@ bool DocumentEditor::loadFromFile(const QString& filename, QString* errorDetail)
             *errorDetail = tr("Filename cannot be empty.");
         return false;
     }
-    
+
     // Check for path traversal attempts
-    QFileInfo fi(filename);
-    if (fi.isAbsolute() && !QDir::cleanPath(fi.absoluteFilePath()).startsWith(QDir::cleanPath(fi.absolutePath()))) {
+    if (!isSafeFilePath(filename)) {
         if (errorDetail)
             *errorDetail = tr("Invalid file path detected.");
         return false;
     }
 
+    QFileInfo fi(filename);
     QFile file(filename);
     if (!file.open(QIODevice::ReadOnly)) {
         if (errorDetail)
@@ -624,7 +685,8 @@ bool DocumentEditor::loadFromFile(const QString& filename, QString* errorDetail)
     bool ok = false;
     if (ext == QStringLiteral("xaml") || ext == QStringLiteral("dexml")) {
         QString xml = QString::fromUtf8(data);
-        ok = XamlConverter::loadFromXaml(xml, &tempDoc, m_pageMargins, m_pageBackground);
+        ok = XamlConverter::loadFromXaml(xml, &tempDoc, m_pageMargins, m_pageBackground,
+                                         fi.absolutePath());
         if (!ok && errorDetail)
             *errorDetail = tr("The file could not be opened as an XAML document.");
     } else if (ext == QStringLiteral("html") || ext == QStringLiteral("htm")) {
@@ -728,14 +790,14 @@ bool DocumentEditor::saveToFile(const QString& filename)
         qWarning() << "Cannot save to empty filename";
         return false;
     }
-    
+
     // Check for path traversal attempts
-    QFileInfo fi(filename);
-    if (fi.isAbsolute() && !QDir::cleanPath(fi.absoluteFilePath()).startsWith(QDir::cleanPath(fi.absolutePath()))) {
+    if (!isSafeFilePath(filename)) {
         qWarning() << "Invalid file path detected in saveToFile:" << filename;
         return false;
     }
 
+    QFileInfo fi(filename);
     QFile file(filename);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
         qWarning() << "Failed to open file for writing:" << filename << "Error:" << file.errorString();
@@ -774,6 +836,7 @@ bool DocumentEditor::saveToFile(const QString& filename)
         m_fileChanged = false;
         emit modifiedChanged(false);
         document()->setModified(false);
+        emit saved(filename);
     }
 
     return ok;

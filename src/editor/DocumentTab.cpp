@@ -11,6 +11,7 @@
 #include <QFontDialog>
 #include <QInputDialog>
 #include <QMenu>
+#include <QUuid>
 #include <QScrollArea>
 #include <QTime>
 #include <QVBoxLayout>
@@ -18,6 +19,7 @@
 DocumentTab::DocumentTab(const QString& title, QWidget* parent)
     : QWidget(parent)
     , m_tabTitle(title.isEmpty() ? tr("Untitled") : title)
+    , m_recoveryId(QUuid::createUuid().toString(QUuid::WithoutBraces))
 {
     QVBoxLayout* layout = new QVBoxLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);
@@ -80,6 +82,11 @@ void DocumentTab::setDocumentName(const QString& name)
     m_editor->setDocumentName(name);
     QFileInfo fi(name);
     setTabTitle(fi.fileName());
+}
+
+QString DocumentTab::recoveryId() const
+{
+    return m_recoveryId;
 }
 
 void DocumentTab::setPageSize(qreal width, qreal height)

@@ -44,6 +44,8 @@ void Settings::load()
     m_ttsVoice = m_settings.value(QStringLiteral("TTSVoice"), 0).toInt();
     m_ttsSpeed = m_settings.value(QStringLiteral("TTSSpeed"), 0).toInt();
     m_pluginsEnabled = m_settings.value(QStringLiteral("EnablePlugins"), false).toBool();
+    m_autosaveEnabled = m_settings.value(QStringLiteral("AutosaveEnabled"), true).toBool();
+    m_autosaveIntervalMinutes = m_settings.value(QStringLiteral("AutosaveIntervalMinutes"), 5).toInt();
 
     m_recentFiles = m_settings.value(QStringLiteral("RecentFiles"), QStringList()).toStringList();
     m_settings.endGroup();
@@ -79,6 +81,8 @@ void Settings::save()
     m_settings.setValue(QStringLiteral("TTSVoice"), m_ttsVoice);
     m_settings.setValue(QStringLiteral("TTSSpeed"), m_ttsSpeed);
     m_settings.setValue(QStringLiteral("EnablePlugins"), m_pluginsEnabled);
+    m_settings.setValue(QStringLiteral("AutosaveEnabled"), m_autosaveEnabled);
+    m_settings.setValue(QStringLiteral("AutosaveIntervalMinutes"), m_autosaveIntervalMinutes);
     m_settings.setValue(QStringLiteral("RecentFiles"), m_recentFiles);
     m_settings.endGroup();
 
@@ -254,5 +258,20 @@ bool Settings::pluginsEnabled() const { return m_pluginsEnabled; }
 void Settings::setPluginsEnabled(bool enabled)
 {
     m_pluginsEnabled = enabled;
+    emit settingsChanged();
+}
+
+bool Settings::autosaveEnabled() const { return m_autosaveEnabled; }
+void Settings::setAutosaveEnabled(bool enabled)
+{
+    m_autosaveEnabled = enabled;
+    emit settingsChanged();
+}
+int Settings::autosaveIntervalMinutes() const { return m_autosaveIntervalMinutes; }
+void Settings::setAutosaveIntervalMinutes(int minutes)
+{
+    if (minutes < 1)
+        minutes = 1;
+    m_autosaveIntervalMinutes = minutes;
     emit settingsChanged();
 }

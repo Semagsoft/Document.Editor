@@ -87,6 +87,12 @@ public:
     bool pluginsEnabled() const;
     void setPluginsEnabled(bool enabled);
 
+    // Autosave
+    bool autosaveEnabled() const;
+    void setAutosaveEnabled(bool enabled);
+    int autosaveIntervalMinutes() const;
+    void setAutosaveIntervalMinutes(int minutes);
+
 signals:
     void settingsChanged();
     void recentFilesChanged();
@@ -142,4 +148,8 @@ private:
 
     // Plugins
     bool m_pluginsEnabled = false;
+
+    // Autosave
+    bool m_autosaveEnabled = true;
+    int m_autosaveIntervalMinutes = 5;
 };

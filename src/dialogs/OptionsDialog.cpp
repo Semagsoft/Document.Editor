@@ -49,6 +49,8 @@ void OptionsDialog::accept()
     m_settings->setShowStartupDialog(m_showStartupCheck->isChecked());
     m_settings->setCheckForUpdatesOnStartup(m_updateCheck->isChecked());
     m_settings->setShowRecentDocuments(m_recentCheck->isChecked());
+    m_settings->setAutosaveEnabled(m_autosaveCheck->isChecked());
+    m_settings->setAutosaveIntervalMinutes(m_autosaveSpin->value());
     m_settings->setStartupMode(m_startupModeCombo->currentIndex());
     m_settings->setTemplatesFolder(m_templatesFolderEdit->currentText());
 
@@ -113,6 +115,24 @@ QWidget *OptionsDialog::createGeneralTab()
     templatesLayout->addWidget(templatesFolderEdit);
     layout->addWidget(templatesGroup);
     m_templatesFolderEdit = templatesFolderEdit;
+
+    auto *autosaveGroup = new QGroupBox(tr("Autosave"));
+    auto *autosaveLayout = new QVBoxLayout(autosaveGroup);
+    auto *autosaveCheck = new QCheckBox(tr("Enable autosave"));
+    autosaveCheck->setChecked(m_settings->autosaveEnabled());
+    autosaveLayout->addWidget(autosaveCheck);
+    m_autosaveCheck = autosaveCheck;
+
+    auto *autosaveSpin = new QSpinBox();
+    autosaveSpin->setRange(1, 120);
+    autosaveSpin->setSuffix(tr(" minutes"));
+    autosaveSpin->setValue(m_settings->autosaveIntervalMinutes());
+    autosaveSpin->setEnabled(m_settings->autosaveEnabled());
+    connect(autosaveCheck, &QCheckBox::toggled, autosaveSpin, &QSpinBox::setEnabled);
+    autosaveLayout->addWidget(autosaveSpin);
+    m_autosaveSpin = autosaveSpin;
+
+    layout->addWidget(autosaveGroup);
 
     layout->addStretch();
     return widget;

@@ -109,6 +109,27 @@ void ThemeManager::setPalette(Theme theme) const
         pal.setColor(QPalette::Highlight, QColor(0, 114, 198));
         pal.setColor(QPalette::HighlightedText, Qt::white);
         break;
+    case Dark: {
+        QColor window(45, 45, 48);
+        QColor base(30, 30, 32);
+        QColor text(230, 230, 230);
+        QColor button(55, 55, 58);
+        QColor accent(0, 122, 204);
+        pal.setColor(QPalette::Window, window);
+        pal.setColor(QPalette::WindowText, text);
+        pal.setColor(QPalette::Base, base);
+        pal.setColor(QPalette::AlternateBase, window);
+        pal.setColor(QPalette::ToolTipBase, QColor(255, 255, 220));
+        pal.setColor(QPalette::ToolTipText, Qt::black);
+        pal.setColor(QPalette::Text, text);
+        pal.setColor(QPalette::Button, button);
+        pal.setColor(QPalette::ButtonText, text);
+        pal.setColor(QPalette::BrightText, Qt::red);
+        pal.setColor(QPalette::Link, accent);
+        pal.setColor(QPalette::Highlight, accent);
+        pal.setColor(QPalette::HighlightedText, Qt::white);
+        break;
+    }
     }
     qApp->setPalette(pal);
 }
@@ -122,6 +143,7 @@ QString ThemeManager::loadStylesheet(Theme theme) const
     case Office2010Black:  path = QStringLiteral(":/styles/office2010black.qss"); break;
     case Office2013:       path = QStringLiteral(":/styles/office2013.qss"); break;
     case Windows8:         path = QStringLiteral(":/styles/windows8.qss"); break;
+    case Dark:             path = QStringLiteral(":/styles/dark.qss"); break;
     }
 
     QFile file(path);

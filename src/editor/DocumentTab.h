@@ -28,6 +28,8 @@ public:
     QString documentName() const;
     void setDocumentName(const QString &name);
 
+    QString recoveryId() const;
+
     void setPageSize(qreal width, qreal height);
 
     RulerWidget *ruler() const;
@@ -49,4 +51,5 @@ private:
     RulerWidget *m_ruler = nullptr;
     QString m_tabTitle;
     QString m_documentName;
+    QString m_recoveryId;
 };

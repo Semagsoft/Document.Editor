@@ -124,12 +124,20 @@ QAction* ActionManager::translateAction() const { return m_translateAction; }
 QAction* ActionManager::wordCountAction() const { return m_wordCountAction; }
 QAction* ActionManager::ttsAction() const { return m_ttsAction; }
 
+// Case actions
+QAction* ActionManager::changeCaseToUpperAction() const { return m_changeCaseToUpperAction; }
+QAction* ActionManager::changeCaseToLowerAction() const { return m_changeCaseToLowerAction; }
+QAction* ActionManager::changeCaseToTitleAction() const { return m_changeCaseToTitleAction; }
+QAction* ActionManager::changeCaseToSentenceAction() const { return m_changeCaseToSentenceAction; }
+QAction* ActionManager::changeCaseToggleAction() const { return m_changeCaseToggleAction; }
+
 // Options action
 QAction* ActionManager::optionsAction() const { return m_optionsAction; }
 
 // View actions
 QAction* ActionManager::zoomInAction() const { return m_zoomInAction; }
 QAction* ActionManager::zoomOutAction() const { return m_zoomOutAction; }
+QAction* ActionManager::zoomResetAction() const { return m_zoomResetAction; }
 QSlider* ActionManager::zoomSlider() const { return m_zoomSlider; }
 QLabel* ActionManager::zoomLabel() const { return m_zoomLabel; }
 QAction* ActionManager::showRulerAction() const { return m_showRulerAction; }
@@ -148,6 +156,7 @@ QAction* ActionManager::themeOffice2010SilverAction() const { return m_themeOffi
 QAction* ActionManager::themeOffice2010BlackAction() const { return m_themeOffice2010BlackAction; }
 QAction* ActionManager::themeOffice2013Action() const { return m_themeOffice2013Action; }
 QAction* ActionManager::themeWindows8Action() const { return m_themeWindows8Action; }
+QAction* ActionManager::themeDarkAction() const { return m_themeDarkAction; }
 
 // Menus
 QMenu* ActionManager::fileMenu() const { return m_fileMenu; }
@@ -340,6 +349,15 @@ void ActionManager::setupActions(QMainWindow* mainWindow)
 
     m_lineSpacingAction = m_formatMenu->addAction(QObject::tr("&Line Spacing..."));
     m_formatMenu->addSeparator();
+
+    QMenu* caseSubMenu = m_formatMenu->addMenu(QObject::tr("Change &Case"));
+    m_changeCaseToUpperAction = caseSubMenu->addAction(QObject::tr("&UPPERCASE"));
+    m_changeCaseToLowerAction = caseSubMenu->addAction(QObject::tr("&lowercase"));
+    m_changeCaseToTitleAction = caseSubMenu->addAction(QObject::tr("&Title Case"));
+    m_changeCaseToSentenceAction = caseSubMenu->addAction(QObject::tr("&Sentence case"));
+    m_changeCaseToggleAction = caseSubMenu->addAction(QObject::tr("&TOGGLE CASE"));
+
+    m_formatMenu->addSeparator();
     m_leftToRightAction = m_formatMenu->addAction(QObject::tr("&Left to Right"));
     m_rightToLeftAction = m_formatMenu->addAction(QObject::tr("&Right to Left"));
 
@@ -356,6 +374,8 @@ void ActionManager::setupActions(QMainWindow* mainWindow)
     m_zoomInAction->setShortcut(QKeySequence::ZoomIn);
     m_zoomOutAction = m_viewMenu->addAction(QObject::tr("Zoom &Out"));
     m_zoomOutAction->setShortcut(QKeySequence::ZoomOut);
+    m_zoomResetAction = m_viewMenu->addAction(QObject::tr("&Zoom Reset"));
+    m_zoomResetAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_0));
     m_viewMenu->addSeparator();
     m_showRulerAction = m_viewMenu->addAction(QObject::tr("Show &Ruler"));
     m_showRulerAction->setCheckable(true);
@@ -376,6 +396,8 @@ void ActionManager::setupActions(QMainWindow* mainWindow)
     m_themeOffice2013Action->setCheckable(true);
     m_themeWindows8Action = m_themeMenu->addAction(QObject::tr("&Windows 8"));
     m_themeWindows8Action->setCheckable(true);
+    m_themeDarkAction = m_themeMenu->addAction(QObject::tr("&Dark"));
+    m_themeDarkAction->setCheckable(true);
 
     // Help menu
     m_helpMenu = mb->addMenu(QObject::tr("&Help"));
@@ -470,6 +492,7 @@ void ActionManager::setupIcons()
 
     m_zoomInAction->setIcon(icon(QStringLiteral("zoomin")));
     m_zoomOutAction->setIcon(icon(QStringLiteral("zoomout")));
+    m_zoomResetAction->setIcon(icon(QStringLiteral("zoomreset")));
     m_showRulerAction->setIcon(icon(QStringLiteral("ruler")));
     m_showStatusBarAction->setIcon(icon(QStringLiteral("statusbar")));
 
@@ -584,6 +607,7 @@ void ActionManager::setupToolBars(QMainWindow* mainWindow)
     m_zoomToolBar = mainWindow->addToolBar(QObject::tr("Zoom"));
     m_zoomToolBar->setObjectName(QStringLiteral("ZoomToolBar"));
     m_zoomToolBar->addAction(m_zoomOutAction);
+    m_zoomToolBar->addAction(m_zoomResetAction);
 
     m_zoomSlider = new QSlider(Qt::Horizontal, m_zoomToolBar);
     m_zoomSlider->setRange(10, 500);
@@ -648,6 +672,12 @@ void ActionManager::updateEditorActions(DocumentEditor* editor, DocumentManager*
     m_leftToRightAction->setEnabled(hasDoc);
     m_rightToLeftAction->setEnabled(hasDoc);
 
+    m_changeCaseToUpperAction->setEnabled(hasDoc);
+    m_changeCaseToLowerAction->setEnabled(hasDoc);
+    m_changeCaseToTitleAction->setEnabled(hasDoc);
+    m_changeCaseToSentenceAction->setEnabled(hasDoc);
+    m_changeCaseToggleAction->setEnabled(hasDoc);
+
     m_insertTableAction->setEnabled(hasDoc);
     m_insertImageAction->setEnabled(hasDoc);
     m_insertShapeAction->setEnabled(hasDoc);
@@ -674,6 +704,7 @@ void ActionManager::updateEditorActions(DocumentEditor* editor, DocumentManager*
     m_zoomSlider->setEnabled(hasDoc);
     m_zoomInAction->setEnabled(hasDoc);
     m_zoomOutAction->setEnabled(hasDoc);
+    m_zoomResetAction->setEnabled(hasDoc);
 
     if (hasDoc) {
         QTextCharFormat fmt = editor->textCursor().charFormat();

@@ -15,7 +15,9 @@
 #include <QCloseEvent>
 #include <QColorDialog>
 #include <QComboBox>
+#include <QCryptographicHash>
 #include <QDesktopServices>
+#include <QDir>
 #include <QFontDialog>
 #include <QImage>
 #include <QInputDialog>
@@ -24,6 +26,7 @@
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QSlider>
+#include <QStandardPaths>
 #include <QStatusBar>
 #include <QTimer>
 #include <QToolBar>
@@ -42,6 +45,7 @@
 #include "utils/NetworkUtils.h"
 #include "utils/SpellChecker.h"
 #include "utils/TextUtils.h"
+#include "converters/XamlConverter.h"
 #include <QTextToSpeech>
 
 static QTextDocument::FindFlags buildFindFlags(bool matchCase, bool wholeWord = false,
@@ -154,6 +158,16 @@ MainWindow::MainWindow(QWidget* parent)
         applyRulerToTabs();
     });
 
+    // Autosave timer
+    m_autosaveTimer = new QTimer(this);
+    m_autosaveTimer->setSingleShot(false);
+    connect(m_autosaveTimer, &QTimer::timeout, this, &MainWindow::saveAllRecoveryFiles);
+    connect(m_settings, &Settings::settingsChanged, this, &MainWindow::restartAutosaveTimer);
+    restartAutosaveTimer();
+
+    // Recovery check on startup
+    checkRecoveryOnStartup();
+
     // Startup behavior: create/open per settings (unless files were passed on the CLI)
     const bool hasStartupFiles = app && !app->startupFiles().isEmpty();
     if (!hasStartupFiles) {
@@ -250,6 +264,7 @@ void MainWindow::applyTheme(ThemeManager::Theme theme)
         { ThemeManager::Office2010Black,  m_actionManager->themeOffice2010BlackAction() },
         { ThemeManager::Office2013,       m_actionManager->themeOffice2013Action() },
         { ThemeManager::Windows8,         m_actionManager->themeWindows8Action() },
+        { ThemeManager::Dark,             m_actionManager->themeDarkAction() },
     };
     for (const auto& pair : themeActions)
         pair.second->setChecked(pair.first == theme);
@@ -334,7 +349,7 @@ void MainWindow::connectFileActions()
         if (dlg.exec() == QDialog::Accepted) {
             m_settings->save();
             int themeIdx = m_settings->theme();
-            if (themeIdx >= ThemeManager::Office2010Blue && themeIdx <= ThemeManager::Windows8)
+            if (themeIdx >= ThemeManager::Office2010Blue && themeIdx <= ThemeManager::Dark)
                 applyTheme(static_cast<ThemeManager::Theme>(themeIdx));
             applyTabSettings();
             applyRulerToTabs();
@@ -520,6 +535,16 @@ void MainWindow::connectFormatActions()
         if (dlg.exec() == QDialog::Accepted)
             currentEditor()->setLineSpacing(dlg.lineSpacing());
     });
+    connect(m_actionManager->changeCaseToUpperAction(), &QAction::triggered, this, [this]() {
+        if (auto *e = currentEditor()) e->toUpperCase(); });
+    connect(m_actionManager->changeCaseToLowerAction(), &QAction::triggered, this, [this]() {
+        if (auto *e = currentEditor()) e->toLowerCase(); });
+    connect(m_actionManager->changeCaseToTitleAction(), &QAction::triggered, this, [this]() {
+        if (auto *e = currentEditor()) e->toTitleCase(); });
+    connect(m_actionManager->changeCaseToSentenceAction(), &QAction::triggered, this, [this]() {
+        if (auto *e = currentEditor()) e->toSentenceCase(); });
+    connect(m_actionManager->changeCaseToggleAction(), &QAction::triggered, this, [this]() {
+        if (auto *e = currentEditor()) e->toToggleCase(); });
     connect(m_actionManager->leftToRightAction(), &QAction::triggered, this, [this]() {
         if (auto* e = currentEditor())
             e->setTextDirection(Qt::LeftToRight);
@@ -797,6 +822,9 @@ void MainWindow::connectViewActions()
     connect(m_actionManager->themeWindows8Action(), &QAction::triggered, this, [this]() {
         applyTheme(ThemeManager::Windows8);
     });
+    connect(m_actionManager->themeDarkAction(), &QAction::triggered, this, [this]() {
+        applyTheme(ThemeManager::Dark);
+    });
 
     // Zoom connections
     auto updateZoomDisplay = [this](qreal level) {
@@ -820,6 +848,13 @@ void MainWindow::connectViewActions()
             qreal level = qMax(e->zoomLevel() - 0.1, 0.1);
             e->setZoomLevel(level);
             updateZoomDisplay(level);
+        }
+    });
+
+    connect(m_actionManager->zoomResetAction(), &QAction::triggered, this, [this, updateZoomDisplay]() {
+        if (auto *e = currentEditor()) {
+            e->setZoomLevel(1.0);
+            updateZoomDisplay(1.0);
         }
     });
 
@@ -890,6 +925,11 @@ void MainWindow::connectEditorActionSignals(DocumentEditor* editor)
     m_actionSignalsEditor = editor;
     if (!editor)
         return;
+    QPointer<DocumentEditor> safeEditor(editor);
+    connect(editor, &DocumentEditor::saved, this, [this, safeEditor]() {
+        if (safeEditor)
+            clearRecoveryFile(safeEditor);
+    });
     connect(editor, &QTextEdit::textChanged, this, [this]() {
         if (auto *e = currentEditor())
             m_actionManager->updateEditorActions(e, m_docManager, m_statusBarManager);
@@ -957,7 +997,7 @@ void MainWindow::loadSettings()
         setAttribute(Qt::WA_TranslucentBackground);
 
     int themeIdx = m_settings->theme();
-    if (themeIdx >= ThemeManager::Office2010Blue && themeIdx <= ThemeManager::Windows8)
+    if (themeIdx >= ThemeManager::Office2010Blue && themeIdx <= ThemeManager::Dark)
         applyTheme(static_cast<ThemeManager::Theme>(themeIdx));
     else
         applyTheme(ThemeManager::Office2010Blue);
@@ -975,6 +1015,102 @@ void MainWindow::saveSettings()
     m_settings->setWindowMaximized(isMaximized());
     m_settings->setMainWindowState(saveState());
     m_settings->save();
+}
+
+QString MainWindow::recoveryPath() const
+{
+    return QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)
+           + QStringLiteral("/recovery");
+}
+
+void MainWindow::saveRecoveryFile(DocumentEditor* editor)
+{
+    if (!editor || !m_settings->autosaveEnabled())
+        return;
+    if (!editor->isModified())
+        return;
+
+    // Find the owning tab so we can key the recovery file by its stable ID.
+    DocumentTab* tab = nullptr;
+    for (DocumentTab* t : m_docManager->allTabs()) {
+        if (t->editor() == editor) {
+            tab = t;
+            break;
+        }
+    }
+    if (!tab)
+        return;
+
+    QDir dir(recoveryPath());
+    if (!dir.mkpath(QStringLiteral(".")))
+        return;
+
+    QString recoveryFile = dir.filePath(tab->recoveryId() + QStringLiteral(".xaml"));
+    QFile file(recoveryFile);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate))
+        return;
+    QString xaml = XamlConverter::saveToXaml(editor->document(), editor->pageMargins(),
+                                             editor->pageBackground());
+    file.write(xaml.toUtf8());
+    file.close();
+}
+
+void MainWindow::clearRecoveryFile(DocumentEditor* editor)
+{
+    if (!editor)
+        return;
+    DocumentTab* tab = nullptr;
+    for (DocumentTab* t : m_docManager->allTabs()) {
+        if (t->editor() == editor) {
+            tab = t;
+            break;
+        }
+    }
+    if (!tab)
+        return;
+    QDir dir(recoveryPath());
+    dir.remove(tab->recoveryId() + QStringLiteral(".xaml"));
+}
+
+void MainWindow::saveAllRecoveryFiles()
+{
+    for (DocumentTab* tab : m_docManager->allTabs()) {
+        if (tab && tab->editor() && tab->editor()->isModified())
+            saveRecoveryFile(tab->editor());
+    }
+}
+
+void MainWindow::restartAutosaveTimer()
+{
+    m_autosaveTimer->stop();
+    if (m_settings->autosaveEnabled())
+        m_autosaveTimer->start(m_settings->autosaveIntervalMinutes() * 60 * 1000);
+}
+
+void MainWindow::checkRecoveryOnStartup()
+{
+    QDir dir(recoveryPath());
+    if (!dir.exists())
+        return;
+    QStringList files = dir.entryList(QStringList(QStringLiteral("*.xaml")), QDir::Files);
+    if (files.isEmpty())
+        return;
+    QMessageBox::StandardButton btn = QMessageBox::question(
+        this, tr("Recover Documents"),
+        tr("Unsaved document recovery files were found (%1). Restore them?").arg(files.size()),
+        QMessageBox::Yes | QMessageBox::No);
+    if (btn != QMessageBox::Yes)
+        return;
+    for (const QString& file : files) {
+        QString path = dir.absoluteFilePath(file);
+        DocumentTab* tab = m_docManager->createDocument(tr("Recovered Document"));
+        QString errorDetail;
+        if (!tab->editor()->loadFromFile(path, &errorDetail)) {
+            m_docManager->closeDocument(tab);
+            continue;
+        }
+        tab->editor()->setDocumentName(QString()); // treat recovered work as untitled
+    }
 }
 
 void MainWindow::closeCurrentDocument()

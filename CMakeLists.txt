@@ -18,6 +18,14 @@ find_package(Qt6 REQUIRED COMPONENTS
     Concurrent
 )
 
+# Enable compiler warnings so issues are surfaced in CI. (-Werror is
+# intentionally omitted until pre-existing warnings are cleaned up.)
+if(MSVC)
+    add_compile_options(/W4)
+else()
+    add_compile_options(-Wall -Wextra)
+endif()
+
 add_compile_definitions(APP_VERSION="${PROJECT_VERSION}")
 
 add_subdirectory(third_party/miniz)

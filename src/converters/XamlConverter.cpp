@@ -54,7 +54,8 @@ static void writeXamlRun(QXmlStreamWriter &writer, const QTextCharFormat &cf,
 }
 
 bool XamlConverter::loadFromXaml(const QString &xml, QTextDocument *doc,
-                                  QMarginsF &outMargins, QColor &outPageBackground)
+                                  QMarginsF &outMargins, QColor &outPageBackground,
+                                  const QString &baseDir)
 {
     QXmlStreamReader reader(xml);
 
@@ -329,15 +330,29 @@ bool XamlConverter::loadFromXaml(const QString &xml, QTextDocument *doc,
                         source.mid(7).toUtf8());
                     img.loadFromData(data);
                 } else {
-                    QFileInfo fi(source);
-                    QString absPath = fi.absoluteFilePath();
-                    QString cleanPath = QDir::cleanPath(absPath);
-                    // Reject if path normalization changes the path (detects traversal like /../)
-                    if (!fi.isAbsolute() || absPath != cleanPath) {
+                    QString resolved;
+                    if (QFileInfo(source).isAbsolute()) {
+                        resolved = source;
+                    } else if (!baseDir.isEmpty()) {
+                        resolved = QDir(baseDir).absoluteFilePath(source);
+                    } else {
+                        resolved = QDir::currentPath() + QLatin1Char('/') + source;
+                    }
+                    QString cleanPath = QDir::cleanPath(resolved);
+                    // Reject any ".." component (directory traversal).
+                    const QStringList parts = cleanPath.split(QLatin1Char('/'), Qt::SkipEmptyParts);
+                    bool traversal = false;
+                    for (const QString& part : parts) {
+                        if (part == QLatin1String("..")) {
+                            traversal = true;
+                            break;
+                        }
+                    }
+                    if (traversal) {
                         continue;
                     }
-                    // Verify canonical path matches when file exists (detects symlink escape)
-                    QString canonical = fi.canonicalFilePath();
+                    // Verify canonical path matches when file exists (detects symlink escape).
+                    QString canonical = QFileInfo(cleanPath).canonicalFilePath();
                     if (!canonical.isEmpty() && canonical != cleanPath) {
                         continue;
                     }

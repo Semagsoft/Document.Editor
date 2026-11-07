@@ -66,6 +66,14 @@ private:
     void applyTheme(ThemeManager::Theme theme);
     void rebuildRecentFilesMenu();
 
+    // Autosave / recovery
+    QString recoveryPath() const;
+    void saveRecoveryFile(DocumentEditor* editor);
+    void clearRecoveryFile(DocumentEditor* editor);
+    void saveAllRecoveryFiles();
+    void restartAutosaveTimer();
+    void checkRecoveryOnStartup();
+
     DocumentEditor* currentEditor() const;
 
     // Core widgets
@@ -85,6 +93,7 @@ private:
     Settings* m_settings = nullptr;
 
     QTimer* m_zoomDebounceTimer = nullptr;
+    QTimer* m_autosaveTimer = nullptr;
     qreal m_zoomPendingLevel = 1.0;
     QPointer<DocumentEditor> m_zoomPendingEditor;
     QPointer<DocumentEditor> m_actionSignalsEditor;

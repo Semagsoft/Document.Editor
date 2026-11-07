@@ -120,12 +120,20 @@ public:
     QAction* wordCountAction() const;
     QAction* ttsAction() const;
 
+    // Case actions
+    QAction* changeCaseToUpperAction() const;
+    QAction* changeCaseToLowerAction() const;
+    QAction* changeCaseToTitleAction() const;
+    QAction* changeCaseToSentenceAction() const;
+    QAction* changeCaseToggleAction() const;
+
     // Options action
     QAction* optionsAction() const;
 
     // View actions
     QAction* zoomInAction() const;
     QAction* zoomOutAction() const;
+    QAction* zoomResetAction() const;
     QSlider* zoomSlider() const;
     QLabel* zoomLabel() const;
     QAction* showRulerAction() const;
@@ -144,6 +152,7 @@ public:
     QAction* themeOffice2010BlackAction() const;
     QAction* themeOffice2013Action() const;
     QAction* themeWindows8Action() const;
+    QAction* themeDarkAction() const;
 
     // Menus
     QMenu* fileMenu() const;
@@ -270,12 +279,20 @@ private:
     QAction* m_wordCountAction = nullptr;
     QAction* m_ttsAction = nullptr;
 
+    // Case actions
+    QAction* m_changeCaseToUpperAction = nullptr;
+    QAction* m_changeCaseToLowerAction = nullptr;
+    QAction* m_changeCaseToTitleAction = nullptr;
+    QAction* m_changeCaseToSentenceAction = nullptr;
+    QAction* m_changeCaseToggleAction = nullptr;
+
     // Options action
     QAction* m_optionsAction = nullptr;
 
     // View actions
     QAction* m_zoomInAction = nullptr;
     QAction* m_zoomOutAction = nullptr;
+    QAction* m_zoomResetAction = nullptr;
     QSlider* m_zoomSlider = nullptr;
     QLabel* m_zoomLabel = nullptr;
     QAction* m_showRulerAction = nullptr;
@@ -294,6 +311,7 @@ private:
     QAction* m_themeOffice2010BlackAction = nullptr;
     QAction* m_themeOffice2013Action = nullptr;
     QAction* m_themeWindows8Action = nullptr;
+    QAction* m_themeDarkAction = nullptr;
 
     // Menus
     QMenu* m_fileMenu = nullptr;

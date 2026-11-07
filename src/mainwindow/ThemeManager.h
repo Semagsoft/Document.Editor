@@ -13,7 +13,8 @@ public:
         Office2010Silver,
         Office2010Black,
         Office2013,
-        Windows8
+        Windows8,
+        Dark
     };
 
     explicit ThemeManager(QObject *parent = nullptr);

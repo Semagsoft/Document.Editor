@@ -25,6 +25,8 @@ private:
     QCheckBox *m_showStartupCheck = nullptr;
     QCheckBox *m_updateCheck = nullptr;
     QCheckBox *m_recentCheck = nullptr;
+    QCheckBox *m_autosaveCheck = nullptr;
+    QSpinBox *m_autosaveSpin = nullptr;
     QComboBox *m_startupModeCombo = nullptr;
     QComboBox *m_templatesFolderEdit = nullptr;
 

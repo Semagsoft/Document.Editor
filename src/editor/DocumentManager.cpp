@@ -140,6 +140,7 @@ bool DocumentManager::saveDocumentCopy(DocumentTab* tab)
     if (!tab->editor()->saveToFile(path))
         return false;
 
+    tab->setDocumentName(path);
     return true;
 }
 

@@ -15,7 +15,8 @@ class XamlConverter
 {
 public:
     static bool loadFromXaml(const QString &xml, QTextDocument *doc,
-                             QMarginsF &outMargins, QColor &outPageBackground);
+                             QMarginsF &outMargins, QColor &outPageBackground,
+                             const QString &baseDir = QString());
     static QString saveToXaml(const QTextDocument *doc,
                               const QMarginsF &margins,
                               const QColor &pageBackground = QColor());

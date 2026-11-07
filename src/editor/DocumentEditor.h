@@ -87,6 +87,9 @@ public:
     // Case
     void toUpperCase();
     void toLowerCase();
+    void toTitleCase();
+    void toSentenceCase();
+    void toToggleCase();
 
     // Spell check
     void setSpellChecker(SpellChecker* checker);
@@ -102,6 +105,7 @@ public:
 signals:
     void modifiedChanged(bool changed);
     void cursorPositionUpdated();
+    void saved(const QString& fileName);
 
 protected:
     void keyPressEvent(QKeyEvent* event) override;
