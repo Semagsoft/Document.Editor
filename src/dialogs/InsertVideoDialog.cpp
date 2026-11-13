@@ -65,12 +65,12 @@ void InsertVideoDialog::accept()
         QStringLiteral("http"),
         QStringLiteral("https"),
         QStringLiteral("ftp"),
-        QStringLiteral("mailto")
+        QStringLiteral("file")
     };
 
     if (!scheme.isEmpty() && !allowedSchemes.contains(scheme)) {
         QMessageBox::warning(this, tr("Invalid URL"),
-            tr("URL scheme '%1' is not allowed. Only http, https, ftp, and mailto are supported.")
+            tr("URL scheme '%1' is not allowed. Only http, https, ftp, and file are supported.")
                 .arg(scheme));
         return;
     }

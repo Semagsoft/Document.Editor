@@ -79,9 +79,10 @@ bool DocumentManager::saveDocument(DocumentTab* tab)
         return false;
     }
 
-    if (!editor->saveToFile(editor->documentName())) {
+    QString errorDetail;
+    if (!editor->saveToFile(editor->documentName(), true, &errorDetail)) {
         QMessageBox::warning(m_mainWindow, tr("Error"),
-            tr("Could not save file:\n%1").arg(editor->documentName()));
+            errorDetail.isEmpty() ? tr("Could not save file:\n%1").arg(editor->documentName()) : errorDetail);
         return false;
     }
 
@@ -108,9 +109,10 @@ bool DocumentManager::saveDocumentAs(DocumentTab* tab)
         return false;
 
     DocumentEditor* editor = tab->editor();
-    if (!editor->saveToFile(path)) {
+    QString errorDetail;
+    if (!editor->saveToFile(path, true, &errorDetail)) {
         QMessageBox::warning(m_mainWindow, tr("Error"),
-            tr("Could not save file:\n%1").arg(path));
+            errorDetail.isEmpty() ? tr("Could not save file:\n%1").arg(path) : errorDetail);
         return false;
     }
 
@@ -137,17 +139,24 @@ bool DocumentManager::saveDocumentCopy(DocumentTab* tab)
     if (path.isEmpty())
         return false;
 
-    if (!tab->editor()->saveToFile(path))
+    // Save a copy: keep the current document tracking its original file and
+    // its modified state — do not re-target the tab.
+    QString errorDetail;
+    if (!tab->editor()->saveToFile(path, false, &errorDetail)) {
+        QMessageBox::warning(m_mainWindow, tr("Error"),
+            errorDetail.isEmpty() ? tr("Could not save file:\n%1").arg(path) : errorDetail);
         return false;
+    }
 
-    tab->setDocumentName(path);
     return true;
 }
 
 void DocumentManager::saveAllDocuments()
 {
-    for (DocumentTab* tab : allTabs())
-        saveDocument(tab);
+    for (DocumentTab* tab : allTabs()) {
+        if (tab)
+            saveDocument(tab);
+    }
 }
 
 bool DocumentManager::closeDocument(DocumentTab* tab)
@@ -175,7 +184,12 @@ bool DocumentManager::closeDocument(DocumentTab* tab)
     QMdiSubWindow* sub = qobject_cast<QMdiSubWindow*>(tab->parentWidget());
     if (sub) {
         m_mdiArea->removeSubWindow(sub);
-        delete sub;
+        // closeDocument() can be called from within the subwindow's own Close
+        // event (via eventFilter); deleting the receiver mid-event dispatch is
+        // unsafe, so defer destruction. WA_DeleteOnClose also set — either path
+        // ends with the subwindow deleted exactly once.
+        sub->setAttribute(Qt::WA_DeleteOnClose, false);
+        sub->deleteLater();
     }
     return true;
 }

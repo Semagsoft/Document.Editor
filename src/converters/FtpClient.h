@@ -49,6 +49,12 @@ private:
     QString m_dataHost;
     quint16 m_dataPort = 0;
 
+    // Download completion handshake: the transfer is only finalized once the
+    // data socket has closed AND the control channel reported 226/2xx.
+    bool m_dataTransferDone = false;
+    bool m_controlTransferDone = false;
+    bool m_finalized = false;
+
     // Buffer for reading
     QByteArray m_replyBuffer;
     qint64 m_expectedBytes = 0;
@@ -60,12 +66,14 @@ private:
     QElapsedTimer m_elapsedTimer;
     static constexpr int kGlobalTimeoutMs = 60000;
 
-    void parseUrl(const QString &url, QString &host, quint16 &port,
-                  QString &path) const;
+    bool parseUrl(const QString &url, QString &host, quint16 &port,
+                  QString &path, QString &error) const;
     void sendCommand(const QString &cmd);
     void connectDataChannel();
     void startTransfer();
     void finishTransfer();
+    void tryFinalizeDownload();
+    bool writeDownloadedData(QString &error);
     void abortTransfer(const QString &error);
 
     void onControlReadyRead();

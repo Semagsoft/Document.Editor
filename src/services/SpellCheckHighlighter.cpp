@@ -3,18 +3,20 @@
 
 #include <QRegularExpression>
 
-SpellCheckHighlighter::SpellCheckHighlighter(QTextDocument *parent, const SpellChecker *checker)
+SpellCheckHighlighter::SpellCheckHighlighter(QTextDocument *parent,
+                                             std::shared_ptr<const SpellChecker> checker)
     : QSyntaxHighlighter(parent)
-    , m_checker(checker)
+    , m_checker(std::move(checker))
 {
 }
 
 void SpellCheckHighlighter::highlightBlock(const QString &text)
 {
-    if (!m_checker || !m_checker->hasDictionary())
+    const auto checker = m_checker.lock();
+    if (!checker || !checker->hasDictionary())
         return;
 
-    QRegularExpression wordRegex(QStringLiteral("\\b(\\w+)\\b"));
+    const QRegularExpression wordRegex(QStringLiteral("\\b(\\w+)\\b"));
     QRegularExpressionMatchIterator it = wordRegex.globalMatch(text);
 
     QTextCharFormat misspelledFormat;
@@ -26,7 +28,7 @@ void SpellCheckHighlighter::highlightBlock(const QString &text)
         QString word = match.captured(1);
         if (word.length() < 2)
             continue;
-        if (m_checker->isMisspelled(word)) {
+        if (checker->isMisspelled(word)) {
             setFormat(match.capturedStart(1), match.capturedLength(1), misspelledFormat);
         }
     }

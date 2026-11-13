@@ -77,7 +77,8 @@ SpellCheckDialog::SpellCheckDialog(SpellChecker *checker,
     });
     connect(addBtn, &QPushButton::clicked, this, [this]() {
         if (m_currentIndex < m_misspelled.size()) {
-            m_spellChecker->addToUserDictionary(m_misspelled[m_currentIndex]);
+            if (m_spellChecker)
+                m_spellChecker->addToUserDictionary(m_misspelled[m_currentIndex]);
             m_currentIndex++;
             if (m_currentIndex < m_misspelled.size())
                 showCurrentWord();

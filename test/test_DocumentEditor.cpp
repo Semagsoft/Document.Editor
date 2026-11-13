@@ -401,6 +401,45 @@ private slots:
         QFile::remove(path);
     }
 
+    void testSaveToFileCanSkipRenamingDocument()
+    {
+        // "Save a copy" must leave the editor pointing at the original file
+        // and keep its modified state.
+        DocumentEditor editor;
+        QTextCursor cursor(editor.document());
+        cursor.insertText(QStringLiteral("original content"));
+        editor.setDocumentName(QStringLiteral("/tmp/opencode_original_target.xaml"));
+        QVERIFY(editor.isModified());
+
+        QTemporaryFile tmpFile;
+        tmpFile.open();
+        const QString copyPath = tmpFile.fileName() + QStringLiteral(".xaml");
+        tmpFile.close();
+
+        QVERIFY(editor.saveToFile(copyPath, /*updateDocumentName=*/false));
+        QCOMPARE(editor.documentName(), QStringLiteral("/tmp/opencode_original_target.xaml"));
+
+        QFile::remove(copyPath);
+    }
+
+    void testSaveToFileUpdatesDocumentByDefault()
+    {
+        DocumentEditor editor;
+        QTextCursor cursor(editor.document());
+        cursor.insertText(QStringLiteral("content"));
+
+        QTemporaryFile tmpFile;
+        tmpFile.open();
+        const QString path = tmpFile.fileName() + QStringLiteral(".txt");
+        tmpFile.close();
+
+        QVERIFY(editor.saveToFile(path));
+        QCOMPARE(editor.documentName(), path);
+        QVERIFY(!editor.isModified());
+
+        QFile::remove(path);
+    }
+
     void testPageBackground()
     {
         DocumentEditor editor;

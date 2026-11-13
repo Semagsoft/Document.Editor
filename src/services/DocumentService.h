@@ -56,12 +56,11 @@ signals:
     void statusMessage(const QString &message, int timeout);
 
 private:
-    void runArchiveExportAsync(const QString &src, const QString &path);
+    void runArchiveExportAsync(const QString &src, const QString &path,
+                               QTemporaryDir *tempDir);
     void runArchiveImportAsync(const QString &path);
     void runSoundExportAsync(const QString &path, const QString &text);
 
     DocumentManager *m_docManager;
     QWidget *m_parentWidget;
-    QTemporaryDir *m_exportTempDir = nullptr;
-    QTemporaryDir *m_importTempDir = nullptr;
 };

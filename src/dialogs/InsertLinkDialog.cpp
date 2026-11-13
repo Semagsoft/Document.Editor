@@ -74,7 +74,7 @@ void InsertLinkDialog::accept()
 
 QString InsertLinkDialog::url() const
 {
-    return m_urlEdit->text();
+    return m_urlEdit->text().trimmed();
 }
 
 QString InsertLinkDialog::displayText() const

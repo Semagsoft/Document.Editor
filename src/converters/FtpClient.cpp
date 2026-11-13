@@ -30,15 +30,40 @@ FtpClient::~FtpClient()
     cancel();
 }
 
-void FtpClient::parseUrl(const QString& url, QString& host, quint16& port,
-    QString& path) const
+bool FtpClient::parseUrl(const QString& url, QString& host, quint16& port,
+    QString& path, QString& error) const
 {
+    auto hasCrlf = [](const QString& in) {
+        return in.contains(QLatin1Char('\r')) || in.contains(QLatin1Char('\n'));
+    };
     QUrl qurl(url);
+    if (!qurl.isValid()) {
+        error = tr("The URL is not valid.");
+        return false;
+    }
+    if (hasCrlf(url)) {
+        error = tr("The URL contains invalid characters.");
+        return false;
+    }
     host = qurl.host();
-    port = qurl.port(21);
+    if (host.isEmpty() || hasCrlf(host)) {
+        error = tr("The URL does not contain a valid host.");
+        return false;
+    }
+    const int p = qurl.port(21);
+    if (p < 1 || p > 65535) {
+        error = tr("The port %1 is out of range.").arg(p);
+        return false;
+    }
+    port = static_cast<quint16>(p);
     path = qurl.path();
+    if (hasCrlf(path)) {
+        error = tr("The remote path contains invalid characters.");
+        return false;
+    }
     if (path.isEmpty())
         path = QStringLiteral("/");
+    return true;
 }
 
 void FtpClient::upload(const QString& localPath, const QString& remoteUrl,
@@ -48,10 +73,24 @@ void FtpClient::upload(const QString& localPath, const QString& remoteUrl,
         return;
 
     m_localPath = localPath;
-    parseUrl(remoteUrl, m_host, m_port, m_remotePath);
+    QString urlError;
+    if (!parseUrl(remoteUrl, m_host, m_port, m_remotePath, urlError)) {
+        m_state = State::Idle;
+        emit transferFailed(urlError);
+        return;
+    }
+    if (username.contains(QLatin1Char('\r')) || username.contains(QLatin1Char('\n'))
+        || password.contains(QLatin1Char('\r')) || password.contains(QLatin1Char('\n'))) {
+        m_state = State::Idle;
+        emit transferFailed(tr("The credentials contain invalid characters."));
+        return;
+    }
     m_username = username.isEmpty() ? QStringLiteral("anonymous") : username;
     m_password = password.isEmpty() ? QStringLiteral("anonymous@") : password;
     m_isUpload = true;
+    m_dataTransferDone = false;
+    m_controlTransferDone = false;
+    m_finalized = false;
 
     // Reset sockets from any previous session: connectToHost() on an already
     // connected socket does not reliably start a fresh FTP session.
@@ -73,10 +112,24 @@ void FtpClient::download(const QString& remoteUrl, const QString& localPath,
         return;
 
     m_localPath = localPath;
-    parseUrl(remoteUrl, m_host, m_port, m_remotePath);
+    QString urlError;
+    if (!parseUrl(remoteUrl, m_host, m_port, m_remotePath, urlError)) {
+        m_state = State::Idle;
+        emit transferFailed(urlError);
+        return;
+    }
+    if (username.contains(QLatin1Char('\r')) || username.contains(QLatin1Char('\n'))
+        || password.contains(QLatin1Char('\r')) || password.contains(QLatin1Char('\n'))) {
+        m_state = State::Idle;
+        emit transferFailed(tr("The credentials contain invalid characters."));
+        return;
+    }
     m_username = username.isEmpty() ? QStringLiteral("anonymous") : username;
     m_password = password.isEmpty() ? QStringLiteral("anonymous@") : password;
     m_isUpload = false;
+    m_dataTransferDone = false;
+    m_controlTransferDone = false;
+    m_finalized = false;
 
     // Reset sockets from any previous session: connectToHost() on an already
     // connected socket does not reliably start a fresh FTP session.
@@ -109,11 +162,19 @@ void FtpClient::cancel()
     m_state = State::Idle;
     m_replyBuffer.clear();
     m_dataBuffer.clear();
+    m_dataTransferDone = false;
+    m_controlTransferDone = false;
+    m_finalized = false;
     m_timeoutTimer->stop();
 }
 
 void FtpClient::sendCommand(const QString& cmd)
 {
+    if (cmd.contains(QLatin1Char('\r')) || cmd.contains(QLatin1Char('\n'))) {
+        // Never let user input smuggle extra FTP commands into the control channel.
+        abortTransfer(tr("Invalid characters in FTP command."));
+        return;
+    }
     m_control->write((cmd + QStringLiteral("\r\n")).toUtf8());
     m_control->flush();
 }
@@ -175,13 +236,27 @@ void FtpClient::onControlReadyRead()
         case State::LoggedIn:
             if (code == 227) {
                 // Parse PASV response: 227 Entering Passive Mode (h1,h2,h3,h4,p1,p2)
-                QRegularExpression re(QStringLiteral("\\((\\d+),(\\d+),(\\d+),(\\d+),(\\d+),(\\d+)\\)"));
+                QRegularExpression re(QStringLiteral(
+                    "\\((\\d{1,3}),(\\d{1,3}),(\\d{1,3}),(\\d{1,3}),(\\d{1,3}),(\\d{1,3})\\)"));
                 auto match = re.match(QString::fromUtf8(line));
-                if (match.hasMatch()) {
-                    m_dataHost = QStringLiteral("%1.%2.%3.%4")
-                                     .arg(match.captured(1), match.captured(2),
-                                         match.captured(3), match.captured(4));
-                    m_dataPort = match.captured(5).toInt() * 256 + match.captured(6).toInt();
+                bool pasvOk = match.hasMatch();
+                quint16 pasvPort = 0;
+                if (pasvOk) {
+                    for (int gi = 1; gi <= 6; ++gi) {
+                        if (match.captured(gi).toInt() > 255)
+                            pasvOk = false;
+                    }
+                    int dataPort = match.captured(5).toInt() * 256 + match.captured(6).toInt();
+                    if (dataPort < 1 || dataPort > 65535)
+                        pasvOk = false;
+                    else
+                        pasvPort = static_cast<quint16>(dataPort);
+                }
+                if (pasvOk) {
+                    // RFC 2577: do not trust the PASV-provided IP; reuse the
+                    // control connection's host to avoid FTP bounce/SSRF.
+                    m_dataHost = m_host;
+                    m_dataPort = pasvPort;
                     m_state = State::Passive;
                     connectDataChannel();
                 } else {
@@ -261,12 +336,50 @@ void FtpClient::finishTransfer()
     if (m_isUpload) {
         m_state = State::Idle;
         emit uploadCompleted();
-    } else if (m_state == State::Transferring) {
-        // 226 arrived before the data socket closed; complete here.
-        // If onDataFinished already handled it, m_state is Idle and this is a no-op.
-        m_state = State::Idle;
-        emit downloadCompleted();
+    } else {
+        m_controlTransferDone = true;
+        tryFinalizeDownload();
     }
+}
+
+bool FtpClient::writeDownloadedData(QString& error)
+{
+    QFile file(m_localPath);
+    if (!file.open(QIODevice::WriteOnly)) {
+        error = tr("Could not write the file: %1").arg(file.errorString());
+        return false;
+    }
+    const qint64 written = file.write(m_dataBuffer);
+    file.close();
+    if (written != m_dataBuffer.size()) {
+        error = tr("Could not write the file: short write (%1 of %2 bytes)")
+                    .arg(written).arg(m_dataBuffer.size());
+        return false;
+    }
+    return true;
+}
+
+void FtpClient::tryFinalizeDownload()
+{
+    if (m_finalized || m_isUpload)
+        return;
+    // Both sides must agree: the data socket reached EOF and the control
+    // channel reported success (226/2xx).
+    if (!m_dataTransferDone || !m_controlTransferDone)
+        return;
+    m_finalized = true;
+    QString error;
+    if (!writeDownloadedData(error)) {
+        m_state = State::Idle;
+        m_dataBuffer.clear();
+        emit transferFailed(error);
+        return;
+    }
+    m_lastProgressBytes = m_dataBuffer.size();
+    emit transferProgress(m_dataBuffer.size(), m_dataBuffer.size());
+    m_dataBuffer.clear();
+    m_state = State::Idle;
+    emit downloadCompleted();
 }
 
 void FtpClient::onDataReadyRead()
@@ -279,23 +392,10 @@ void FtpClient::onDataReadyRead()
 
 void FtpClient::onDataFinished()
 {
-    if (!m_isUpload) {
-        QFile file(m_localPath);
-        if (file.open(QIODevice::WriteOnly)) {
-            file.write(m_dataBuffer);
-            file.close();
-        }
-        m_lastProgressBytes = m_dataBuffer.size();
-        emit transferProgress(m_dataBuffer.size(), m_dataBuffer.size());
-        // A download may finish in Passive (before the 1xx/150 is processed)
-        // or Transferring state, depending on whether the data socket closed
-        // before or after the control reply arrived.
-        if (m_state == State::Transferring || m_state == State::Passive) {
-            m_state = State::Idle;
-            m_timeoutTimer->stop();
-            emit downloadCompleted();
-        }
-    }
+    if (m_isUpload)
+        return;
+    m_dataTransferDone = true;
+    tryFinalizeDownload();
 }
 
 void FtpClient::onSocketError(QAbstractSocket::SocketError error)
@@ -319,6 +419,9 @@ void FtpClient::abortTransfer(const QString& error)
     m_state = State::Idle;
     m_replyBuffer.clear();
     m_dataBuffer.clear();
+    m_dataTransferDone = false;
+    m_controlTransferDone = false;
+    m_finalized = false;
     m_timeoutTimer->stop();
     if (m_data->state() != QTcpSocket::UnconnectedState)
         m_data->abort();

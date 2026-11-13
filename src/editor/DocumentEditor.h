@@ -7,6 +7,8 @@
 #include <QTextCursor>
 #include <QTextDocument>
 #include <QTextEdit>
+
+#include <memory>
 #include <QTextListFormat>
 #include <QTimer>
 
@@ -92,7 +94,7 @@ public:
     void toToggleCase();
 
     // Spell check
-    void setSpellChecker(SpellChecker* checker);
+    void setSpellChecker(std::shared_ptr<SpellChecker> checker);
     SpellChecker* spellChecker() const;
     void setSpellCheckEnabled(bool enabled);
 
@@ -100,7 +102,7 @@ public:
 
     // File I/O
     bool loadFromFile(const QString& filename, QString* errorDetail = nullptr);
-    bool saveToFile(const QString& filename);
+    bool saveToFile(const QString& filename, bool updateDocumentName = true, QString* errorDetail = nullptr);
 
 signals:
     void modifiedChanged(bool changed);
@@ -128,7 +130,7 @@ private:
 
     QTimer* m_statsTimer = nullptr;
 
-    SpellChecker* m_spellChecker = nullptr;
+    std::shared_ptr<SpellChecker> m_spellChecker;
     SpellCheckHighlighter* m_spellHighlighter = nullptr;
     bool m_spellCheckEnabled = false;
 

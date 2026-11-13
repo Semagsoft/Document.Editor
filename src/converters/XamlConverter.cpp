@@ -218,8 +218,8 @@ bool XamlConverter::loadFromXaml(const QString &xml, QTextDocument *doc,
 
             } else if (name == QStringLiteral("Table")) {
                 QXmlStreamAttributes attrs = reader.attributes();
-                int rows = qMax(1, attrs.value(QStringLiteral("Rows")).toInt());
-                int cols = qMax(1, attrs.value(QStringLiteral("Cols")).toInt());
+                int rows = qBound(1, attrs.value(QStringLiteral("Rows")).toInt(), 500);
+                int cols = qBound(1, attrs.value(QStringLiteral("Cols")).toInt(), 100);
                 QTextTable *table = cursor.insertTable(rows, cols);
                 if (firstParagraph)
                     firstParagraph = false;
@@ -326,6 +326,10 @@ bool XamlConverter::loadFromXaml(const QString &xml, QTextDocument *doc,
 
                 QImage img;
                 if (source.startsWith(QStringLiteral("base64:"), Qt::CaseInsensitive)) {
+                    // Cap the embedded payload so a crafted document can't
+                    // force a huge allocation.
+                    if (source.size() > 64 * 1024 * 1024)
+                        continue;
                     QByteArray data = QByteArray::fromBase64(
                         source.mid(7).toUtf8());
                     img.loadFromData(data);
@@ -336,27 +340,27 @@ bool XamlConverter::loadFromXaml(const QString &xml, QTextDocument *doc,
                     } else if (!baseDir.isEmpty()) {
                         resolved = QDir(baseDir).absoluteFilePath(source);
                     } else {
-                        resolved = QDir::currentPath() + QLatin1Char('/') + source;
+                        // Relative path with no document base directory:
+                        // refuse rather than reading from the cwd.
+                        continue;
                     }
                     QString cleanPath = QDir::cleanPath(resolved);
-                    // Reject any ".." component (directory traversal).
-                    const QStringList parts = cleanPath.split(QLatin1Char('/'), Qt::SkipEmptyParts);
-                    bool traversal = false;
-                    for (const QString& part : parts) {
-                        if (part == QLatin1String("..")) {
-                            traversal = true;
-                            break;
-                        }
-                    }
-                    if (traversal) {
+                    if (baseDir.isEmpty()) {
+                        // Absolute path outside any document base directory:
+                        // refuse to read arbitrary local files.
                         continue;
                     }
-                    // Verify canonical path matches when file exists (detects symlink escape).
-                    QString canonical = QFileInfo(cleanPath).canonicalFilePath();
-                    if (!canonical.isEmpty() && canonical != cleanPath) {
+                    // The image must live under the document's base directory
+                    // (canonicalized, to defeat symlink escapes).
+                    const QString baseCanonical = QFileInfo(QDir::cleanPath(baseDir)).canonicalFilePath();
+                    const QString canonical = QFileInfo(cleanPath).canonicalFilePath();
+                    if (baseCanonical.isEmpty() || canonical.isEmpty())
+                        continue;
+                    if (canonical != baseCanonical
+                        && !canonical.startsWith(baseCanonical + QLatin1String("/"))) {
                         continue;
                     }
-                    img.load(cleanPath);
+                    img.load(canonical);
                 }
 
                 if (!img.isNull()) {

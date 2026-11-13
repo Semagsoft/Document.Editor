@@ -6,6 +6,7 @@
 #include <QAction>
 #include <QApplication>
 #include <QColorDialog>
+#include <QTextCursor>
 #include <QDate>
 #include <QFileInfo>
 #include <QFontDialog>
@@ -153,7 +154,9 @@ void DocumentTab::createContextMenu()
             if (ok) {
                 QTextCharFormat fmt;
                 fmt.setFont(font);
-                m_editor->textCursor().mergeCharFormat(fmt);
+                QTextCursor cursor = m_editor->textCursor();
+                cursor.mergeCharFormat(fmt);
+                m_editor->setTextCursor(cursor);
             }
         });
     connect(fontMenu->addAction(tr("Font Size...")), &QAction::triggered,
@@ -164,7 +167,9 @@ void DocumentTab::createContextMenu()
             if (ok) {
                 QTextCharFormat fmt;
                 fmt.setFontPointSize(size);
-                m_editor->textCursor().mergeCharFormat(fmt);
+                QTextCursor cursor = m_editor->textCursor();
+                cursor.mergeCharFormat(fmt);
+                m_editor->setTextCursor(cursor);
             }
         });
     connect(fontMenu->addAction(tr("Font Color...")), &QAction::triggered,
@@ -173,7 +178,9 @@ void DocumentTab::createContextMenu()
             if (color.isValid()) {
                 QTextCharFormat fmt;
                 fmt.setForeground(color);
-                m_editor->textCursor().mergeCharFormat(fmt);
+                QTextCursor cursor = m_editor->textCursor();
+                cursor.mergeCharFormat(fmt);
+                m_editor->setTextCursor(cursor);
             }
         });
     connect(fontMenu->addAction(tr("Highlight Color...")), &QAction::triggered,
@@ -183,7 +190,9 @@ void DocumentTab::createContextMenu()
             if (color.isValid()) {
                 QTextCharFormat fmt;
                 fmt.setBackground(color);
-                m_editor->textCursor().mergeCharFormat(fmt);
+                QTextCursor cursor = m_editor->textCursor();
+                cursor.mergeCharFormat(fmt);
+                m_editor->setTextCursor(cursor);
             }
         });
 
@@ -366,7 +375,9 @@ void DocumentTab::createContextMenu()
     connect(copyAction, &QAction::triggered, m_editor, &QTextEdit::copy);
     connect(pasteAction, &QAction::triggered, m_editor, &QTextEdit::paste);
     connect(deleteAction, &QAction::triggered, m_editor, [this]() {
-        m_editor->textCursor().removeSelectedText();
+        QTextCursor cursor = m_editor->textCursor();
+        cursor.removeSelectedText();
+        m_editor->setTextCursor(cursor);
     });
     connect(selectAllAction, &QAction::triggered, m_editor, &QTextEdit::selectAll);
 

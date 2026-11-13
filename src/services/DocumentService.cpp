@@ -248,14 +248,19 @@ void DocumentService::embedImageInDocument(DocumentEditor *editor, const QString
         fmt.setWidth(image.width());
         fmt.setHeight(image.height());
     }
-    editor->textCursor().insertImage(fmt);
+    QTextCursor cursor = editor->textCursor();
+    cursor.insertImage(fmt);
+    editor->setTextCursor(cursor);
 }
 
 void DocumentService::insertTableInteractive(QWidget *parent, DocumentEditor *editor)
 {
     InsertTableDialog dlg(parent);
-    if (dlg.exec() == QDialog::Accepted)
-        editor->textCursor().insertTable(dlg.rows(), dlg.columns());
+    if (dlg.exec() == QDialog::Accepted) {
+        QTextCursor cursor = editor->textCursor();
+        cursor.insertTable(dlg.rows(), dlg.columns());
+        editor->setTextCursor(cursor);
+    }
 }
 
 void DocumentService::insertImageInteractive(QWidget *parent, DocumentEditor *editor)
@@ -270,8 +275,11 @@ void DocumentService::insertShapeInteractive(QWidget *parent, DocumentEditor *ed
     InsertShapeDialog dlg(parent);
     if (dlg.exec() == QDialog::Accepted) {
         QPixmap shape = dlg.generateShape(dlg.shapeName());
-        if (!shape.isNull())
-            editor->textCursor().insertImage(shape.toImage());
+        if (!shape.isNull()) {
+            QTextCursor cursor = editor->textCursor();
+            cursor.insertImage(shape.toImage());
+            editor->setTextCursor(cursor);
+        }
     }
 }
 
@@ -298,7 +306,9 @@ void DocumentService::insertChartInteractive(QWidget *parent, DocumentEditor *ed
             fmt.setHeight(chart.height());
             fmt.setProperty(QTextFormat::ImageName, resourceName);
             fmt.setProperty(QTextFormat::UserProperty, data.type);
-            editor->textCursor().insertImage(fmt);
+            QTextCursor cursor = editor->textCursor();
+            cursor.insertImage(fmt);
+            editor->setTextCursor(cursor);
         }
     }
 }
@@ -307,44 +317,68 @@ void DocumentService::insertLinkInteractive(QWidget *parent, DocumentEditor *edi
 {
     InsertLinkDialog dlg(parent);
     if (dlg.exec() == QDialog::Accepted) {
+        // toHtmlEscaped() does not escape quotes, so do that explicitly to
+        // keep the URL from breaking out of the href attribute.
+        auto escapeQuotes = [](const QString& in) {
+            return QString(in).replace(QLatin1Char('"'), QStringLiteral("&quot;"));
+        };
         QTextCursor cursor = editor->textCursor();
         cursor.insertHtml(QStringLiteral("<a href=\"%1\">%2</a>")
-            .arg(dlg.url().toHtmlEscaped(), dlg.displayText().toHtmlEscaped()));
+            .arg(escapeQuotes(dlg.url().trimmed().toHtmlEscaped()),
+                 escapeQuotes(dlg.displayText().trimmed().toHtmlEscaped())));
+        editor->setTextCursor(cursor);
     }
 }
 
 void DocumentService::insertSymbolInteractive(QWidget *parent, DocumentEditor *editor)
 {
     InsertSymbolDialog dlg(parent);
-    if (dlg.exec() == QDialog::Accepted)
-        editor->textCursor().insertText(QString(dlg.selectedSymbol()));
+    if (dlg.exec() == QDialog::Accepted) {
+        QTextCursor cursor = editor->textCursor();
+        cursor.insertText(QString(dlg.selectedSymbol()));
+        editor->setTextCursor(cursor);
+    }
 }
 
 void DocumentService::insertHorizontalLineInteractive(DocumentEditor *editor)
 {
-    editor->textCursor().insertHtml(QStringLiteral("<hr>"));
+    QTextCursor cursor = editor->textCursor();
+    cursor.insertHtml(QStringLiteral("<hr>"));
+    editor->setTextCursor(cursor);
 }
 
 void DocumentService::insertDateInteractive(QWidget *parent, DocumentEditor *editor)
 {
     InsertDateDialog dlg(parent);
-    if (dlg.exec() == QDialog::Accepted)
-        editor->textCursor().insertText(QDate::currentDate().toString(dlg.dateFormat()));
+    if (dlg.exec() == QDialog::Accepted) {
+        QTextCursor cursor = editor->textCursor();
+        cursor.insertText(QDate::currentDate().toString(dlg.dateFormat()));
+        editor->setTextCursor(cursor);
+    }
 }
 
 void DocumentService::insertTimeInteractive(QWidget *parent, DocumentEditor *editor)
 {
     InsertTimeDialog dlg(parent);
-    if (dlg.exec() == QDialog::Accepted)
-        editor->textCursor().insertText(QTime::currentTime().toString(dlg.timeFormat()));
+    if (dlg.exec() == QDialog::Accepted) {
+        QTextCursor cursor = editor->textCursor();
+        cursor.insertText(QTime::currentTime().toString(dlg.timeFormat()));
+        editor->setTextCursor(cursor);
+    }
 }
 
 void DocumentService::insertVideoInteractive(QWidget *parent, DocumentEditor *editor)
 {
     InsertVideoDialog dlg(parent);
     if (dlg.exec() == QDialog::Accepted) {
+        // toHtmlEscaped() does not escape quotes; the URL goes inside an href
+        // attribute, so escape it explicitly.
+        const QString url = dlg.videoPath().trimmed()
+            .toHtmlEscaped()
+            .replace(QLatin1Char('"'), QStringLiteral("&quot;"));
         QTextCursor cursor = editor->textCursor();
-        cursor.insertHtml(QStringLiteral("<a href=\"%1\">%1</a>").arg(dlg.videoPath().toHtmlEscaped()));
+        cursor.insertHtml(QStringLiteral("<a href=\"%1\">%1</a>").arg(url));
+        editor->setTextCursor(cursor);
     }
 }
 
@@ -466,44 +500,44 @@ void DocumentService::runArchiveImportAsync(const QString &path)
         }
 
         // Extract to a temp dir kept alive until the documents are opened.
-        m_importTempDir = new QTemporaryDir();
-        if (!m_importTempDir->isValid()) {
-            delete m_importTempDir;
-            m_importTempDir = nullptr;
+        // The watcher lambda captures a local pointer so concurrent imports
+        // can't delete each other's temp dir.
+        auto *tempDir = new QTemporaryDir();
+        if (!tempDir->isValid()) {
+            delete tempDir;
+            QMessageBox::warning(m_parentWidget, tr("Archive Import"),
+                tr("Could not create a temporary directory."));
             return;
         }
         emit statusMessage(tr("Extracting archive..."), 5000);
         auto *extractWatcher = new QFutureWatcher<ArchiveImportOutcome>(this);
         connect(extractWatcher, &QFutureWatcher<ArchiveImportOutcome>::finished, this,
-                [this, extractWatcher, probe]() {
+                [this, extractWatcher, probe, tempDir]() {
             const ArchiveImportOutcome outcome = extractWatcher->result();
             extractWatcher->deleteLater();
-            if (outcome.extractFailed || !m_importTempDir) {
-                delete m_importTempDir;
-                m_importTempDir = nullptr;
+            if (outcome.extractFailed || !tempDir) {
+                delete tempDir;
                 QMessageBox::warning(m_parentWidget, tr("Archive Import"),
                     tr("Failed to extract archive."));
                 return;
             }
-            QDir dir(m_importTempDir->path());
+            QDir dir(tempDir->path());
             const QStringList filters = { QStringLiteral("*.xaml"), QStringLiteral("*.html"),
                 QStringLiteral("*.htm"), QStringLiteral("*.rtf"),
                 QStringLiteral("*.txt") };
             const QStringList files = dir.entryList(filters, QDir::Files, QDir::Name);
             if (files.isEmpty()) {
-                delete m_importTempDir;
-                m_importTempDir = nullptr;
+                delete tempDir;
                 QMessageBox::information(m_parentWidget, tr("Archive Import"),
                     tr("No supported documents found in the archive."));
                 return;
             }
             for (const QString &f : files)
                 openDocument(dir.absoluteFilePath(f));
-            delete m_importTempDir;
-            m_importTempDir = nullptr;
+            delete tempDir;
         });
         extractWatcher->setFuture(QtConcurrent::run([probe, path,
-                                                     dest = m_importTempDir->path()]() {
+                                                     dest = tempDir->path()]() {
             return runArchiveImport(probe.archiver, path, dest);
         }));
     });
@@ -532,7 +566,7 @@ void DocumentService::exportWordpress()
         QString(), tr("HTML (*.html)"));
     if (path.isEmpty())
         return;
-    if (editor->saveToFile(path))
+    if (editor->saveToFile(path, false))
         emit statusMessage(tr("Exported as HTML — import into WordPress"), 5000);
     else
         QMessageBox::warning(m_parentWidget, tr("Export Error"), tr("Could not save HTML file."));
@@ -642,38 +676,40 @@ void DocumentService::exportArchive()
     if (!path.endsWith(QStringLiteral(".zip"), Qt::CaseInsensitive))
         path += QStringLiteral(".zip");
     QString src = editor->documentName();
+    // Kept alive until the async archive job finishes; the lambda captures a
+    // local pointer so concurrent jobs can't delete each other's temp dir.
+    QTemporaryDir *tempDir = nullptr;
     if (src.isEmpty()) {
-        // Materialize the unsaved document to a temp file that outlives the
-        // async worker (kept alive by m_exportTempDir until the job finishes).
-        m_exportTempDir = new QTemporaryDir();
-        if (!m_exportTempDir->isValid()) {
-            delete m_exportTempDir;
-            m_exportTempDir = nullptr;
+        // Materialize the unsaved document to a temp file owned by tempDir.
+        tempDir = new QTemporaryDir();
+        if (!tempDir->isValid()) {
+            delete tempDir;
+            QMessageBox::warning(m_parentWidget, tr("Archive Export"),
+                tr("Could not create a temporary directory."));
             return;
         }
-        QString tmpFile = m_exportTempDir->path() + QStringLiteral("/document.xaml");
-        if (!editor->saveToFile(tmpFile)) {
-            delete m_exportTempDir;
-            m_exportTempDir = nullptr;
+        QString tmpFile = tempDir->path() + QStringLiteral("/document.xaml");
+        if (!editor->saveToFile(tmpFile, false)) {
+            delete tempDir;
+            QMessageBox::warning(m_parentWidget, tr("Archive Export"),
+                tr("Could not write the temporary document."));
             return;
         }
         src = tmpFile;
     }
-    runArchiveExportAsync(src, path);
+    runArchiveExportAsync(src, path, tempDir);
 }
 
-void DocumentService::runArchiveExportAsync(const QString &src, const QString &path)
+void DocumentService::runArchiveExportAsync(const QString &src, const QString &path,
+                                            QTemporaryDir *tempDir)
 {
     emit statusMessage(tr("Creating archive..."), 5000);
     auto *watcher = new QFutureWatcher<ArchiveExportResult>(this);
     connect(watcher, &QFutureWatcher<ArchiveExportResult>::finished, this,
-            [this, watcher]() {
+            [this, watcher, tempDir]() {
         const ArchiveExportResult res = watcher->result();
         watcher->deleteLater();
-        if (m_exportTempDir) {
-            delete m_exportTempDir;
-            m_exportTempDir = nullptr;
-        }
+        delete tempDir;
         if (res.toolMissing) {
             QMessageBox::warning(m_parentWidget, tr("Archive Export"),
                 tr("No archive tool found.\n\n"

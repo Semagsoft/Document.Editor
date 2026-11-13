@@ -162,6 +162,26 @@ private slots:
         QVERIFY(!client.isBusy());
     }
 
+    void testRejectsCrlfInUrl()
+    {
+        FtpClient client;
+        QSignalSpy failSpy(&client, &FtpClient::transferFailed);
+        client.download(QStringLiteral("ftp://127.0.0.1/path%0D%0ADELE"),
+                        QStringLiteral("/tmp/ftp_crlf_test_out.bin"));
+        QCOMPARE(failSpy.count(), 1);
+        QVERIFY(!client.isBusy());
+    }
+
+    void testRejectsOutOfRangePort()
+    {
+        FtpClient client;
+        QSignalSpy failSpy(&client, &FtpClient::transferFailed);
+        client.upload(QStringLiteral("/tmp/ftp_port_test_in.bin"),
+                      QStringLiteral("ftp://127.0.0.1:99999/remote.bin"));
+        QCOMPARE(failSpy.count(), 1);
+        QVERIFY(!client.isBusy());
+    }
+
     void testDoubleUploadGetsIgnored()
     {
         FtpClient client;

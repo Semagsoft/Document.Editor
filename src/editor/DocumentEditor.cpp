@@ -17,6 +17,7 @@
 #include <QKeyEvent>
 #include <QMimeData>
 #include <QRegularExpression>
+#include <QSaveFile>
 #include <QTextBlock>
 #include <QTextCursor>
 #include <QTextDocumentFragment>
@@ -132,8 +133,7 @@ void DocumentEditor::setDocumentName(const QString& name)
 {
     m_documentName = name;
     QFileInfo fi(name);
-    if (fi.exists())
-        m_readOnlyFile = !fi.isWritable();
+    m_readOnlyFile = fi.exists() && !fi.isWritable();
     setReadOnly(m_readOnlyFile);
 }
 
@@ -339,6 +339,7 @@ void DocumentEditor::toggleBold()
             : QFont::Bold);
     cursor.mergeCharFormat(fmt);
     cursor.endEditBlock();
+    setTextCursor(cursor);
 }
 
 void DocumentEditor::toggleItalic()
@@ -349,6 +350,7 @@ void DocumentEditor::toggleItalic()
     fmt.setFontItalic(!cursor.charFormat().fontItalic());
     cursor.mergeCharFormat(fmt);
     cursor.endEditBlock();
+    setTextCursor(cursor);
 }
 
 void DocumentEditor::toggleUnderline()
@@ -359,6 +361,7 @@ void DocumentEditor::toggleUnderline()
     fmt.setFontUnderline(!cursor.charFormat().fontUnderline());
     cursor.mergeCharFormat(fmt);
     cursor.endEditBlock();
+    setTextCursor(cursor);
 }
 
 void DocumentEditor::toggleStrikethrough()
@@ -369,6 +372,7 @@ void DocumentEditor::toggleStrikethrough()
     fmt.setFontStrikeOut(!cursor.charFormat().fontStrikeOut());
     cursor.mergeCharFormat(fmt);
     cursor.endEditBlock();
+    setTextCursor(cursor);
 }
 
 void DocumentEditor::toggleSubscript()
@@ -382,6 +386,7 @@ void DocumentEditor::toggleSubscript()
             : QTextCharFormat::AlignSubScript);
     cursor.mergeCharFormat(fmt);
     cursor.endEditBlock();
+    setTextCursor(cursor);
 }
 
 void DocumentEditor::toggleSuperscript()
@@ -395,6 +400,7 @@ void DocumentEditor::toggleSuperscript()
             : QTextCharFormat::AlignSuperScript);
     cursor.mergeCharFormat(fmt);
     cursor.endEditBlock();
+    setTextCursor(cursor);
 }
 
 void DocumentEditor::clearFormatting()
@@ -412,6 +418,7 @@ void DocumentEditor::clearFormatting()
     fmt.setVerticalAlignment(QTextCharFormat::AlignNormal);
     cursor.setCharFormat(fmt);
     cursor.endEditBlock();
+    setTextCursor(cursor);
 }
 
 // ============================================================
@@ -422,7 +429,9 @@ void DocumentEditor::setParagraphAlignment(Qt::Alignment align)
 {
     QTextBlockFormat fmt;
     fmt.setAlignment(align);
-    textCursor().mergeBlockFormat(fmt);
+    QTextCursor cursor = textCursor();
+    cursor.mergeBlockFormat(fmt);
+    setTextCursor(cursor);
 }
 
 // ============================================================
@@ -446,6 +455,7 @@ void DocumentEditor::toggleBulletList()
         listFmt.setIndent(1);
         cursor.createList(listFmt);
     }
+    setTextCursor(cursor);
 }
 
 void DocumentEditor::toggleNumberList()
@@ -465,6 +475,7 @@ void DocumentEditor::toggleNumberList()
         listFmt.setIndent(1);
         cursor.createList(listFmt);
     }
+    setTextCursor(cursor);
 }
 
 // ============================================================
@@ -473,18 +484,22 @@ void DocumentEditor::toggleNumberList()
 
 void DocumentEditor::indentMore()
 {
+    QTextCursor cursor = textCursor();
     QTextBlockFormat fmt;
-    fmt.setIndent(textCursor().blockFormat().indent() + 1);
-    textCursor().mergeBlockFormat(fmt);
+    fmt.setIndent(cursor.blockFormat().indent() + 1);
+    cursor.mergeBlockFormat(fmt);
+    setTextCursor(cursor);
 }
 
 void DocumentEditor::indentLess()
 {
-    int indent = textCursor().blockFormat().indent();
+    QTextCursor cursor = textCursor();
+    int indent = cursor.blockFormat().indent();
     if (indent > 0) {
         QTextBlockFormat fmt;
         fmt.setIndent(indent - 1);
-        textCursor().mergeBlockFormat(fmt);
+        cursor.mergeBlockFormat(fmt);
+        setTextCursor(cursor);
     }
 }
 
@@ -497,7 +512,9 @@ void DocumentEditor::setLineSpacing(qreal spacing)
     QTextBlockFormat fmt;
     fmt.setLineHeight(static_cast<int>(spacing * 100),
         QTextBlockFormat::ProportionalHeight);
-    textCursor().mergeBlockFormat(fmt);
+    QTextCursor cursor = textCursor();
+    cursor.mergeBlockFormat(fmt);
+    setTextCursor(cursor);
 }
 
 // ============================================================
@@ -538,7 +555,9 @@ void DocumentEditor::setTextDirection(Qt::LayoutDirection direction)
 {
     QTextBlockFormat fmt;
     fmt.setLayoutDirection(direction);
-    textCursor().mergeBlockFormat(fmt);
+    QTextCursor cursor = textCursor();
+    cursor.mergeBlockFormat(fmt);
+    setTextCursor(cursor);
 }
 
 // ============================================================
@@ -553,6 +572,7 @@ void DocumentEditor::toUpperCase()
         cursor.select(QTextCursor::WordUnderCursor);
     cursor.insertText(TextUtils::toUpperCase(cursor.selectedText()));
     cursor.endEditBlock();
+    setTextCursor(cursor);
 }
 
 void DocumentEditor::toLowerCase()
@@ -563,6 +583,7 @@ void DocumentEditor::toLowerCase()
         cursor.select(QTextCursor::WordUnderCursor);
     cursor.insertText(TextUtils::toLowerCase(cursor.selectedText()));
     cursor.endEditBlock();
+    setTextCursor(cursor);
 }
 
 void DocumentEditor::toTitleCase()
@@ -573,6 +594,7 @@ void DocumentEditor::toTitleCase()
         cursor.select(QTextCursor::WordUnderCursor);
     cursor.insertText(TextUtils::titleCase(cursor.selectedText()));
     cursor.endEditBlock();
+    setTextCursor(cursor);
 }
 
 void DocumentEditor::toSentenceCase()
@@ -583,6 +605,7 @@ void DocumentEditor::toSentenceCase()
         cursor.select(QTextCursor::WordUnderCursor);
     cursor.insertText(TextUtils::sentenceCase(cursor.selectedText()));
     cursor.endEditBlock();
+    setTextCursor(cursor);
 }
 
 void DocumentEditor::toToggleCase()
@@ -593,17 +616,18 @@ void DocumentEditor::toToggleCase()
         cursor.select(QTextCursor::WordUnderCursor);
     cursor.insertText(TextUtils::toggleCase(cursor.selectedText()));
     cursor.endEditBlock();
+    setTextCursor(cursor);
 }
 
 // ============================================================
 // Spell Check
 // ============================================================
 
-void DocumentEditor::setSpellChecker(SpellChecker* checker)
+void DocumentEditor::setSpellChecker(std::shared_ptr<SpellChecker> checker)
 {
-    if (m_spellChecker == checker && checker)
+    if (m_spellChecker == checker)
         return;
-    m_spellChecker = checker;
+    m_spellChecker = std::move(checker);
     if (m_spellCheckEnabled) {
         if (m_spellHighlighter) {
             m_spellHighlighter->setDocument(nullptr);
@@ -617,7 +641,7 @@ void DocumentEditor::setSpellChecker(SpellChecker* checker)
 
 SpellChecker* DocumentEditor::spellChecker() const
 {
-    return m_spellChecker;
+    return m_spellChecker.get();
 }
 
 void DocumentEditor::setSpellCheckEnabled(bool enabled)
@@ -751,6 +775,9 @@ void DocumentEditor::restoreDocument(const QTextDocument *source)
     cursor.removeSelectedText();
     cursor.insertFragment(QTextDocumentFragment(source));
 
+    // Page margins live on the root frame's format; page size and document
+    // margin alone don't round-trip them, so copy the root frame too.
+    doc->rootFrame()->setFrameFormat(source->rootFrame()->frameFormat());
     doc->setPageSize(pageSize);
     doc->setDocumentMargin(margin);
     doc->setModified(false);
@@ -783,55 +810,66 @@ bool DocumentEditor::isLikelyBinary(const QByteArray &data) const
     return false;
 }
 
-bool DocumentEditor::saveToFile(const QString& filename)
+bool DocumentEditor::saveToFile(const QString& filename, bool updateDocumentName, QString* errorDetail)
 {
+    auto fail = [&errorDetail](const QString& message) {
+        if (errorDetail)
+            *errorDetail = message;
+        return false;
+    };
+
     // Validate input filename
     if (filename.isEmpty()) {
         qWarning() << "Cannot save to empty filename";
-        return false;
+        return fail(tr("Cannot save to an empty filename."));
     }
 
     // Check for path traversal attempts
     if (!isSafeFilePath(filename)) {
         qWarning() << "Invalid file path detected in saveToFile:" << filename;
-        return false;
+        return fail(tr("The file path is invalid."));
     }
 
     QFileInfo fi(filename);
-    QFile file(filename);
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
-        qWarning() << "Failed to open file for writing:" << filename << "Error:" << file.errorString();
-        return false;
-    }
-
     QString ext = fi.suffix().toLower();
 
-    bool ok = false;
+    // Serialize to bytes before touching the destination file, so a converter
+    // failure never truncates the user's previous file.
+    QByteArray payload;
+    bool allowEmptyPayload = false;
     if (ext == QStringLiteral("xaml") || ext == QStringLiteral("dexml")) {
-        QByteArray xml = XamlConverter::saveToXaml(document(), m_pageMargins, m_pageBackground).toUtf8();
-        ok = file.write(xml) == xml.size();
+        payload = XamlConverter::saveToXaml(document(), m_pageMargins, m_pageBackground).toUtf8();
     } else if (ext == QStringLiteral("html") || ext == QStringLiteral("htm")) {
-        QByteArray html = toHtml().toUtf8();
-        ok = file.write(html) == html.size();
+        payload = toHtml().toUtf8();
+        allowEmptyPayload = true;
     } else if (ext == QStringLiteral("docx")) {
-        QByteArray docxData = DocxConverter::saveToDocx(document(), m_pageMargins, m_pageBackground);
-        ok = file.write(docxData) == docxData.size();
+        payload = DocxConverter::saveToDocx(document(), m_pageMargins, m_pageBackground);
     } else if (ext == QStringLiteral("rtf")) {
-        QByteArray rtf = RtfConverter::saveToRtf(document());
-        ok = file.write(rtf) == rtf.size();
+        payload = RtfConverter::saveToRtf(document());
     } else {
-        QByteArray text = toPlainText().toUtf8();
-        ok = file.write(text) == text.size();
+        payload = toPlainText().toUtf8();
+        allowEmptyPayload = true;
     }
 
-    if (ok) {
-        // A write() may return fewer bytes than requested (or fail late); flush
-        // and check the device error state before reporting success.
-        ok = file.flush() && file.error() == QFileDevice::NoError;
+    if (payload.isEmpty() && !allowEmptyPayload) {
+        qWarning() << "Converter produced no output for" << filename;
+        return fail(tr("The document could not be converted to the requested format."));
     }
-    file.close();
 
-    if (ok) {
+    // QSaveFile writes to a sibling temp file and atomically renames on commit(),
+    // so the destination is never left half-written.
+    QSaveFile file(filename);
+    if (!file.open(QIODevice::WriteOnly)) {
+        qWarning() << "Failed to open file for writing:" << filename << "Error:" << file.errorString();
+        return fail(tr("Could not open the file for writing:\n%1").arg(file.errorString()));
+    }
+
+    if (file.write(payload) != payload.size() || !file.commit()) {
+        qWarning() << "Failed to write file:" << filename << "Error:" << file.errorString();
+        return fail(tr("Could not write the file:\n%1").arg(file.errorString()));
+    }
+
+    if (updateDocumentName) {
         m_documentName = filename;
         m_fileChanged = false;
         emit modifiedChanged(false);
@@ -839,7 +877,7 @@ bool DocumentEditor::saveToFile(const QString& filename)
         emit saved(filename);
     }
 
-    return ok;
+    return true;
 }
 
 // ============================================================

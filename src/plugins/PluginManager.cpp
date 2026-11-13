@@ -5,6 +5,8 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QLibrary>
+#include <QJsonObject>
+#include <QMetaObject>
 
 PluginManager::PluginManager(QObject* parent)
     : QObject(parent)
@@ -40,11 +42,28 @@ void PluginManager::loadPlugin(const QString& filePath)
     qDebug() << "Loading plugin from:" << filePath;
     
     auto* loader = new QPluginLoader(filePath);
+
+    // Verify the plugin declares the expected interface before executing any
+    // plugin code. QPluginLoader::instance() would happily dlopen any library,
+    // so this is the last checkpoint before running third-party code.
+    const QJsonObject meta = loader->metaData();
+    const QString iid = meta.value(QStringLiteral("IID")).toString();
+    if (iid != QLatin1String(IPlugin_IID)) {
+        QString pluginName = QFileInfo(filePath).baseName();
+        qWarning() << "Plugin refused: IID mismatch or missing for" << pluginName
+                   << "(got" << (iid.isEmpty() ? QStringLiteral("<none>") : iid) << ")";
+        emit pluginError(pluginName, tr("Plugin does not declare the expected interface (%1)")
+                                         .arg(QLatin1String(IPlugin_IID)));
+        delete loader;
+        return;
+    }
+
     QObject* instance = loader->instance();
     if (!instance) {
         QString pluginName = QFileInfo(filePath).baseName();
         qWarning() << "Failed to load plugin" << pluginName << ":" << loader->errorString();
         emit pluginError(pluginName, loader->errorString());
+        loader->unload();
         delete loader;
         return;
     }
@@ -53,18 +72,20 @@ void PluginManager::loadPlugin(const QString& filePath)
     if (!plugin) {
         QString pluginName = QFileInfo(filePath).baseName();
         qWarning() << "Loaded object is not a valid plugin:" << pluginName;
-        delete loader;
         emit pluginError(pluginName, tr("Not a valid plugin"));
+        loader->unload();
+        delete loader;
         return;
     }
 
-    qDebug() << "Plugin metadata - Name:" << plugin->name() << "Version:" << plugin->version() 
+    qDebug() << "Plugin metadata - Name:" << plugin->name() << "Version:" << plugin->version()
              << "Description:" << plugin->description();
-    
+
     if (!plugin->initialize(m_context)) {
         qWarning() << "Plugin initialization failed:" << plugin->name();
-        delete loader;
         emit pluginError(plugin->name(), tr("Plugin failed to initialize"));
+        loader->unload();
+        delete loader;
         return;
     }
 
@@ -94,7 +115,11 @@ void PluginManager::setContext(PluginContext* context)
 
 void PluginManager::unloadPlugins()
 {
-    for (auto it = m_plugins.begin(); it != m_plugins.end(); ++it) {
+    // Unload in reverse load order so dependents shut down before their
+    // dependencies.
+    if (m_plugins.isEmpty())
+        return;
+    for (auto it = m_plugins.end() - 1; it >= m_plugins.begin(); --it) {
         if (it->instance)
             it->instance->shutdown();
         emit pluginUnloaded(it->name);

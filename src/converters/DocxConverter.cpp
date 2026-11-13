@@ -22,6 +22,7 @@
 #include <QVector>
 #include <QPair>
 #include <QFileInfo>
+#include <QDir>
 #include <QtNumeric>
 #include <QSet>
 #include <QDebug>
@@ -779,7 +780,9 @@ static void parseTable(QXmlStreamReader &xml, QTextCursor &cursor,
                 QPair<int,int> listKey(pb.numId, pb.ilvl);
                 if (pb.numId >= 0 && numbering.contains(pb.numId)) {
                     const NumDef &nd = numbering[pb.numId];
-                    int level = qMin(pb.ilvl, nd.levels.size() - 1);
+                    if (nd.levels.isEmpty())
+                        continue;
+                    int level = qBound(0, pb.ilvl, nd.levels.size() - 1);
                     const NumLevel &nl = nd.levels[level];
 
                     if (!activeLists.contains(listKey)) {
@@ -892,15 +895,27 @@ bool DocxConverter::loadFromDocx(const QByteArray &zipData, QTextDocument *doc,
             QString type = a.value(QLatin1String("Type")).toString();
             if (!id.isEmpty() && !target.isEmpty()) {
                 if (type.contains(QLatin1String("image"))) {
-                    QString mediaPath = QLatin1String("word/") + target;
-                    if (files.contains(mediaPath)) {
+                    // Keep the media rel target inside word/ — a "../word/document.xml"
+                    // target must not alias another entry as an "image".
+                    const QString mediaPath =
+                        QDir::cleanPath(QLatin1String("word/") + target);
+                    if (mediaPath.startsWith(QStringLiteral("word/")) && files.contains(mediaPath)) {
                         ImageRel ir;
                         ir.data = files[mediaPath];
                         ir.target = target;
                         imageDataByRelId[id] = ir;
                     }
                 } else if (type.contains(QLatin1String("hyperlink"))) {
-                    hyperlinkTargets[id] = target;
+                    // Only allow safe external schemes; a crafted document
+                    // could otherwise smuggle javascript:/file: into anchors.
+                    const QString scheme = QUrl(target).scheme().toLower();
+                    static const QStringList allowed = {
+                        QStringLiteral("http"), QStringLiteral("https"),
+                        QStringLiteral("ftp"), QStringLiteral("ftps"),
+                        QStringLiteral("mailto")
+                    };
+                    if (allowed.contains(scheme))
+                        hyperlinkTargets[id] = target;
                 }
             }
         }
@@ -967,7 +982,9 @@ bool DocxConverter::loadFromDocx(const QByteArray &zipData, QTextDocument *doc,
             QPair<int,int> listKey(pb.numId, pb.ilvl);
             if (pb.numId >= 0 && numbering.contains(pb.numId)) {
                 const NumDef &nd = numbering[pb.numId];
-                int level = qMin(pb.ilvl, nd.levels.size() - 1);
+                if (nd.levels.isEmpty())
+                    continue;
+                int level = qBound(0, pb.ilvl, nd.levels.size() - 1);
                 const NumLevel &nl = nd.levels[level];
 
                 if (!activeLists.contains(listKey)) {
@@ -1048,7 +1065,7 @@ static QString imageFormatFromName(const QString &name)
     return QStringLiteral("PNG");
 }
 
-static void writeImageRun(QXmlStreamWriter &w,
+static bool writeImageRun(QXmlStreamWriter &w,
                           const QTextImageFormat &imgFmt, const QImage &img,
                           int &imageCounter, int &relationCounter,
                           QStringList &imageRels, QStringList &imageTargets,
@@ -1066,10 +1083,13 @@ static void writeImageRun(QXmlStreamWriter &w,
 
     QByteArray imgData;
     QBuffer imgBuf(&imgData);
-    imgBuf.open(QIODevice::WriteOnly);
-    img.save(&imgBuf, fmt.toLatin1().constData());
+    if (!imgBuf.open(QIODevice::WriteOnly) || !img.save(&imgBuf, fmt.toLatin1().constData()))
+        return false;
     imgBuf.close();
-    addZipFile(&zip, QLatin1String("word/") + target, imgData);
+    if (imgData.isEmpty())
+        return false;
+    if (!addZipFile(&zip, QLatin1String("word/") + target, imgData))
+        return false;
 
     w.writeStartElement(QLatin1String("w:r"));
     w.writeStartElement(QLatin1String("w:rPr"));
@@ -1119,6 +1139,7 @@ static void writeImageRun(QXmlStreamWriter &w,
     w.writeEndElement();
     w.writeEndElement();
     w.writeEndElement();
+    return true;
 }
 
 static void writeTableXml(QXmlStreamWriter &w, QTextTable *table,
@@ -1216,9 +1237,11 @@ static void writeTableXml(QXmlStreamWriter &w, QTextTable *table,
                         QVariant res = doc->resource(QTextDocument::ImageResource, QUrl(imgFmt.name()));
                         if (res.isValid()) {
                             QImage img = qvariant_cast<QImage>(res);
-                            if (!img.isNull())
-                                writeImageRun(w, imgFmt, img, imageCounter, relationCounter,
-                                              imageRels, imageTargets, zip);
+                            if (!img.isNull() &&
+                                !writeImageRun(w, imgFmt, img, imageCounter, relationCounter,
+                                               imageRels, imageTargets, zip)) {
+                                qWarning() << "Failed to embed image in DOCX export";
+                            }
                         }
                         continue;
                     }
@@ -1499,9 +1522,11 @@ QByteArray DocxConverter::saveToDocx(const QTextDocument *doc,
                     QVariant res = doc->resource(QTextDocument::ImageResource, QUrl(imgFmt.name()));
                     if (res.isValid()) {
                         QImage img = qvariant_cast<QImage>(res);
-                        if (!img.isNull())
-                            writeImageRun(w, imgFmt, img, imageCounter, relationCounter,
-                                          imageRels, imageTargets, zip);
+                        if (!img.isNull() &&
+                            !writeImageRun(w, imgFmt, img, imageCounter, relationCounter,
+                                           imageRels, imageTargets, zip)) {
+                            qWarning() << "Failed to embed image in DOCX export";
+                        }
                     }
                     continue;
                 }

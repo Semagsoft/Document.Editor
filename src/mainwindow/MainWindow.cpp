@@ -138,7 +138,7 @@ MainWindow::MainWindow(QWidget* parent)
         m_pluginManager->loadPlugins();
 
     // Spell checker
-    m_spellChecker = std::make_unique<SpellChecker>();
+    m_spellChecker = std::make_shared<SpellChecker>();
 
     // Text-to-speech
     m_tts = new QTextToSpeech(this);
@@ -231,7 +231,7 @@ void MainWindow::applyEditorSettings(DocumentEditor* editor)
 {
     if (!editor)
         return;
-    editor->setSpellChecker(m_spellChecker.get());
+    editor->setSpellChecker(m_spellChecker);
     editor->setSpellCheckEnabled(m_settings->spellCheckEnabled());
     if (editor->document()->toPlainText().isEmpty()) {
         QFont f = m_settings->defaultFont();
@@ -377,21 +377,28 @@ void MainWindow::connectEditActions()
     connect(m_actionManager->pasteTextAction(), &QAction::triggered, this, [this]() {
         if (auto* e = currentEditor()) {
             QString text = QApplication::clipboard()->text();
-            if (!text.isEmpty())
-                e->textCursor().insertText(text);
+            if (!text.isEmpty()) {
+                QTextCursor cursor = e->textCursor();
+                cursor.insertText(text);
+                e->setTextCursor(cursor);
+            }
         }
     });
     connect(m_actionManager->pasteImageAction(), &QAction::triggered, this, [this]() {
         if (auto* e = currentEditor()) {
             QImage img = QApplication::clipboard()->image();
-            if (!img.isNull())
-                e->textCursor().insertImage(img);
+            if (!img.isNull()) {
+                QTextCursor cursor = e->textCursor();
+                cursor.insertImage(img);
+                e->setTextCursor(cursor);
+            }
         }
     });
     connect(m_actionManager->deleteAction(), &QAction::triggered, this, [this]() {
         if (auto* e = currentEditor()) {
             QTextCursor c = e->textCursor();
             c.removeSelectedText();
+            e->setTextCursor(c);
         }
     });
     connect(m_actionManager->selectAllAction(), &QAction::triggered, this, [this]() {
@@ -416,8 +423,11 @@ void MainWindow::connectEditActions()
             currentEditor()->find(text, buildFindFlags(matchCase));
         });
         connect(&dlg, &ReplaceDialog::replace, this, [this](const QString& find, const QString& replace, bool matchCase) {
-            if (currentEditor()->find(find, buildFindFlags(matchCase)))
-                currentEditor()->textCursor().insertText(replace);
+            if (currentEditor()->find(find, buildFindFlags(matchCase))) {
+                QTextCursor cursor = currentEditor()->textCursor();
+                cursor.insertText(replace);
+                currentEditor()->setTextCursor(cursor);
+            }
         });
         connect(&dlg, &ReplaceDialog::replaceAll, this, [this](const QString& find, const QString& replace, bool matchCase) {
             if (find.isEmpty())
@@ -474,7 +484,9 @@ void MainWindow::connectFormatActions()
             if (ok) {
                 QTextCharFormat fmt;
                 fmt.setFont(font);
-                e->textCursor().mergeCharFormat(fmt);
+                QTextCursor cursor = e->textCursor();
+                cursor.mergeCharFormat(fmt);
+                e->setTextCursor(cursor);
             }
         }
     });
@@ -486,7 +498,9 @@ void MainWindow::connectFormatActions()
             if (ok) {
                 QTextCharFormat fmt;
                 fmt.setFontPointSize(size);
-                e->textCursor().mergeCharFormat(fmt);
+                QTextCursor cursor = e->textCursor();
+                cursor.mergeCharFormat(fmt);
+                e->setTextCursor(cursor);
             }
         }
     });
@@ -496,7 +510,9 @@ void MainWindow::connectFormatActions()
             if (color.isValid()) {
                 QTextCharFormat fmt;
                 fmt.setForeground(color);
-                e->textCursor().mergeCharFormat(fmt);
+                QTextCursor cursor = e->textCursor();
+                cursor.mergeCharFormat(fmt);
+                e->setTextCursor(cursor);
             }
         }
     });
@@ -507,7 +523,9 @@ void MainWindow::connectFormatActions()
             if (color.isValid()) {
                 QTextCharFormat fmt;
                 fmt.setBackground(color);
-                e->textCursor().mergeCharFormat(fmt);
+                QTextCursor cursor = e->textCursor();
+                cursor.mergeCharFormat(fmt);
+                e->setTextCursor(cursor);
             }
         }
     });
@@ -559,7 +577,9 @@ void MainWindow::connectFormatActions()
             return;
         QTextCharFormat fmt;
         fmt.setFontFamilies({ family });
-        currentEditor()->textCursor().mergeCharFormat(fmt);
+        QTextCursor cursor = currentEditor()->textCursor();
+        cursor.mergeCharFormat(fmt);
+        currentEditor()->setTextCursor(cursor);
     });
     connect(m_actionManager->fontSizeCombo(), &QComboBox::currentTextChanged, this, [this](const QString& text) {
         if (m_actionManager->isUpdatingFont() || !currentEditor())
@@ -569,7 +589,9 @@ void MainWindow::connectFormatActions()
         if (ok && size > 0) {
             QTextCharFormat fmt;
             fmt.setFontPointSize(size);
-            currentEditor()->textCursor().mergeCharFormat(fmt);
+            QTextCursor cursor = currentEditor()->textCursor();
+            cursor.mergeCharFormat(fmt);
+            currentEditor()->setTextCursor(cursor);
         }
     });
 }
@@ -1099,8 +1121,12 @@ void MainWindow::checkRecoveryOnStartup()
         this, tr("Recover Documents"),
         tr("Unsaved document recovery files were found (%1). Restore them?").arg(files.size()),
         QMessageBox::Yes | QMessageBox::No);
-    if (btn != QMessageBox::Yes)
+    if (btn != QMessageBox::Yes) {
+        // Don't let stale recovery files accumulate forever — discard them.
+        for (const QString& file : files)
+            dir.remove(file);
         return;
+    }
     for (const QString& file : files) {
         QString path = dir.absoluteFilePath(file);
         DocumentTab* tab = m_docManager->createDocument(tr("Recovered Document"));
@@ -1109,7 +1135,12 @@ void MainWindow::checkRecoveryOnStartup()
             m_docManager->closeDocument(tab);
             continue;
         }
+        // Recovered work was never saved — mark it modified so closing the
+        // tab prompts instead of silently discarding it.
         tab->editor()->setDocumentName(QString()); // treat recovered work as untitled
+        tab->editor()->setModified(true);
+        // Consume the recovery file so we don't re-prompt on every launch.
+        dir.remove(file);
     }
 }
 

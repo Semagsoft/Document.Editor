@@ -204,6 +204,26 @@ private slots:
         QCOMPARE(dstInList, srcInList);
     }
 
+    void testTableDimensionsAreClamped()
+    {
+        // A hostile document could ask for billions of cells; the loader must
+        // clamp the table size instead of allocating until OOM.
+        const QString xaml = QStringLiteral(
+            "<Document>\n"
+            "  <Table Rows=\"2000000000\" Cols=\"2000000000\">\n"
+            "    <TableRow>\n"
+            "      <TableCell><Paragraph><Run>x</Run></Paragraph></TableCell>\n"
+            "    </TableRow>\n"
+            "  </Table>\n"
+            "</Document>");
+        QTextDocument doc;
+        QMarginsF margins;
+        QColor bg;
+        QVERIFY(XamlConverter::loadFromXaml(xaml, &doc, margins, bg));
+        QTextBlock block = doc.begin();
+        QVERIFY(block.isValid());
+    }
+
     void testTableRoundTrip()
     {
         QTextDocument doc;

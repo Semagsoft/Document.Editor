@@ -87,7 +87,7 @@ private:
     DocumentManager* m_docManager = nullptr;
     PluginManager* m_pluginManager = nullptr;
     PluginContext* m_pluginContext = nullptr;
-    std::unique_ptr<SpellChecker> m_spellChecker;
+    std::shared_ptr<SpellChecker> m_spellChecker;
     QTextToSpeech* m_tts = nullptr;
 
     Settings* m_settings = nullptr;
