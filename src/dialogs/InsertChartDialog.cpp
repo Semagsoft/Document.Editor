@@ -80,7 +80,9 @@ QPixmap InsertChartDialog::generateChart(const QString &type) const
 
     auto *chart = new QChart();
     chart->setTitle(type);
-    chart->setAnimationOptions(QChart::SeriesAnimations);
+    // NoAnimation: the dialog snapshots the chart immediately (off-screen);
+    // with animation the captured frame renders the series at t=0 (blank).
+    chart->setAnimationOptions(QChart::NoAnimation);
     chart->legend()->setAlignment(Qt::AlignBottom);
 
     switch (chartTypeIndex(type)) {

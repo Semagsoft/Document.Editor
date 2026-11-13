@@ -152,7 +152,10 @@ MainWindow::MainWindow(QWidget* parent)
         int pct = qRound(m_zoomPendingLevel * 100.0);
         if (auto *e = m_zoomPendingEditor.data())
             e->setZoomLevel(m_zoomPendingLevel);
-        m_actionManager->zoomSlider()->setValue(pct);
+        auto *slider = m_actionManager->zoomSlider();
+        slider->blockSignals(true);
+        slider->setValue(pct);
+        slider->blockSignals(false);
         m_actionManager->zoomLabel()->setText(QStringLiteral(" %1%").arg(pct));
         m_statusBarManager->setZoomLevel(pct);
         applyRulerToTabs();
@@ -434,17 +437,20 @@ void MainWindow::connectEditActions()
                 return;
             const QTextDocument::FindFlags flags = buildFindFlags(matchCase);
             int count = 0;
-            QTextCursor cursor = currentEditor()->textCursor();
-            cursor.movePosition(QTextCursor::Start);
-            while (!cursor.isNull() && cursor.position() < currentEditor()->document()->characterCount()) {
+            // Search forward from a moving position; after each replacement the
+            // search continues at the end of the inserted text, so the replaced
+            // text is never re-scanned (and empty replacements terminate).
+            int pos = 0;
+            while (pos < currentEditor()->document()->characterCount()) {
+                QTextCursor cursor(currentEditor()->document());
+                cursor.setPosition(pos);
                 cursor = currentEditor()->document()->find(find, cursor, flags);
                 if (cursor.isNull())
                     break;
-                int prevPos = cursor.position();
+                const int matchStart = cursor.selectionStart();
                 cursor.insertText(replace);
+                pos = matchStart + replace.length();
                 ++count;
-                if (cursor.position() == prevPos)
-                    break;
                 if (count > 100000)
                     break;
             }
@@ -851,7 +857,10 @@ void MainWindow::connectViewActions()
     // Zoom connections
     auto updateZoomDisplay = [this](qreal level) {
         int pct = qRound(level * 100.0);
-        m_actionManager->zoomSlider()->setValue(pct);
+        auto *slider = m_actionManager->zoomSlider();
+        slider->blockSignals(true);
+        slider->setValue(pct);
+        slider->blockSignals(false);
         m_actionManager->zoomLabel()->setText(QStringLiteral(" %1%").arg(pct));
         m_statusBarManager->setZoomLevel(pct);
         applyRulerToTabs();

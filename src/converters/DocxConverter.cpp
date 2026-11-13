@@ -1142,12 +1142,86 @@ static bool writeImageRun(QXmlStreamWriter &w,
     return true;
 }
 
+static void writeTextRunXml(QXmlStreamWriter &w, const QTextCharFormat &cf,
+                            const QString &text,
+                            QMap<QString, QString> &hyperlinkUrlToRelId,
+                            QMap<QString, QString> &hyperlinkRelIdToUrl,
+                            int &relationCounter)
+{
+    bool isLink = cf.isAnchor() && !cf.anchorHref().isEmpty();
+    if (isLink) {
+        QString href = cf.anchorHref();
+        if (!hyperlinkUrlToRelId.contains(href)) {
+            ++relationCounter;
+            QString rid = QStringLiteral("rId%1").arg(relationCounter);
+            hyperlinkUrlToRelId[href] = rid;
+            hyperlinkRelIdToUrl[rid] = href;
+        }
+        w.writeStartElement(QLatin1String("w:hyperlink"));
+        w.writeAttribute(QLatin1String("r:id"), hyperlinkUrlToRelId[href]);
+    }
+    w.writeStartElement(QLatin1String("w:r"));
+    w.writeStartElement(QLatin1String("w:rPr"));
+
+    if (cf.fontWeight() == QFont::Bold)
+        w.writeEmptyElement(QLatin1String("w:b"));
+    if (cf.fontItalic())
+        w.writeEmptyElement(QLatin1String("w:i"));
+    if (cf.fontUnderline()) {
+        w.writeStartElement(QLatin1String("w:u"));
+        w.writeAttribute(QLatin1String("w:val"), QLatin1String("single"));
+        w.writeEndElement();
+    }
+    if (cf.fontStrikeOut())
+        w.writeEmptyElement(QLatin1String("w:strike"));
+    if (cf.verticalAlignment() == QTextCharFormat::AlignSubScript)
+        w.writeTextElement(QLatin1String("w:vertAlign"), QLatin1String("subscript"));
+    else if (cf.verticalAlignment() == QTextCharFormat::AlignSuperScript)
+        w.writeTextElement(QLatin1String("w:vertAlign"), QLatin1String("superscript"));
+
+    QStringList families = cf.fontFamilies().toStringList();
+    if (!families.isEmpty()) {
+        QString fam = families.first();
+        if (!fam.isEmpty() && fam != QLatin1String("Segoe UI")) {
+            w.writeStartElement(QLatin1String("w:rFonts"));
+            w.writeAttribute(QLatin1String("w:ascii"), fam);
+            w.writeAttribute(QLatin1String("w:hAnsi"), fam);
+            if (families.size() > 1)
+                w.writeAttribute(QLatin1String("w:eastAsia"), families[1]);
+            if (families.size() > 2)
+                w.writeAttribute(QLatin1String("w:cs"), families[2]);
+            w.writeEndElement();
+        }
+    }
+
+    if (cf.fontPointSize() > 0) {
+        int half = ptToHalfPt(cf.fontPointSize());
+        w.writeTextElement(QLatin1String("w:sz"), QString::number(half));
+        w.writeTextElement(QLatin1String("w:szCs"), QString::number(half));
+    }
+
+    QColor fg = cf.foreground().color();
+    if (fg.isValid() && fg != QColor(Qt::black)) {
+        w.writeStartElement(QLatin1String("w:color"));
+        w.writeAttribute(QLatin1String("w:val"), fg.name().mid(1));
+        w.writeEndElement();
+    }
+
+    w.writeEndElement();
+    writeTextWithBreaks(w, text);
+    w.writeEndElement();
+    if (isLink)
+        w.writeEndElement();
+}
+
 static void writeTableXml(QXmlStreamWriter &w, QTextTable *table,
                           QTextDocument *doc,
                           int &imageCounter, int &relationCounter,
                           QStringList &imageRels, QStringList &imageTargets,
                           mz_zip_archive &zip,
-                          QSet<QString> &usedStyles)
+                          QSet<QString> &usedStyles,
+                          QMap<QString, QString> &hyperlinkUrlToRelId,
+                          QMap<QString, QString> &hyperlinkRelIdToUrl)
 {
     w.writeStartElement(QLatin1String("w:tbl"));
     w.writeStartElement(QLatin1String("w:tblPr"));
@@ -1246,56 +1320,8 @@ static void writeTableXml(QXmlStreamWriter &w, QTextTable *table,
                         continue;
                     }
 
-                    w.writeStartElement(QLatin1String("w:r"));
-                    w.writeStartElement(QLatin1String("w:rPr"));
-
-                    if (cf.fontWeight() == QFont::Bold)
-                        w.writeEmptyElement(QLatin1String("w:b"));
-                    if (cf.fontItalic())
-                        w.writeEmptyElement(QLatin1String("w:i"));
-                    if (cf.fontUnderline()) {
-                        w.writeStartElement(QLatin1String("w:u"));
-                        w.writeAttribute(QLatin1String("w:val"), QLatin1String("single"));
-                        w.writeEndElement();
-                    }
-                    if (cf.fontStrikeOut())
-                        w.writeEmptyElement(QLatin1String("w:strike"));
-                    if (cf.verticalAlignment() == QTextCharFormat::AlignSubScript)
-                        w.writeTextElement(QLatin1String("w:vertAlign"), QLatin1String("subscript"));
-                    else if (cf.verticalAlignment() == QTextCharFormat::AlignSuperScript)
-                        w.writeTextElement(QLatin1String("w:vertAlign"), QLatin1String("superscript"));
-
-                    QStringList families = cf.fontFamilies().toStringList();
-                    if (!families.isEmpty()) {
-                        QString fam = families.first();
-                        if (!fam.isEmpty() && fam != QLatin1String("Segoe UI")) {
-                            w.writeStartElement(QLatin1String("w:rFonts"));
-                            w.writeAttribute(QLatin1String("w:ascii"), fam);
-                            w.writeAttribute(QLatin1String("w:hAnsi"), fam);
-                            if (families.size() > 1)
-                                w.writeAttribute(QLatin1String("w:eastAsia"), families[1]);
-                            if (families.size() > 2)
-                                w.writeAttribute(QLatin1String("w:cs"), families[2]);
-                            w.writeEndElement();
-                        }
-                    }
-
-                    if (cf.fontPointSize() > 0) {
-                        int half = ptToHalfPt(cf.fontPointSize());
-                        w.writeTextElement(QLatin1String("w:sz"), QString::number(half));
-                        w.writeTextElement(QLatin1String("w:szCs"), QString::number(half));
-                    }
-
-                    QColor fg = cf.foreground().color();
-                    if (fg.isValid() && fg != QColor(Qt::black)) {
-                        w.writeStartElement(QLatin1String("w:color"));
-                        w.writeAttribute(QLatin1String("w:val"), fg.name().mid(1));
-                        w.writeEndElement();
-                    }
-
-                    w.writeEndElement();
-                    writeTextWithBreaks(w, text);
-                    w.writeEndElement();
+                    writeTextRunXml(w, cf, text, hyperlinkUrlToRelId,
+                                    hyperlinkRelIdToUrl, relationCounter);
                 }
 
                 w.writeEndElement();
@@ -1429,6 +1455,9 @@ QByteArray DocxConverter::saveToDocx(const QTextDocument *doc,
 
         QTextBlock block = doc->begin();
         QSet<quintptr> writtenTables;
+        // Deterministic numbering-id assignment: ids are handed out in order
+        // of first appearance, so document.xml and numbering.xml agree.
+        QMap<quintptr, int> numIdByList;
 
         while (block.isValid()) {
             QTextFrame *blockFrame = doc->frameAt(block.position());
@@ -1445,7 +1474,8 @@ QByteArray DocxConverter::saveToDocx(const QTextDocument *doc,
                     writeTableXml(w, table, const_cast<QTextDocument*>(doc),
                                   imageCounter, relationCounter,
                                   imageRels, imageTargets, zip,
-                                  usedStyles);
+                                  usedStyles,
+                                  hyperlinkUrlToRelId, hyperlinkRelIdToUrl);
                     writtenTables.insert(tp);
                 }
                 int tableEnd = table->lastPosition();
@@ -1498,7 +1528,12 @@ QByteArray DocxConverter::saveToDocx(const QTextDocument *doc,
 
             if (list) {
                 QTextListFormat lf = list->format();
-                int numId = (reinterpret_cast<quintptr>(list) % 10000) + 1;
+                const quintptr key = reinterpret_cast<quintptr>(list);
+                int numId = numIdByList.value(key);
+                if (numId == 0) {
+                    numId = numIdByList.size() + 1;
+                    numIdByList.insert(key, numId);
+                }
                 int ilvl = 0;
                 if (list->itemNumber(block) >= 0)
                     ilvl = qMax(0, lf.indent() - 1);
@@ -1531,70 +1566,8 @@ QByteArray DocxConverter::saveToDocx(const QTextDocument *doc,
                     continue;
                 }
 
-                bool isLink = cf.isAnchor() && !cf.anchorHref().isEmpty();
-                if (isLink) {
-                    QString href = cf.anchorHref();
-                    if (!hyperlinkUrlToRelId.contains(href)) {
-                        ++relationCounter;
-                        QString rid = QStringLiteral("rId%1").arg(relationCounter);
-                        hyperlinkUrlToRelId[href] = rid;
-                        hyperlinkRelIdToUrl[rid] = href;
-                    }
-                    w.writeStartElement(QLatin1String("w:hyperlink"));
-                    w.writeAttribute(QLatin1String("r:id"), hyperlinkUrlToRelId[href]);
-                }
-                w.writeStartElement(QLatin1String("w:r"));
-                w.writeStartElement(QLatin1String("w:rPr"));
-
-                if (cf.fontWeight() == QFont::Bold)
-                    w.writeEmptyElement(QLatin1String("w:b"));
-                if (cf.fontItalic())
-                    w.writeEmptyElement(QLatin1String("w:i"));
-                if (cf.fontUnderline()) {
-                    w.writeStartElement(QLatin1String("w:u"));
-                    w.writeAttribute(QLatin1String("w:val"), QLatin1String("single"));
-                    w.writeEndElement();
-                }
-                if (cf.fontStrikeOut())
-                    w.writeEmptyElement(QLatin1String("w:strike"));
-                if (cf.verticalAlignment() == QTextCharFormat::AlignSubScript)
-                    w.writeTextElement(QLatin1String("w:vertAlign"), QLatin1String("subscript"));
-                else if (cf.verticalAlignment() == QTextCharFormat::AlignSuperScript)
-                    w.writeTextElement(QLatin1String("w:vertAlign"), QLatin1String("superscript"));
-
-                QStringList families = cf.fontFamilies().toStringList();
-                if (!families.isEmpty()) {
-                    QString fam = families.first();
-                    if (!fam.isEmpty() && fam != QLatin1String("Segoe UI")) {
-                        w.writeStartElement(QLatin1String("w:rFonts"));
-                        w.writeAttribute(QLatin1String("w:ascii"), fam);
-                        w.writeAttribute(QLatin1String("w:hAnsi"), fam);
-                        if (families.size() > 1)
-                            w.writeAttribute(QLatin1String("w:eastAsia"), families[1]);
-                        if (families.size() > 2)
-                            w.writeAttribute(QLatin1String("w:cs"), families[2]);
-                        w.writeEndElement();
-                    }
-                }
-
-                if (cf.fontPointSize() > 0) {
-                    int half = ptToHalfPt(cf.fontPointSize());
-                    w.writeTextElement(QLatin1String("w:sz"), QString::number(half));
-                    w.writeTextElement(QLatin1String("w:szCs"), QString::number(half));
-                }
-
-                QColor fg = cf.foreground().color();
-                if (fg.isValid() && fg != QColor(Qt::black)) {
-                    w.writeStartElement(QLatin1String("w:color"));
-                    w.writeAttribute(QLatin1String("w:val"), fg.name().mid(1));
-                    w.writeEndElement();
-                }
-
-                w.writeEndElement();
-                writeTextWithBreaks(w, text);
-                w.writeEndElement();
-                if (isLink)
-                    w.writeEndElement();
+                writeTextRunXml(w, cf, text, hyperlinkUrlToRelId,
+                                hyperlinkRelIdToUrl, relationCounter);
             }
 
             w.writeEndElement();
@@ -1671,15 +1644,17 @@ QByteArray DocxConverter::saveToDocx(const QTextDocument *doc,
             QTextListFormat::Style style;
             int indent;
         };
-        QMap<quintptr, ListEntry> uniqueLists;
+        QSet<quintptr> seen;
+        QList<QPair<quintptr, ListEntry>> uniqueLists; // document order = numId order
         QTextBlock b = doc->begin();
         while (b.isValid()) {
             QTextList *list = b.textList();
             if (list) {
                 quintptr ptr = reinterpret_cast<quintptr>(list);
-                if (!uniqueLists.contains(ptr)) {
+                if (!seen.contains(ptr)) {
+                    seen.insert(ptr);
                     QTextListFormat lf = list->format();
-                    uniqueLists[ptr] = { lf.style(), lf.indent() };
+                    uniqueLists.append({ ptr, { lf.style(), lf.indent() } });
                 }
             }
             b = b.next();
@@ -1693,14 +1668,15 @@ QByteArray DocxConverter::saveToDocx(const QTextDocument *doc,
         w.writeNamespace(NS_W, QLatin1String("w"));
 
         int abstractNumId = 0;
-        for (auto it = uniqueLists.constBegin(); it != uniqueLists.constEnd(); ++it) {
-            int numId = (static_cast<int>(it.key() % 10000)) + 1;
+        for (int listIdx = 0; listIdx < uniqueLists.size(); ++listIdx) {
+            const auto &entry = uniqueLists.at(listIdx);
+            int numId = listIdx + 1; // matches the document.xml numId assignment
             ++abstractNumId;
 
             w.writeStartElement(QLatin1String("w:abstractNum"));
             w.writeAttribute(QLatin1String("w:abstractNumId"), QString::number(abstractNumId));
 
-            int levels = qMax(1, it.value().indent);
+            int levels = qMax(1, entry.second.indent);
             for (int lvl = 0; lvl < levels; ++lvl) {
                 w.writeStartElement(QLatin1String("w:lvl"));
                 w.writeAttribute(QLatin1String("w:ilvl"), QString::number(lvl));
@@ -1709,7 +1685,7 @@ QByteArray DocxConverter::saveToDocx(const QTextDocument *doc,
                 w.writeEndElement();
                 w.writeStartElement(QLatin1String("w:numFmt"));
                 QString fmtVal;
-                switch (it.value().style) {
+                switch (entry.second.style) {
                 case QTextListFormat::ListDecimal:    fmtVal = QLatin1String("decimal"); break;
                 case QTextListFormat::ListLowerAlpha: fmtVal = QLatin1String("lowerLetter"); break;
                 case QTextListFormat::ListUpperAlpha: fmtVal = QLatin1String("upperLetter"); break;
@@ -1724,7 +1700,7 @@ QByteArray DocxConverter::saveToDocx(const QTextDocument *doc,
                 w.writeEndElement();
                 w.writeStartElement(QLatin1String("w:pPr"));
                 w.writeStartElement(QLatin1String("w:ind"));
-                int leftIndent = (it.value().indent + lvl) * 360;
+                int leftIndent = (entry.second.indent + lvl) * 360;
                 w.writeAttribute(QLatin1String("w:left"), QString::number(leftIndent));
                 w.writeAttribute(QLatin1String("w:hanging"), QLatin1String("360"));
                 w.writeEndElement();

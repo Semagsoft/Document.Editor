@@ -198,7 +198,7 @@ void DocumentEditor::setZoomLevel(qreal level)
     m_zoomLevel = level;
 
     QFont zoomedFont = m_baseFont;
-    zoomedFont.setPointSizeF(qRound(m_baseFontPointSize * m_zoomLevel));
+    zoomedFont.setPointSizeF(m_baseFontPointSize * m_zoomLevel);
     setFont(zoomedFont);
 
     // setFont() only rescales text that has no explicit char format. Scale
@@ -274,7 +274,9 @@ void DocumentEditor::updateStats()
     int maxCol = col;
     QTextBlock block = cursor.block();
     if (block.isValid())
-        maxCol = block.length();
+        // QTextBlock::length() counts the paragraph separator — the visible
+        // column count is the plain-text width of the line.
+        maxCol = block.text().length();
 
     m_selectedLine = blockNum;
     m_lineCount = totalBlocks;

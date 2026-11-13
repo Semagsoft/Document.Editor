@@ -90,6 +90,33 @@ private slots:
         QVERIFY(ok);
     }
 
+    void testUnicodeNegativeAndAnsiFallback()
+    {
+        // \u-3929 is Word's signed 16-bit encoding of U+F0E7-ish code units;
+        // negative \u values must sign-extend into the 16-bit range rather
+        // than truncate to ushort blindly.
+        QTextDocument doc;
+        QByteArray rtf = QByteArrayLiteral("{\\rtf1\\ansi\\deff0 \\u-3929?}");
+        bool ok = RtfConverter::loadFromRtf(rtf, &doc);
+        QVERIFY(ok);
+        QCOMPARE(doc.toPlainText().trimmed(), QString(QChar(static_cast<ushort>(61607))));
+
+        // ANSI docs carry a \'hh fallback after \uN; it must be skipped,
+        // not inserted as literal text.
+        QTextDocument doc2;
+        QByteArray rtf2 = QByteArrayLiteral("{\\rtf1\\ansi\\deff0 \\u8217\\'92}");
+        ok = RtfConverter::loadFromRtf(rtf2, &doc2);
+        QVERIFY(ok);
+        QCOMPARE(doc2.toPlainText().trimmed(), QString(QChar(0x2019)));
+
+        // Single-byte fallback (non-ANSI path) is also consumed.
+        QTextDocument doc3;
+        QByteArray rtf3 = QByteArrayLiteral("{\\rtf1\\ansicpg65001\\deff0 \\u8217a}");
+        ok = RtfConverter::loadFromRtf(rtf3, &doc3);
+        QVERIFY(ok);
+        QCOMPARE(doc3.toPlainText().trimmed(), QString(QChar(0x2019)));
+    }
+
     void testFontSize()
     {
         QTextDocument doc;

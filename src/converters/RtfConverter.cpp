@@ -129,8 +129,13 @@ static int parseColorTable(const QString &rtf, int i, QVector<QColor> &colorTabl
             int depth = 1;
             i++;
             while (i < rtf.length() && depth > 0) {
-                if (rtf[i] == QLatin1Char('{')) depth++;
-                else if (rtf[i] == QLatin1Char('}')) depth--;
+                const QChar sc = rtf[i];
+                if (sc == QLatin1Char('\\') && i + 1 < rtf.length()) {
+                    i += 2;
+                    continue;
+                }
+                if (sc == QLatin1Char('{')) depth++;
+                else if (sc == QLatin1Char('}')) depth--;
                 i++;
             }
         } else if (c == QLatin1Char('}')) {
@@ -272,7 +277,8 @@ static bool loadRtfToDocument(const QString &rtf, QTextDocument *doc)
 
             while (i < rtf.length() && rtf[i].isDigit()) {
                 hasNumeric = true;
-                numericArg = numericArg * 10 + (rtf[i].unicode() - QLatin1Char('0').unicode());
+                numericArg = qMin(numericArg * 10 + (rtf[i].unicode() - QLatin1Char('0').unicode()),
+                                   32767);
                 i++;
             }
             if (negative)
@@ -356,11 +362,19 @@ static bool loadRtfToDocument(const QString &rtf, QTextDocument *doc)
             } else if (controlWord == QStringLiteral("row")) {
                 cursor.insertBlock();
             } else if (controlWord == QStringLiteral("u") && hasNumeric) {
-                QChar ch(static_cast<ushort>(numericArg));
+                // \uN is a signed 16-bit value; negatives wrap into Unicode.
+                int code = numericArg;
+                if (code < 0)
+                    code += 65536;
+                code &= 0xFFFF;
+                QChar ch(static_cast<ushort>(code));
                 applyCharFormat(cursor, currentState);
                 cursor.insertText(QString(ch));
-                // Skip the replacement character that follows \uN
-                if (i < rtf.length())
+                // Skip the fallback that follows \uN: either a single byte,
+                // or "\'hh" when the document is ANSI (common for Word RTF).
+                if (i + 3 < rtf.length() && rtf[i] == QLatin1Char('\\') && rtf[i + 1] == QLatin1Char('\''))
+                    i += 4;
+                else if (i < rtf.length())
                     i++;
             }
 
@@ -381,16 +395,26 @@ static bool loadRtfToDocument(const QString &rtf, QTextDocument *doc)
                 // Skip these groups - fast-forward to matching close brace
                 int depth = 1;
                 while (i < rtf.length() && depth > 0) {
-                    if (rtf[i] == QLatin1Char('{')) depth++;
-                    else if (rtf[i] == QLatin1Char('}')) depth--;
+                    const QChar sc = rtf[i];
+                    if (sc == QLatin1Char('\\') && i + 1 < rtf.length()) {
+                        i += 2;
+                        continue;
+                    }
+                    if (sc == QLatin1Char('{')) depth++;
+                    else if (sc == QLatin1Char('}')) depth--;
                     i++;
                 }
             } else if (controlWord == QStringLiteral("*")) {
                 // \* - skip this destination group
                 int depth = 1;
                 while (i < rtf.length() && depth > 0) {
-                    if (rtf[i] == QLatin1Char('{')) depth++;
-                    else if (rtf[i] == QLatin1Char('}')) depth--;
+                    const QChar sc = rtf[i];
+                    if (sc == QLatin1Char('\\') && i + 1 < rtf.length()) {
+                        i += 2;
+                        continue;
+                    }
+                    if (sc == QLatin1Char('{')) depth++;
+                    else if (sc == QLatin1Char('}')) depth--;
                     i++;
                 }
             }
@@ -425,6 +449,9 @@ static QString escapeRtfText(const QString &text)
             result += QStringLiteral("\\line ");
         else if (c == QLatin1Char('\t'))
             result += QStringLiteral("\\tab ");
+        else if (c.unicode() > 32767)
+            // RTF \uN is signed 16-bit; >32767 must wrap negative
+            result += QStringLiteral("\\u%1?").arg(static_cast<int>(c.unicode()) - 65536);
         else if (c.unicode() > 127)
             result += QStringLiteral("\\u%1?").arg(static_cast<int>(c.unicode()));
         else

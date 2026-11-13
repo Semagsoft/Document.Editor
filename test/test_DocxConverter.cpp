@@ -494,6 +494,36 @@ private slots:
         QCOMPARE(findAnchorHref(&doc2), QStringLiteral("https://example.com"));
     }
 
+    void testHyperlinkInTableRoundTrip()
+    {
+        QTextDocument doc;
+        QTextCursor cursor(&doc);
+
+        QTextTable *table = cursor.insertTable(1, 2);
+
+        QTextTableCell cell = table->cellAt(0, 0);
+        QTextCursor cc = cell.firstCursorPosition();
+        cc.movePosition(QTextCursor::NextBlock, QTextCursor::KeepAnchor);
+        cc.removeSelectedText();
+        QTextCharFormat linkFmt;
+        linkFmt.setAnchor(true);
+        linkFmt.setAnchorHref(QStringLiteral("https://example.com"));
+        linkFmt.setForeground(QColor(Qt::blue));
+        linkFmt.setFontUnderline(true);
+        cc.insertText(QStringLiteral("Table link"), linkFmt);
+
+        QByteArray docx = DocxConverter::saveToDocx(&doc, QMarginsF());
+        QVERIFY(!docx.isEmpty());
+
+        QTextDocument doc2;
+        QMarginsF margins;
+        QColor bg;
+        bool ok = DocxConverter::loadFromDocx(docx, &doc2, margins, bg);
+        QVERIFY(ok);
+
+        QCOMPARE(findAnchorHref(&doc2), QStringLiteral("https://example.com"));
+    }
+
     void testMergedCellsRoundTrip()
     {
         QTextDocument doc;

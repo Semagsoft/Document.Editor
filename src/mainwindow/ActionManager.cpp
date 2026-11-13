@@ -723,7 +723,11 @@ void ActionManager::updateEditorActions(DocumentEditor* editor, DocumentManager*
         m_strikethroughAction->setChecked(fmt.fontStrikeOut());
 
         const int pct = qRound(editor->zoomLevel() * 100.0);
+        // Block signals so the slider's valueChanged handler doesn't re-trigger
+        // a zoom pass on every action-state refresh.
+        m_zoomSlider->blockSignals(true);
         m_zoomSlider->setValue(pct);
+        m_zoomSlider->blockSignals(false);
         m_zoomLabel->setText(QStringLiteral(" %1%").arg(pct));
 
         const QString name = editor->documentName();
@@ -751,7 +755,9 @@ void ActionManager::updateEditorActions(DocumentEditor* editor, DocumentManager*
         m_fontSizeCombo->clearEditText();
         m_updatingFont = false;
 
+        m_zoomSlider->blockSignals(true);
         m_zoomSlider->setValue(100);
+        m_zoomSlider->blockSignals(false);
         m_zoomLabel->setText(QStringLiteral(" 100%"));
     }
 }

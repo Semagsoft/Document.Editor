@@ -29,6 +29,7 @@
 #include <QTextStream>
 #include <QTime>
 #include <QTemporaryDir>
+#include <QUuid>
 #include <QUrl>
 
 #include <QtConcurrent>
@@ -290,14 +291,13 @@ void DocumentService::insertChartInteractive(QWidget *parent, DocumentEditor *ed
         ChartData data = dlg.chartData();
         QPixmap chart = dlg.generateChart(data.type);
         if (!chart.isNull()) {
-            // Embed chart data as a custom resource so it can be edited/reloaded
-            const QString resourceName = QStringLiteral("chart_%1").arg(data.title);
-            QByteArray chartJson;
-            // Minimal JSON representation for persistence
-            chartJson.append(QStringLiteral("{\"type\":\"%1\",\"title\":\"%2\"}")
-                .arg(data.type, data.title).toUtf8());
+            // Embed the rendered chart as an image resource so it actually
+            // displays. A JSON-as-ImageResource placeholder renders blank.
+            const QImage image = chart.toImage();
+            const QString resourceName = QStringLiteral("chart_%1")
+                .arg(QUuid::createUuid().toString(QUuid::WithoutBraces));
             editor->document()->addResource(QTextDocument::ImageResource,
-                QUrl(resourceName), chartJson);
+                QUrl(resourceName), image);
 
             // Insert image referencing the resource; store type in image format name for editing
             QTextImageFormat fmt;
