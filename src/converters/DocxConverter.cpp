@@ -170,6 +170,18 @@ static QColor parseColor(const QString &val, const QColor &fallback = QColor())
     return fallback;
 }
 
+// Reads the current element's w:val attribute; falls back to its text
+// content for OOXML written without it (older versions of this app emitted
+// e.g. <w:sz>24</w:sz> / <w:jc>center</w:jc>). For an empty element (<w:b/>)
+// readElementText() yields an empty string, which callers treat as "absent".
+static QString readValAttrOrText(QXmlStreamReader &r)
+{
+    QString v = r.attributes().value(QLatin1String("w:val")).toString();
+    if (v.isEmpty() && r.tokenType() == QXmlStreamReader::StartElement)
+        v = r.readElementText();
+    return v;
+}
+
 static void readRPr(QXmlStreamReader &r, QTextCharFormat &fmt)
 {
     while (r.readNext() != QXmlStreamReader::Invalid) {
@@ -180,29 +192,29 @@ static void readRPr(QXmlStreamReader &r, QTextCharFormat &fmt)
         QString n = r.name().toString();
 
         if (n == QLatin1String("b") || n == QLatin1String("bCs")) {
-            QString v = r.attributes().value(QLatin1String("w:val")).toString();
+            QString v = readValAttrOrText(r);
             if (v.isEmpty() || v == QLatin1String("true") || v == QLatin1String("1"))
                 fmt.setFontWeight(QFont::Bold);
         } else if (n == QLatin1String("i") || n == QLatin1String("iCs")) {
-            QString v = r.attributes().value(QLatin1String("w:val")).toString();
+            QString v = readValAttrOrText(r);
             if (v.isEmpty() || v == QLatin1String("true") || v == QLatin1String("1"))
                 fmt.setFontItalic(true);
         } else if (n == QLatin1String("u")) {
-            QString v = r.attributes().value(QLatin1String("w:val")).toString();
+            QString v = readValAttrOrText(r);
             if (!v.isEmpty() && v != QLatin1String("none"))
                 fmt.setFontUnderline(true);
         } else if (n == QLatin1String("strike")) {
-            QString v = r.attributes().value(QLatin1String("w:val")).toString();
+            QString v = readValAttrOrText(r);
             if (v.isEmpty() || v == QLatin1String("true") || v == QLatin1String("1"))
                 fmt.setFontStrikeOut(true);
         } else if (n == QLatin1String("vertAlign")) {
-            QString v = r.attributes().value(QLatin1String("w:val")).toString();
+            QString v = readValAttrOrText(r);
             if (v == QLatin1String("subscript"))
                 fmt.setVerticalAlignment(QTextCharFormat::AlignSubScript);
             else if (v == QLatin1String("superscript"))
                 fmt.setVerticalAlignment(QTextCharFormat::AlignSuperScript);
         } else if (n == QLatin1String("sz") || n == QLatin1String("szCs")) {
-            QString v = r.attributes().value(QLatin1String("w:val")).toString();
+            QString v = readValAttrOrText(r);
             int half = v.toInt();
             if (half > 0 && (fmt.fontPointSize() <= 0 || n == QLatin1String("sz")))
                 fmt.setFontPointSize(halfPtToPt(half));
@@ -253,7 +265,7 @@ static PPrResult readPPr(QXmlStreamReader &r)
         if (n == QLatin1String("pStyle")) {
             res.pStyle = r.attributes().value(QLatin1String("w:val")).toString();
         } else if (n == QLatin1String("jc")) {
-            QString v = r.attributes().value(QLatin1String("w:val")).toString();
+            QString v = readValAttrOrText(r);
             if (v == QLatin1String("center"))         res.align = Qt::AlignCenter;
             else if (v == QLatin1String("right"))     res.align = Qt::AlignRight;
             else if (v == QLatin1String("both"))      res.align = Qt::AlignJustify;
@@ -1174,10 +1186,15 @@ static void writeTextRunXml(QXmlStreamWriter &w, const QTextCharFormat &cf,
     }
     if (cf.fontStrikeOut())
         w.writeEmptyElement(QLatin1String("w:strike"));
-    if (cf.verticalAlignment() == QTextCharFormat::AlignSubScript)
-        w.writeTextElement(QLatin1String("w:vertAlign"), QLatin1String("subscript"));
-    else if (cf.verticalAlignment() == QTextCharFormat::AlignSuperScript)
-        w.writeTextElement(QLatin1String("w:vertAlign"), QLatin1String("superscript"));
+    if (cf.verticalAlignment() == QTextCharFormat::AlignSubScript) {
+        w.writeStartElement(QLatin1String("w:vertAlign"));
+        w.writeAttribute(QLatin1String("w:val"), QLatin1String("subscript"));
+        w.writeEndElement();
+    } else if (cf.verticalAlignment() == QTextCharFormat::AlignSuperScript) {
+        w.writeStartElement(QLatin1String("w:vertAlign"));
+        w.writeAttribute(QLatin1String("w:val"), QLatin1String("superscript"));
+        w.writeEndElement();
+    }
 
     QStringList families = cf.fontFamilies().toStringList();
     if (!families.isEmpty()) {
@@ -1196,8 +1213,12 @@ static void writeTextRunXml(QXmlStreamWriter &w, const QTextCharFormat &cf,
 
     if (cf.fontPointSize() > 0) {
         int half = ptToHalfPt(cf.fontPointSize());
-        w.writeTextElement(QLatin1String("w:sz"), QString::number(half));
-        w.writeTextElement(QLatin1String("w:szCs"), QString::number(half));
+        w.writeStartElement(QLatin1String("w:sz"));
+        w.writeAttribute(QLatin1String("w:val"), QString::number(half));
+        w.writeEndElement();
+        w.writeStartElement(QLatin1String("w:szCs"));
+        w.writeAttribute(QLatin1String("w:val"), QString::number(half));
+        w.writeEndElement();
     }
 
     QColor fg = cf.foreground().color();
@@ -1277,12 +1298,19 @@ static void writeTableXml(QXmlStreamWriter &w, QTextTable *table,
                 }
 
                 Qt::Alignment align = bf.alignment();
-                if (align == Qt::AlignCenter)
-                    w.writeTextElement(QLatin1String("w:jc"), QLatin1String("center"));
-                else if (align == Qt::AlignRight)
-                    w.writeTextElement(QLatin1String("w:jc"), QLatin1String("right"));
-                else if (align == Qt::AlignJustify)
-                    w.writeTextElement(QLatin1String("w:jc"), QLatin1String("both"));
+                if (align == Qt::AlignCenter) {
+                    w.writeStartElement(QLatin1String("w:jc"));
+                    w.writeAttribute(QLatin1String("w:val"), QLatin1String("center"));
+                    w.writeEndElement();
+                } else if (align == Qt::AlignRight) {
+                    w.writeStartElement(QLatin1String("w:jc"));
+                    w.writeAttribute(QLatin1String("w:val"), QLatin1String("right"));
+                    w.writeEndElement();
+                } else if (align == Qt::AlignJustify) {
+                    w.writeStartElement(QLatin1String("w:jc"));
+                    w.writeAttribute(QLatin1String("w:val"), QLatin1String("both"));
+                    w.writeEndElement();
+                }
 
                 if (bf.leftMargin() > 0 || bf.textIndent() != 0) {
                     w.writeStartElement(QLatin1String("w:ind"));
@@ -1499,12 +1527,19 @@ QByteArray DocxConverter::saveToDocx(const QTextDocument *doc,
             }
 
             Qt::Alignment align = bf.alignment();
-            if (align == Qt::AlignCenter)
-                w.writeTextElement(QLatin1String("w:jc"), QLatin1String("center"));
-            else if (align == Qt::AlignRight)
-                w.writeTextElement(QLatin1String("w:jc"), QLatin1String("right"));
-            else if (align == Qt::AlignJustify)
-                w.writeTextElement(QLatin1String("w:jc"), QLatin1String("both"));
+            if (align == Qt::AlignCenter) {
+                w.writeStartElement(QLatin1String("w:jc"));
+                w.writeAttribute(QLatin1String("w:val"), QLatin1String("center"));
+                w.writeEndElement();
+            } else if (align == Qt::AlignRight) {
+                w.writeStartElement(QLatin1String("w:jc"));
+                w.writeAttribute(QLatin1String("w:val"), QLatin1String("right"));
+                w.writeEndElement();
+            } else if (align == Qt::AlignJustify) {
+                w.writeStartElement(QLatin1String("w:jc"));
+                w.writeAttribute(QLatin1String("w:val"), QLatin1String("both"));
+                w.writeEndElement();
+            }
 
             if (bf.lineHeight() > 0 && bf.lineHeight() != 100) {
                 w.writeStartElement(QLatin1String("w:spacing"));

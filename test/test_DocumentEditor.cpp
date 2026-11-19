@@ -367,7 +367,7 @@ private slots:
         cursor.insertText(QStringLiteral("Hello XAML"));
 
         QTemporaryFile tmpFile;
-        tmpFile.open();
+        QVERIFY(tmpFile.open());
         QString path = tmpFile.fileName() + QStringLiteral(".xaml");
         tmpFile.close();
 
@@ -388,7 +388,7 @@ private slots:
         cursor.insertText(QStringLiteral("Hello Text"));
 
         QTemporaryFile tmpFile;
-        tmpFile.open();
+        QVERIFY(tmpFile.open());
         QString path = tmpFile.fileName() + QStringLiteral(".txt");
         tmpFile.close();
 
@@ -412,7 +412,7 @@ private slots:
         QVERIFY(editor.isModified());
 
         QTemporaryFile tmpFile;
-        tmpFile.open();
+        QVERIFY(tmpFile.open());
         const QString copyPath = tmpFile.fileName() + QStringLiteral(".xaml");
         tmpFile.close();
 
@@ -429,7 +429,7 @@ private slots:
         cursor.insertText(QStringLiteral("content"));
 
         QTemporaryFile tmpFile;
-        tmpFile.open();
+        QVERIFY(tmpFile.open());
         const QString path = tmpFile.fileName() + QStringLiteral(".txt");
         tmpFile.close();
 
@@ -493,7 +493,7 @@ private slots:
         cursor.insertText(QStringLiteral("Hello Read-Only"));
 
         QTemporaryFile tmpFile;
-        tmpFile.open();
+        QVERIFY(tmpFile.open());
         QString path = tmpFile.fileName() + QStringLiteral(".txt");
         tmpFile.close();
 

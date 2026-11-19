@@ -296,7 +296,11 @@ void DocumentTab::createContextMenu()
         m_editor->setParagraphAlignment(Qt::AlignJustify);
     });
     connect(lineSpacingAction, &QAction::triggered, this, [this]() {
-        qreal current = m_editor->textCursor().blockFormat().lineHeight() / 100.0;
+        const auto blockFmt = m_editor->textCursor().blockFormat();
+        const qreal lh = blockFmt.lineHeight();
+        // Qt reports an unset line height as 0, not 100 (single spacing).
+        const double current = (lh > 0 && blockFmt.lineHeightType() == QTextBlockFormat::ProportionalHeight)
+            ? lh / 100.0 : 1.0;
         QInputDialog dlg;
         bool ok;
         double spacing = QInputDialog::getDouble(this, tr("Line Spacing"),

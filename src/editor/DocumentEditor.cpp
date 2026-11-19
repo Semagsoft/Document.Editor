@@ -26,26 +26,62 @@
 #include <QTextList>
 #include <QTextTable>
 
+// QTextDocumentFragment does not carry document-level image resources, so a
+// plain insertFragment() of a freshly-parsed document drops every embedded
+// image on the floor (and the next save loses them silently). Walk the
+// source document's frames — tables included — and copy the resources it
+// registered into the destination document.
+static void copyImageResourcesFromFrame(const QTextFrame *srcFrame,
+                                        const QTextDocument *srcDoc,
+                                        QTextDocument *dst)
+{
+    for (QTextFrame::iterator it = srcFrame->begin(); !it.atEnd(); ++it) {
+        if (const QTextFrame *childFrame = it.currentFrame()) {
+            copyImageResourcesFromFrame(childFrame, srcDoc, dst);
+            continue;
+        }
+        const QTextBlock block = it.currentBlock();
+        if (!block.isValid())
+            continue;
+        for (QTextBlock::iterator fit = block.begin(); !fit.atEnd(); ++fit) {
+            const QTextFragment frag = fit.fragment();
+            if (!frag.isValid())
+                continue;
+            const QTextCharFormat cf = frag.charFormat();
+            if (!cf.isImageFormat())
+                continue;
+            const QTextImageFormat imgFmt = cf.toImageFormat();
+            const QVariant res = srcDoc->resource(QTextDocument::ImageResource,
+                                                  QUrl(imgFmt.name()));
+            if (res.isValid())
+                dst->addResource(QTextDocument::ImageResource, QUrl(imgFmt.name()), res);
+        }
+    }
+}
+
 // Returns true if `path` is safe to open or write. Rejects:
 //   * empty names
 //   * any ".." path component (directory traversal)
 //   * absolute paths that escape the allowed root (documents folder or the
 //     current document's directory, whichever applies)
-static bool isSafeFilePath(const QString& path, const QString& allowedRoot = QString())
+bool DocumentEditor::isSafeFilePath(const QString& path, const QString& allowedRoot)
 {
     if (path.isEmpty())
         return false;
 
-    QString cleaned = QDir::cleanPath(path);
-    if (cleaned.isEmpty() || cleaned == QLatin1String("."))
-        return false;
-
-    // Reject any ".." component — this is the core traversal guard.
-    const QStringList parts = cleaned.split(QLatin1Char('/'), Qt::SkipEmptyParts);
-    for (const QString& part : parts) {
+    // Reject any ".." component — this is the core traversal guard. Check
+    // the raw path first: QDir::cleanPath() would normalize ".." away and
+    // defeat the check (e.g. "/tmp/../etc/passwd" would become "/etc/passwd").
+    const QStringList rawParts = path.split(QRegularExpression(QStringLiteral("[/\\\\]")),
+                                            Qt::SkipEmptyParts);
+    for (const QString& part : rawParts) {
         if (part == QLatin1String(".."))
             return false;
     }
+
+    QString cleaned = QDir::cleanPath(path);
+    if (cleaned.isEmpty() || cleaned == QLatin1String("."))
+        return false;
 
     // If an allowed root is given, absolute paths must stay within it.
     if (!allowedRoot.isEmpty() && QDir::isAbsolutePath(cleaned)) {
@@ -754,6 +790,19 @@ bool DocumentEditor::loadFromFile(const QString& filename, QString* errorDetail)
         return false;
     }
 
+    // Apply the page margins (the XAML/DOCX loaders updated m_pageMargins as
+    // an out-parameter) to the temp document's root frame — page margins live
+    // there, and restoreDocument() copies the root frame format into the live
+    // document. Without this the margins are silently zeroed on open.
+    {
+        QTextFrameFormat frameFmt = tempDoc.rootFrame()->frameFormat();
+        frameFmt.setLeftMargin(m_pageMargins.left());
+        frameFmt.setRightMargin(m_pageMargins.right());
+        frameFmt.setTopMargin(m_pageMargins.top());
+        frameFmt.setBottomMargin(m_pageMargins.bottom());
+        tempDoc.rootFrame()->setFrameFormat(frameFmt);
+    }
+
     // Success: apply the fully-loaded temporary document to the live document.
     restoreDocument(&tempDoc);
 
@@ -775,6 +824,7 @@ void DocumentEditor::restoreDocument(const QTextDocument *source)
     QTextCursor cursor(doc);
     cursor.select(QTextCursor::Document);
     cursor.removeSelectedText();
+    copyImageResourcesFromFrame(source->rootFrame(), source, doc);
     cursor.insertFragment(QTextDocumentFragment(source));
 
     // Page margins live on the root frame's format; page size and document

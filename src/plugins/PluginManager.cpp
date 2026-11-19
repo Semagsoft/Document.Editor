@@ -58,6 +58,21 @@ void PluginManager::loadPlugin(const QString& filePath)
         return;
     }
 
+    // Verify the plugin's API version before running any plugin code. A
+    // plugin compiled against a different IPlugin layout may share the IID
+    // but crash inside the editor; the metadata JSON never executes.
+    const QJsonObject metaDataBlock = meta.value(QStringLiteral("MetaData")).toObject();
+    const int apiVersion = metaDataBlock.value(QStringLiteral("apiVersion")).toInt(-1);
+    if (apiVersion != IPlugin::InterfaceVersion) {
+        QString pluginName = QFileInfo(filePath).baseName();
+        qWarning() << "Plugin refused: apiVersion mismatch for" << pluginName
+                   << "(expected" << IPlugin::InterfaceVersion << ", got" << apiVersion << ")";
+        emit pluginError(pluginName, tr("Plugin is built for a different API version (expected %1)")
+                                         .arg(IPlugin::InterfaceVersion));
+        delete loader;
+        return;
+    }
+
     QObject* instance = loader->instance();
     if (!instance) {
         QString pluginName = QFileInfo(filePath).baseName();
@@ -73,6 +88,29 @@ void PluginManager::loadPlugin(const QString& filePath)
         QString pluginName = QFileInfo(filePath).baseName();
         qWarning() << "Loaded object is not a valid plugin:" << pluginName;
         emit pluginError(pluginName, tr("Not a valid plugin"));
+        loader->unload();
+        delete loader;
+        return;
+    }
+
+    // Second line of defense: a plugin that was gated in above but reports
+    // a different interface version is refused as well (covers builds that
+    // set apiVersion correctly but were compiled against a different header).
+    if (plugin->interfaceVersion() != IPlugin::InterfaceVersion) {
+        QString pluginName = QFileInfo(filePath).baseName();
+        qWarning() << "Plugin refused: interfaceVersion mismatch for" << pluginName;
+        emit pluginError(pluginName, tr("Plugin is built for a different API version (expected %1)")
+                                         .arg(IPlugin::InterfaceVersion));
+        loader->unload();
+        delete loader;
+        return;
+    }
+
+    if (hasPlugin(plugin->name())) {
+        // Refuse duplicates — a second plugin with the same name would
+        // double-register menus/shortcuts.
+        qWarning() << "Plugin refused (duplicate name):" << plugin->name();
+        emit pluginError(plugin->name(), tr("A plugin with this name is already loaded"));
         loader->unload();
         delete loader;
         return;
@@ -124,7 +162,9 @@ void PluginManager::unloadPlugins()
             it->instance->shutdown();
         emit pluginUnloaded(it->name);
         if (it->loader) {
-            it->loader->unload();
+            if (!it->loader->unload())
+                qWarning() << "Plugin could not be unloaded:" << it->name
+                           << it->loader->errorString();
             delete it->loader;
         }
     }

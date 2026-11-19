@@ -35,6 +35,11 @@ add_document_editor_test(test_DocumentManager test_DocumentManager.cpp)
 add_document_editor_test(test_PluginManager test_PluginManager.cpp)
 target_compile_definitions(test_PluginManager PRIVATE
     PLUGIN_FIXTURE_DIR="${CMAKE_BINARY_DIR}/src/plugins")
+# The test loads the real example plugin; make sure it is built and copied
+# into the fixture directory first (no declared dependency existed before).
+if(TARGET ExamplePlugin)
+    add_dependencies(test_PluginManager ExamplePlugin)
+endif()
 
 # Settings test
 add_document_editor_test(test_Settings test_Settings.cpp)
@@ -44,3 +49,6 @@ add_document_editor_test(test_ThemeManager test_ThemeManager.cpp)
 
 # DocumentService test
 add_document_editor_test(test_DocumentService test_DocumentService.cpp)
+
+# Roundtrip/regression tests (converter roundtrips, isSafeFilePath)
+add_document_editor_test(test_RoundTrip test_RoundTrip.cpp)

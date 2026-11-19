@@ -38,6 +38,10 @@ signals:
     void activeTabChanged(DocumentTab *tab);
     void statusLineColumnChanged(int line, int col, int totalLines, int lineCount);
     void statusWordCountChanged(int wordCount);
+    // Emitted when a tab is committed to closing (the save prompt, if any,
+    // has been resolved) but before it is removed and destroyed. Receivers
+    // can use this to discard per-tab state such as crash-recovery files.
+    void tabAboutToClose(DocumentTab *tab);
 
 protected:
     bool eventFilter(QObject *obj, QEvent *event) override;

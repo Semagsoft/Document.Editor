@@ -46,12 +46,29 @@
 #include "dialogs/InsertTimeDialog.h"
 #include "dialogs/InsertVideoDialog.h"
 
+#include <QtAlgorithms>
+
 static void waitForProcess(QProcess &proc, int timeoutMs)
 {
     if (proc.waitForFinished(timeoutMs))
         return;
     proc.kill();
     proc.waitForFinished(1000);
+}
+
+// Defense-in-depth for URLs that end up inside an href attribute: only
+// schemes the app supports may pass. A javascript:/data: href would
+// otherwise sail straight into exported HTML (e.g. the WordPress export).
+// An empty scheme is treated as a relative/local link and allowed.
+static QString sanitizedHref(const QString &url, const QStringList &allowedSchemes)
+{
+    const QString trimmed = url.trimmed();
+    if (trimmed.isEmpty())
+        return trimmed;
+    const QString scheme = QUrl(trimmed).scheme().toLower();
+    if (scheme.isEmpty())
+        return trimmed;
+    return allowedSchemes.contains(scheme) ? trimmed : QString();
 }
 
 // Tool probing and subprocess execution run on a background thread (see the
@@ -99,9 +116,29 @@ QString DocumentService::detectCompressor()
     return findCompressor();
 }
 
-static QStringList listArchiveContents(const QString &archiver, const QString &path)
+// Recursively checks a directory tree for symbolic links. Archives that
+// smuggle in symlinks pointing outside the extraction directory would let
+// extracted "documents" escape to anything readable on the filesystem.
+static bool treeContainsSymlinks(const QString &root)
+{
+    QDir dir(root);
+    const QFileInfoList entries = dir.entryInfoList(
+        QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot | QDir::Hidden);
+    for (const QFileInfo &fi : entries) {
+        if (fi.isSymLink())
+            return true;
+        if (fi.isDir() && treeContainsSymlinks(fi.absoluteFilePath()))
+            return true;
+    }
+    return false;
+}
+
+static QStringList listArchiveContents(const QString &archiver, const QString &path,
+                                       bool *symlinkFound = nullptr)
 {
     QStringList names;
+    if (symlinkFound)
+        *symlinkFound = false;
     QProcess proc;
     if (archiver == QStringLiteral("7z"))
         proc.start(QStringLiteral("7z"), { QStringLiteral("l"), QStringLiteral("-slt"), path });
@@ -118,6 +155,16 @@ static QStringList listArchiveContents(const QString &archiver, const QString &p
         for (const QString &line : lines) {
             if (line.startsWith(QLatin1String("Path = ")))
                 names << line.mid(7).trimmed();
+            // 7z -slt marks symlink entries with an 'l' in the attributes
+            // (e.g. "Attributes = l") or a "Symbolic Link = target" line.
+            else if (line.startsWith(QLatin1String("Attributes = "))) {
+                const QString attrs = line.mid(13).trimmed();
+                if (symlinkFound && attrs.contains(QLatin1Char('l'), Qt::CaseInsensitive))
+                    *symlinkFound = true;
+            } else if (line.startsWith(QLatin1String("Symbolic Link"))) {
+                if (symlinkFound)
+                    *symlinkFound = true;
+            }
         }
     } else {
         names = lines;
@@ -166,10 +213,17 @@ static ArchiveImportProbe probeArchiveImport(const QString &path)
     }
     probe.archiver = archiver;
     // Reject archives with entries that escape the extraction directory
-    // (zip-slip). 7z does not sanitize ".." entries, so validate before extracting.
-    const QStringList listing = listArchiveContents(archiver, path);
+    // (zip-slip) or that contain symbolic links. 7z does not sanitize either,
+    // so validate before extracting; the post-extraction tree walk double-checks.
+    bool symlinkFound = false;
+    const QStringList listing = listArchiveContents(archiver, path, &symlinkFound);
     if (listing.isEmpty()) {
         probe.listFailed = true;
+        return probe;
+    }
+    if (symlinkFound) {
+        probe.unsafe = true;
+        probe.unsafeEntry = QStringLiteral("<symbolic link entry>");
         return probe;
     }
     for (const QString &entry : listing) {
@@ -317,6 +371,14 @@ void DocumentService::insertLinkInteractive(QWidget *parent, DocumentEditor *edi
 {
     InsertLinkDialog dlg(parent);
     if (dlg.exec() == QDialog::Accepted) {
+        const QString safe = sanitizedHref(dlg.url().trimmed(),
+            { QStringLiteral("http"), QStringLiteral("https"),
+              QStringLiteral("ftp"), QStringLiteral("mailto") });
+        if (safe.isEmpty()) {
+            QMessageBox::warning(parent, tr("Invalid URL"),
+                tr("Only http, https, ftp and mailto links are supported."));
+            return;
+        }
         // toHtmlEscaped() does not escape quotes, so do that explicitly to
         // keep the URL from breaking out of the href attribute.
         auto escapeQuotes = [](const QString& in) {
@@ -324,7 +386,7 @@ void DocumentService::insertLinkInteractive(QWidget *parent, DocumentEditor *edi
         };
         QTextCursor cursor = editor->textCursor();
         cursor.insertHtml(QStringLiteral("<a href=\"%1\">%2</a>")
-            .arg(escapeQuotes(dlg.url().trimmed().toHtmlEscaped()),
+            .arg(escapeQuotes(safe.toHtmlEscaped()),
                  escapeQuotes(dlg.displayText().trimmed().toHtmlEscaped())));
         editor->setTextCursor(cursor);
     }
@@ -371,10 +433,17 @@ void DocumentService::insertVideoInteractive(QWidget *parent, DocumentEditor *ed
 {
     InsertVideoDialog dlg(parent);
     if (dlg.exec() == QDialog::Accepted) {
+        const QString safe = sanitizedHref(dlg.videoPath().trimmed(),
+            { QStringLiteral("http"), QStringLiteral("https"),
+              QStringLiteral("ftp"), QStringLiteral("file") });
+        if (safe.isEmpty()) {
+            QMessageBox::warning(parent, tr("Invalid URL"),
+                tr("Only http, https, ftp and file URLs are supported."));
+            return;
+        }
         // toHtmlEscaped() does not escape quotes; the URL goes inside an href
         // attribute, so escape it explicitly.
-        const QString url = dlg.videoPath().trimmed()
-            .toHtmlEscaped()
+        const QString url = QString(safe).toHtmlEscaped()
             .replace(QLatin1Char('"'), QStringLiteral("&quot;"));
         QTextCursor cursor = editor->textCursor();
         cursor.insertHtml(QStringLiteral("<a href=\"%1\">%1</a>").arg(url));
@@ -398,6 +467,11 @@ void DocumentService::insertFooter(DocumentEditor *editor)
     cursor.insertHtml(QStringLiteral(
         "<div style=\"border-top: 2px solid #444; padding-top: 6px; "
         "margin-top: 12px; font-size: 10pt; color: #666;\">Footer</div>"));
+}
+
+DocumentService::~DocumentService()
+{
+    qDeleteAll(m_archiveTempDirs);
 }
 
 DocumentService::DocumentService(DocumentManager *docManager,
@@ -449,13 +523,21 @@ void DocumentService::importFtp()
         tr("All Files (*)"));
     if (localPath.isEmpty())
         return;
+    const auto btn = QMessageBox::question(m_parentWidget, tr("FTP Import"),
+        tr("FTP transfers are not encrypted.\n"
+           "Your credentials and the document will be sent in plain text.\n\n"
+           "Continue?"),
+        QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+    if (btn != QMessageBox::Yes)
+        return;
     auto *ftp = new FtpClient(this);
     connect(ftp, &FtpClient::downloadCompleted, ftp, [this, ftp, localPath]() {
         openDocument(localPath);
         ftp->deleteLater();
     });
     connect(ftp, &FtpClient::transferFailed, ftp, [this, ftp](const QString &err) {
-        QMessageBox::warning(m_parentWidget, tr("FTP Error"), err);
+        QMessageBox::warning(m_parentWidget, tr("FTP Error"),
+            err.toHtmlEscaped().replace(QLatin1Char('\n'), QStringLiteral("<br>")));
         ftp->deleteLater();
     });
     ftp->download(url, localPath);
@@ -499,9 +581,9 @@ void DocumentService::runArchiveImportAsync(const QString &path)
             return;
         }
 
-        // Extract to a temp dir kept alive until the documents are opened.
-        // The watcher lambda captures a local pointer so concurrent imports
-        // can't delete each other's temp dir.
+        // Extract into a tracked temp dir. The dir must outlive the opened
+        // documents (reversion re-reads the file), so ownership goes to
+        // m_archiveTempDirs and is released at application exit.
         auto *tempDir = new QTemporaryDir();
         if (!tempDir->isValid()) {
             delete tempDir;
@@ -509,16 +591,29 @@ void DocumentService::runArchiveImportAsync(const QString &path)
                 tr("Could not create a temporary directory."));
             return;
         }
+        m_archiveTempDirs.append(tempDir);
+        auto releaseTempDir = [this](QTemporaryDir *dir) {
+            m_archiveTempDirs.removeAll(dir);
+            delete dir;
+        };
         emit statusMessage(tr("Extracting archive..."), 5000);
         auto *extractWatcher = new QFutureWatcher<ArchiveImportOutcome>(this);
         connect(extractWatcher, &QFutureWatcher<ArchiveImportOutcome>::finished, this,
-                [this, extractWatcher, probe, tempDir]() {
+                [this, extractWatcher, probe, tempDir, releaseTempDir]() {
             const ArchiveImportOutcome outcome = extractWatcher->result();
             extractWatcher->deleteLater();
             if (outcome.extractFailed || !tempDir) {
-                delete tempDir;
+                releaseTempDir(tempDir);
                 QMessageBox::warning(m_parentWidget, tr("Archive Import"),
                     tr("Failed to extract archive."));
+                return;
+            }
+            // Post-extraction check: 7z/unzip listings can miss symlink or
+            // hardlink entries; nothing under this dir may be a link.
+            if (treeContainsSymlinks(tempDir->path())) {
+                releaseTempDir(tempDir);
+                QMessageBox::warning(m_parentWidget, tr("Archive Import"),
+                    tr("Archive contains symbolic links and was not imported."));
                 return;
             }
             QDir dir(tempDir->path());
@@ -527,14 +622,15 @@ void DocumentService::runArchiveImportAsync(const QString &path)
                 QStringLiteral("*.txt") };
             const QStringList files = dir.entryList(filters, QDir::Files, QDir::Name);
             if (files.isEmpty()) {
-                delete tempDir;
+                releaseTempDir(tempDir);
                 QMessageBox::information(m_parentWidget, tr("Archive Import"),
                     tr("No supported documents found in the archive."));
                 return;
             }
             for (const QString &f : files)
                 openDocument(dir.absoluteFilePath(f));
-            delete tempDir;
+            // Intentionally not released: the opened documents revert to this
+            // path. Freed in ~DocumentService().
         });
         extractWatcher->setFuture(QtConcurrent::run([probe, path,
                                                      dest = tempDir->path()]() {
@@ -614,13 +710,21 @@ void DocumentService::exportFtp()
         QStringLiteral("ftp://") + QFileInfo(localPath).fileName(), &ok);
     if (!ok || url.isEmpty())
         return;
+    const auto btn = QMessageBox::question(m_parentWidget, tr("FTP Export"),
+        tr("FTP transfers are not encrypted.\n"
+           "Your credentials and the document will be sent in plain text.\n\n"
+           "Continue?"),
+        QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+    if (btn != QMessageBox::Yes)
+        return;
     auto *ftp = new FtpClient(this);
     connect(ftp, &FtpClient::uploadCompleted, ftp, [this, ftp]() {
         emit statusMessage(tr("FTP upload complete"), 3000);
         ftp->deleteLater();
     });
     connect(ftp, &FtpClient::transferFailed, ftp, [this, ftp](const QString &err) {
-        QMessageBox::warning(m_parentWidget, tr("FTP Error"), err);
+        QMessageBox::warning(m_parentWidget, tr("FTP Error"),
+            err.toHtmlEscaped().replace(QLatin1Char('\n'), QStringLiteral("<br>")));
         ftp->deleteLater();
     });
     ftp->upload(localPath, url);
@@ -688,6 +792,7 @@ void DocumentService::exportArchive()
                 tr("Could not create a temporary directory."));
             return;
         }
+        m_archiveTempDirs.append(tempDir);
         QString tmpFile = tempDir->path() + QStringLiteral("/document.xaml");
         if (!editor->saveToFile(tmpFile, false)) {
             delete tempDir;
@@ -709,7 +814,10 @@ void DocumentService::runArchiveExportAsync(const QString &src, const QString &p
             [this, watcher, tempDir]() {
         const ArchiveExportResult res = watcher->result();
         watcher->deleteLater();
-        delete tempDir;
+        if (tempDir) {
+            m_archiveTempDirs.removeAll(tempDir);
+            delete tempDir;
+        }
         if (res.toolMissing) {
             QMessageBox::warning(m_parentWidget, tr("Archive Export"),
                 tr("No archive tool found.\n\n"
@@ -860,5 +968,7 @@ void DocumentService::revertDocument()
         QString detail = errorDetail.isEmpty() ? tr("Unknown error.") : errorDetail;
         QMessageBox::warning(m_parentWidget, tr("Error"),
             tr("Could not revert file:\n%1\n\n%2").arg(e->documentName(), detail));
+        return;
     }
+    emit documentReverted(e);
 }

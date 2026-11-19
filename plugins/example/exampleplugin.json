@@ -1,5 +1,6 @@
 {
     "name": "ExamplePlugin",
     "version": "1.0.0",
-    "description": "An example Document.Editor plugin"
+    "description": "An example Document.Editor plugin",
+    "apiVersion": 1
 }

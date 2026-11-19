@@ -3,8 +3,13 @@ project(Document.Editor VERSION 1.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
+
+# Must come before any add_subdirectory() so nested projects (and the
+# example plugin) can rely on CMAKE_INSTALL_BINDIR etc. being defined.
+include(GNUInstallDirs)
 
 find_package(Qt6 REQUIRED COMPONENTS
     Core
@@ -18,12 +23,15 @@ find_package(Qt6 REQUIRED COMPONENTS
     Concurrent
 )
 
-# Enable compiler warnings so issues are surfaced in CI. (-Werror is
-# intentionally omitted until pre-existing warnings are cleaned up.)
+# Enable compiler warnings so issues are surfaced in CI. -Werror keeps the
+# tree warning-free; -Wsfinae-incomplete is disabled because Qt's moc output
+# trips it on GCC (it forward-declares the class being defined).
 if(MSVC)
     add_compile_options(/W4)
 else()
-    add_compile_options(-Wall -Wextra)
+    add_compile_options(-Wall -Wextra -Werror)
+    # Qt moc trips -Wsfinae-incomplete on GCC (valid for C++, rejected for C).
+    add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-Wno-sfinae-incomplete>)
 endif()
 
 add_compile_definitions(APP_VERSION="${PROJECT_VERSION}")
@@ -38,12 +46,20 @@ enable_testing()
 add_subdirectory(test)
 
 # Install
-include(GNUInstallDirs)
 install(TARGETS Document.Editor
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 install(FILES README.md LICENSE
     DESTINATION ${CMAKE_INSTALL_DOCDIR}
+)
+# Linux desktop integration: icon + .desktop entry so the app shows up in
+# application menus.
+install(FILES resources/icons/app.png
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/64x64/apps
+    RENAME document-editor.png
+)
+install(FILES packaging/document-editor.desktop
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/applications
 )
 
 # CPack
@@ -61,5 +77,19 @@ elseif(APPLE)
 else()
     set(CPACK_GENERATOR "DEB;TGZ")
 endif()
+
+# DEB metadata: without dependencies and a maintainer the package installs
+# broken on a clean machine.
+set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Semagsoft")
+set(CPACK_DEBIAN_PACKAGE_SECTION "editors")
+set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
+set(CPACK_DEBIAN_PACKAGE_HOMEPAGE "https://documenteditor.net/")
+set(CPACK_DEBIAN_PACKAGE_DESCRIPTION
+    "A cross-platform rich text document editor built with Qt6.\n\
+ Supports XAML, DOCX, HTML, RTF and plain text, multi-tab editing,\n\
+ plugins, themes, page layout and print support.")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS
+    "libqt6core6, libqt6gui6, libqt6widgets6, libqt6network6, libqt6printsupport6, libqt6texttospeech6, libqt6xml6, libqt6charts6, libqt6concurrent6")
+set(CPACK_PACKAGE_CONTACT "Semagsoft")
 
 include(CPack)

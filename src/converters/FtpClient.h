@@ -61,13 +61,19 @@ private:
     QByteArray m_dataBuffer;
     qint64 m_lastProgressBytes = 0;
 
-    // Timeout
+    // Timeout: the global timer is an absolute deadline for the whole
+    // transfer and is never renewed by incoming data. The idle timer is
+    // restarted on each received chunk and aborts stalled transfers.
     QTimer *m_timeoutTimer = nullptr;
+    QTimer *m_idleTimer = nullptr;
     QElapsedTimer m_elapsedTimer;
-    static constexpr int kGlobalTimeoutMs = 60000;
+    static constexpr int kGlobalTimeoutMs = 600000; // 10 minutes, absolute
+    static constexpr int kIdleTimeoutMs = 60000;    // no data for 60s aborts
+    static constexpr qint64 kMaxDownloadBytes = 256LL * 1024 * 1024;
 
     bool parseUrl(const QString &url, QString &host, quint16 &port,
-                  QString &path, QString &error) const;
+                  QString &path, QString &user, QString &password,
+                  QString &error) const;
     void sendCommand(const QString &cmd);
     void connectDataChannel();
     void startTransfer();

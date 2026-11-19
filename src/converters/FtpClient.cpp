@@ -3,6 +3,7 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QRegularExpression>
+#include <QSaveFile>
 #include <QUrl>
 
 FtpClient::FtpClient(QObject* parent)
@@ -20,8 +21,15 @@ FtpClient::FtpClient(QObject* parent)
     m_timeoutTimer = new QTimer(this);
     m_timeoutTimer->setSingleShot(true);
     connect(m_timeoutTimer, &QTimer::timeout, this, [this]() {
-        abortTransfer(tr("FTP transfer timed out after %1 seconds")
-                .arg(kGlobalTimeoutMs / 1000));
+        abortTransfer(tr("FTP transfer exceeded the %1 minute limit")
+                .arg(kGlobalTimeoutMs / 60000));
+    });
+
+    m_idleTimer = new QTimer(this);
+    m_idleTimer->setSingleShot(true);
+    connect(m_idleTimer, &QTimer::timeout, this, [this]() {
+        abortTransfer(tr("FTP transfer stalled (no data received for %1 seconds)")
+                .arg(kIdleTimeoutMs / 1000));
     });
 }
 
@@ -31,7 +39,7 @@ FtpClient::~FtpClient()
 }
 
 bool FtpClient::parseUrl(const QString& url, QString& host, quint16& port,
-    QString& path, QString& error) const
+    QString& path, QString& user, QString& password, QString& error) const
 {
     auto hasCrlf = [](const QString& in) {
         return in.contains(QLatin1Char('\r')) || in.contains(QLatin1Char('\n'));
@@ -48,6 +56,12 @@ bool FtpClient::parseUrl(const QString& url, QString& host, quint16& port,
     host = qurl.host();
     if (host.isEmpty() || hasCrlf(host)) {
         error = tr("The URL does not contain a valid host.");
+        return false;
+    }
+    user = qurl.userName();
+    password = qurl.password();
+    if (hasCrlf(user) || hasCrlf(password)) {
+        error = tr("The credentials in the URL contain invalid characters.");
         return false;
     }
     const int p = qurl.port(21);
@@ -73,8 +87,8 @@ void FtpClient::upload(const QString& localPath, const QString& remoteUrl,
         return;
 
     m_localPath = localPath;
-    QString urlError;
-    if (!parseUrl(remoteUrl, m_host, m_port, m_remotePath, urlError)) {
+    QString urlError, urlUser, urlPassword;
+    if (!parseUrl(remoteUrl, m_host, m_port, m_remotePath, urlUser, urlPassword, urlError)) {
         m_state = State::Idle;
         emit transferFailed(urlError);
         return;
@@ -85,8 +99,12 @@ void FtpClient::upload(const QString& localPath, const QString& remoteUrl,
         emit transferFailed(tr("The credentials contain invalid characters."));
         return;
     }
-    m_username = username.isEmpty() ? QStringLiteral("anonymous") : username;
-    m_password = password.isEmpty() ? QStringLiteral("anonymous@") : password;
+    // Explicit credentials beat the URL's user-info; URL user-info beats
+    // anonymous. (ftp://user:pass@host/file was silently ignored before.)
+    m_username = !username.isEmpty() ? username
+        : (!urlUser.isEmpty() ? urlUser : QStringLiteral("anonymous"));
+    m_password = !password.isEmpty() ? password
+        : (!urlPassword.isEmpty() ? urlPassword : QStringLiteral("anonymous@"));
     m_isUpload = true;
     m_dataTransferDone = false;
     m_controlTransferDone = false;
@@ -112,8 +130,8 @@ void FtpClient::download(const QString& remoteUrl, const QString& localPath,
         return;
 
     m_localPath = localPath;
-    QString urlError;
-    if (!parseUrl(remoteUrl, m_host, m_port, m_remotePath, urlError)) {
+    QString urlError, urlUser, urlPassword;
+    if (!parseUrl(remoteUrl, m_host, m_port, m_remotePath, urlUser, urlPassword, urlError)) {
         m_state = State::Idle;
         emit transferFailed(urlError);
         return;
@@ -124,8 +142,12 @@ void FtpClient::download(const QString& remoteUrl, const QString& localPath,
         emit transferFailed(tr("The credentials contain invalid characters."));
         return;
     }
-    m_username = username.isEmpty() ? QStringLiteral("anonymous") : username;
-    m_password = password.isEmpty() ? QStringLiteral("anonymous@") : password;
+    // Explicit credentials beat the URL's user-info; URL user-info beats
+    // anonymous. (ftp://user:pass@host/file was silently ignored before.)
+    m_username = !username.isEmpty() ? username
+        : (!urlUser.isEmpty() ? urlUser : QStringLiteral("anonymous"));
+    m_password = !password.isEmpty() ? password
+        : (!urlPassword.isEmpty() ? urlPassword : QStringLiteral("anonymous@"));
     m_isUpload = false;
     m_dataTransferDone = false;
     m_controlTransferDone = false;
@@ -166,6 +188,8 @@ void FtpClient::cancel()
     m_controlTransferDone = false;
     m_finalized = false;
     m_timeoutTimer->stop();
+    if (m_idleTimer)
+        m_idleTimer->stop();
 }
 
 void FtpClient::sendCommand(const QString& cmd)
@@ -198,6 +222,12 @@ void FtpClient::onControlReadyRead()
 
         int code = line.left(3).toInt();
         bool isLast = (line.length() < 4 || line[3] != '-');
+
+        // Skip continuation lines of multi-line replies (e.g. "220-..." or
+        // "230-..."). Acting on them mid-reply sends USER/PASS too early and
+        // breaks PASV parsing.
+        if (!isLast)
+            continue;
 
         switch (m_state) {
         case State::Connecting:
@@ -307,7 +337,11 @@ void FtpClient::connectDataChannel()
 
 void FtpClient::startTransfer()
 {
-    m_timeoutTimer->start(kGlobalTimeoutMs);
+    // The absolute deadline keeps running from connect time. The idle timer
+    // governs stalls during downloads (upload progress is invisible until the
+    // server replies, so uploads are bounded by the absolute deadline only).
+    if (!m_isUpload)
+        m_idleTimer->start(kIdleTimeoutMs);
     if (m_isUpload) {
         QFile file(m_localPath);
         if (!file.open(QIODevice::ReadOnly)) {
@@ -333,6 +367,8 @@ void FtpClient::startTransfer()
 void FtpClient::finishTransfer()
 {
     m_timeoutTimer->stop();
+    if (m_idleTimer)
+        m_idleTimer->stop();
     if (m_isUpload) {
         m_state = State::Idle;
         emit uploadCompleted();
@@ -344,16 +380,20 @@ void FtpClient::finishTransfer()
 
 bool FtpClient::writeDownloadedData(QString& error)
 {
-    QFile file(m_localPath);
+    // QSaveFile writes to a temporary sibling and atomically renames on
+    // commit — a failed/partial write never clobbers an existing file.
+    QSaveFile file(m_localPath);
     if (!file.open(QIODevice::WriteOnly)) {
         error = tr("Could not write the file: %1").arg(file.errorString());
         return false;
     }
-    const qint64 written = file.write(m_dataBuffer);
-    file.close();
-    if (written != m_dataBuffer.size()) {
-        error = tr("Could not write the file: short write (%1 of %2 bytes)")
-                    .arg(written).arg(m_dataBuffer.size());
+    if (file.write(m_dataBuffer) != m_dataBuffer.size()) {
+        error = tr("Could not write the file: short write");
+        // file goes out of scope without commit() — temp file is discarded
+        return false;
+    }
+    if (!file.commit()) {
+        error = tr("Could not write the file: %1").arg(file.errorString());
         return false;
     }
     return true;
@@ -385,8 +425,15 @@ void FtpClient::tryFinalizeDownload()
 void FtpClient::onDataReadyRead()
 {
     if (!m_isUpload) {
-        m_dataBuffer += m_data->readAll();
-        m_timeoutTimer->start(kGlobalTimeoutMs);
+        const QByteArray chunk = m_data->readAll();
+        if (m_dataBuffer.size() + chunk.size() > kMaxDownloadBytes) {
+            abortTransfer(tr("Download exceeded the %1 MB size limit")
+                              .arg(kMaxDownloadBytes / (1024 * 1024)));
+            return;
+        }
+        m_dataBuffer += chunk;
+        if (m_idleTimer)
+            m_idleTimer->start(kIdleTimeoutMs);
     }
 }
 
@@ -423,6 +470,8 @@ void FtpClient::abortTransfer(const QString& error)
     m_controlTransferDone = false;
     m_finalized = false;
     m_timeoutTimer->stop();
+    if (m_idleTimer)
+        m_idleTimer->stop();
     if (m_data->state() != QTcpSocket::UnconnectedState)
         m_data->abort();
     if (m_control->state() != QTcpSocket::UnconnectedState)

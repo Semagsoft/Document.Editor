@@ -181,6 +181,8 @@ bool DocumentManager::closeDocument(DocumentTab* tab)
         }
     }
 
+    emit tabAboutToClose(tab);
+
     QMdiSubWindow* sub = qobject_cast<QMdiSubWindow*>(tab->parentWidget());
     if (sub) {
         m_mdiArea->removeSubWindow(sub);

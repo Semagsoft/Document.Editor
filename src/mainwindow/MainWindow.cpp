@@ -115,7 +115,7 @@ MainWindow::MainWindow(QWidget* parent)
     if (m_settings->checkForUpdatesOnStartup()) {
         auto* netUtils = new NetworkUtils(this);
         QPointer<NetworkUtils> safeNet(netUtils);
-        connect(netUtils, &NetworkUtils::updateAvailable, this, [this, safeNet](const QString& version, const QString& url) {
+        connect(netUtils, &NetworkUtils::updateAvailable, this, [this, safeNet](const QString& version, const QString& /*url*/) {
             if (safeNet)
                 safeNet->deleteLater();
             statusBar()->showMessage(
@@ -554,7 +554,11 @@ void MainWindow::connectFormatActions()
     connect(m_actionManager->lineSpacingAction(), &QAction::triggered, this, [this]() {
         if (!currentEditor())
             return;
-        qreal current = currentEditor()->textCursor().blockFormat().lineHeight() / 100.0;
+        const auto blockFmt = currentEditor()->textCursor().blockFormat();
+        const qreal lh = blockFmt.lineHeight();
+        // Qt reports an unset line height as 0, not 100 (single spacing).
+        const qreal current = (lh > 0 && blockFmt.lineHeightType() == QTextBlockFormat::ProportionalHeight)
+            ? lh / 100.0 : 1.0;
         LineSpacingDialog dlg(current, this);
         if (dlg.exec() == QDialog::Accepted)
             currentEditor()->setLineSpacing(dlg.lineSpacing());
@@ -766,13 +770,16 @@ void MainWindow::connectReviewActions()
                         continue;
                     QTextCursor cursor(e->document());
                     cursor.movePosition(QTextCursor::Start);
-                    cursor = e->document()->find(rep.original, cursor);
+                    // Whole words only — a plain substring find would also
+                    // rewrite the misspelling inside longer words.
+                    const QTextDocument::FindFlags flags = QTextDocument::FindWholeWords;
+                    cursor = e->document()->find(rep.original, cursor, flags);
                     int replaced = 0;
                     while (!cursor.isNull() && replaced < 1000) {
                         cursor.insertText(rep.replacement);
                         ++replaced;
                         int pos = cursor.position();
-                        cursor = e->document()->find(rep.original, cursor);
+                        cursor = e->document()->find(rep.original, cursor, flags);
                         if (!cursor.isNull() && cursor.position() == pos)
                             break;
                     }
@@ -916,7 +923,7 @@ void MainWindow::connectHelpActions()
         auto* netUtils = new NetworkUtils(this);
         connect(netUtils, &NetworkUtils::updateAvailable, this, [this, netUtils](const QString& version, const QString& url) {
             QMessageBox::information(this, tr("Update Available"),
-                tr("Version %1 is available.\n%2").arg(version, url));
+                tr("Version %1 is available.\n%2").arg(version.toHtmlEscaped(), url.toHtmlEscaped()));
             netUtils->deleteLater();
         });
         connect(netUtils, &NetworkUtils::upToDate, this, [this, netUtils]() {
@@ -926,7 +933,7 @@ void MainWindow::connectHelpActions()
         });
         connect(netUtils, &NetworkUtils::updateCheckError, this, [this, netUtils](const QString& error) {
             QMessageBox::warning(this, tr("Update Check Failed"),
-                tr("Could not check for updates:\n%1").arg(error));
+                tr("Could not check for updates:\n%1").arg(error.toHtmlEscaped()));
             netUtils->deleteLater();
         });
         netUtils->checkForUpdates(QApplication::applicationVersion());
@@ -973,6 +980,15 @@ void MainWindow::connectEditorActionSignals(DocumentEditor* editor)
 
 void MainWindow::connectDocumentSignals()
 {
+    connect(m_docManager, &DocumentManager::tabAboutToClose, this, [this](DocumentTab* tab) {
+        // Tab is being discarded/closed — drop its crash-recovery file so a
+        // deliberately discarded document is never "restored" later.
+        if (tab && tab->editor())
+            clearRecoveryFile(tab->editor());
+    });
+    connect(m_docService, &DocumentService::documentReverted, this, [this](DocumentEditor* editor) {
+        clearRecoveryFile(editor);
+    });
     connect(m_docManager, &DocumentManager::activeTabChanged, this, [this](DocumentTab* tab) {
         connectEditorActionSignals(tab ? tab->editor() : nullptr);
         m_actionManager->updateEditorActions(currentEditor(), m_docManager, m_statusBarManager);

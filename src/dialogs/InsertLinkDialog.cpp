@@ -53,6 +53,20 @@ void InsertLinkDialog::accept()
     if (input.isEmpty())
         return;
 
+    // A schemeless input ("example.com") would be inserted as a relative
+    // link that goes nowhere; assume https. Local-looking paths are left
+    // alone.
+    if (QUrl(input).scheme().isEmpty()) {
+        const bool looksLocal = input.startsWith(QStringLiteral("/"))
+            || input.startsWith(QStringLiteral("./"))
+            || input.startsWith(QStringLiteral("../"))
+            || (input.size() > 1 && input[1] == QLatin1Char(':')); // C:\...
+        if (!looksLocal) {
+            input = QStringLiteral("https://") + input;
+            m_urlEdit->setText(input);
+        }
+    }
+
     QUrl parsed(input);
     QString scheme = parsed.scheme().toLower();
     QStringList allowedSchemes = {

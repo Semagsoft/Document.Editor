@@ -91,7 +91,6 @@ void RulerWidget::paintEvent(QPaintEvent *)
 void RulerWidget::drawTicks(QPainter &painter, const QRectF &rect)
 {
     painter.setPen(QPen(Qt::black, 1));
-    qreal dpiFactor = DpiUtils::screenDpiX() / 96.0;
 
     if (m_unit == Inches) {
         // Major ticks every inch

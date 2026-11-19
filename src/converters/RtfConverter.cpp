@@ -202,14 +202,16 @@ static bool loadRtfToDocument(const QString &rtf, QTextDocument *doc)
     colorTable.append(QColor(Qt::black)); // index 0 = auto
 
     int i = 0;
-    bool inColorTable = false;
-    QColor parsingColor;
-    bool parsingColorTable = false;
 
     while (i < rtf.length()) {
         QChar c = rtf[i];
 
         if (c == QLatin1Char('{')) {
+            // Sanity cap so a hostile document cannot grow the stack without bound.
+            if (stateStack.size() >= 512) {
+                qWarning() << "RTF group nesting too deep; aborting parse";
+                return false;
+            }
             stateStack.push(currentState);
             i++;
         } else if (c == QLatin1Char('}')) {
@@ -217,7 +219,8 @@ static bool loadRtfToDocument(const QString &rtf, QTextDocument *doc)
                 currentState = stateStack.pop();
                 applyCharFormat(cursor, currentState);
             } else {
-                stateStack.top() = currentState;
+                qWarning() << "RTF has an unmatched closing brace; aborting parse";
+                return false;
             }
             i++;
         } else if (c == QLatin1Char('\\')) {
@@ -404,6 +407,12 @@ static bool loadRtfToDocument(const QString &rtf, QTextDocument *doc)
                     else if (sc == QLatin1Char('}')) depth--;
                     i++;
                 }
+                // Pop the stack entry pushed for this group's '{' so the
+                // format state stays balanced.
+                if (stateStack.size() > 1) {
+                    currentState = stateStack.pop();
+                    applyCharFormat(cursor, currentState);
+                }
             } else if (controlWord == QStringLiteral("*")) {
                 // \* - skip this destination group
                 int depth = 1;
@@ -416,6 +425,10 @@ static bool loadRtfToDocument(const QString &rtf, QTextDocument *doc)
                     if (sc == QLatin1Char('{')) depth++;
                     else if (sc == QLatin1Char('}')) depth--;
                     i++;
+                }
+                if (stateStack.size() > 1) {
+                    currentState = stateStack.pop();
+                    applyCharFormat(cursor, currentState);
                 }
             }
 
@@ -430,6 +443,10 @@ static bool loadRtfToDocument(const QString &rtf, QTextDocument *doc)
         }
     }
 
+    if (stateStack.size() != 1) {
+        qWarning() << "RTF has unterminated groups; aborting parse";
+        return false;
+    }
     return true;
 }
 

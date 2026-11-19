@@ -15,7 +15,7 @@ SpellCheckDialog::SpellCheckDialog(SpellChecker *checker,
     , m_misspelled(misspelled)
 {
     setWindowTitle(tr("Spell Check"));
-    setFixedSize(400, 340);
+    setFixedSize(460, 340);
 
     auto *layout = new QVBoxLayout(this);
 
@@ -38,12 +38,14 @@ SpellCheckDialog::SpellCheckDialog(SpellChecker *checker,
     auto *replaceBtn = new QPushButton(tr("Replace"));
     auto *ignoreBtn = new QPushButton(tr("Ignore"));
     auto *addBtn = new QPushButton(tr("Add to Dictionary"));
-    auto *closeBtn = new QPushButton(tr("Close"));
+    auto *applyBtn = new QPushButton(tr("Apply && Close"));
+    auto *discardBtn = new QPushButton(tr("Discard"));
     btnLayout->addWidget(replaceBtn);
     btnLayout->addWidget(ignoreBtn);
     btnLayout->addWidget(addBtn);
     btnLayout->addStretch();
-    btnLayout->addWidget(closeBtn);
+    btnLayout->addWidget(applyBtn);
+    btnLayout->addWidget(discardBtn);
     layout->addLayout(btnLayout);
 
     showCurrentWord();
@@ -86,7 +88,10 @@ SpellCheckDialog::SpellCheckDialog(SpellChecker *checker,
                 accept();
         }
     });
-    connect(closeBtn, &QPushButton::clicked, this, &QDialog::reject);
+    // "Apply & Close" honors everything the user fixed so far; "Discard"
+    // throws the queued replacements away. Neither is silent.
+    connect(applyBtn, &QPushButton::clicked, this, &QDialog::accept);
+    connect(discardBtn, &QPushButton::clicked, this, &QDialog::reject);
 }
 
 void SpellCheckDialog::showCurrentWord()

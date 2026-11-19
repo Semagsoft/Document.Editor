@@ -2,9 +2,9 @@ name: Build and Test
 
 on:
   push:
-    branches: [ main, master, cppqt6port ]
+    branches: [ main, master ]
   pull_request:
-    branches: [ main, master, cppqt6port ]
+    branches: [ main, master ]
 
 jobs:
   build:
@@ -40,7 +40,39 @@ jobs:
         # so use Qt's offscreen platform plugin to run headlessly.
         env:
           QT_QPA_PLATFORM: offscreen
-        run: ctest --test-dir build --output-on-failure
+        run: ctest --test-dir build --output-on-failure --timeout 120
+
+      - name: Verify install
+        run: |
+          cmake --install build --prefix /tmp/de-install
+          test -x /tmp/de-install/bin/Document.Editor
+          test -f /tmp/de-install/share/applications/document-editor.desktop
+
+      - name: Package (TGZ)
+        run: cpack -G TGZ --config build/CPackConfig.cmake
+
+  build-macos:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v3
+        with:
+          version: '6.8.0'
+          modules: qtnetwork qttexttospeech qtcharts
+
+      - name: Configure CMake
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Test
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: ctest --test-dir build --output-on-failure --timeout 120
 
   build-windows:
     runs-on: windows-latest

@@ -21,6 +21,10 @@ class DocumentEditor : public QTextEdit {
 public:
     explicit DocumentEditor(QWidget* parent = nullptr);
 
+    // Returns true if `path` is safe to open or write. See the definition
+    // for the exact rejection rules.
+    static bool isSafeFilePath(const QString& path, const QString& allowedRoot = QString());
+
     // Document state
     QString documentName() const;
     void setDocumentName(const QString& name);

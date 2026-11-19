@@ -59,6 +59,19 @@ void InsertVideoDialog::accept()
     if (input.isEmpty())
         return;
 
+    // Schemeless input ("example.com/video.mp4") would be treated as relative;
+    // assume https unless it looks like a local path.
+    if (QUrl(input).scheme().isEmpty()) {
+        const bool looksLocal = input.startsWith(QStringLiteral("/"))
+            || input.startsWith(QStringLiteral("./"))
+            || input.startsWith(QStringLiteral("../"))
+            || (input.size() > 1 && input[1] == QLatin1Char(':')); // C:\...
+        if (!looksLocal) {
+            input = QStringLiteral("https://") + input;
+            m_pathEdit->setText(input);
+        }
+    }
+
     QUrl parsed(input);
     QString scheme = parsed.scheme().toLower();
     QStringList allowedSchemes = {
@@ -80,5 +93,5 @@ void InsertVideoDialog::accept()
 
 QString InsertVideoDialog::videoPath() const
 {
-    return m_pathEdit->text();
+    return m_pathEdit->text().trimmed();
 }

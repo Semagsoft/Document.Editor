@@ -140,10 +140,6 @@ static int levenshteinDistance(const QString &a, const QString &b)
     return prev[n];
 }
 
-static bool byLevenshteinDistance(const QString &word, const QString &a, const QString &b)
-{
-    return levenshteinDistance(word, a) < levenshteinDistance(word, b);
-}
 
 QStringList SpellChecker::suggestions(const QString &word) const
 {

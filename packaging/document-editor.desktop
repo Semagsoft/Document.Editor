@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Document Editor
+Comment=A cross-platform rich text document editor built with Qt6
+Exec=Document.Editor
+Icon=document-editor
+Terminal=false
+Categories=Office;WordProcessor;
+MimeType=application/vnd.semagsoft.dexml;application/vnd.openxmlformats-officedocument.wordprocessingml.document;text/html;application/rtf;text/plain;
+Keywords=editor;document;word;text;
