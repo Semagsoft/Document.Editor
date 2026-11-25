@@ -37,7 +37,8 @@ set(SOURCES
     converters/FtpClient.cpp
     converters/XamlConverter.cpp
     converters/RtfConverter.cpp
-    converters/DocxConverter.cpp
+    converters/DocxReader.cpp
+    converters/DocxWriter.cpp
     plugins/PluginManager.cpp
     plugins/PluginContext.cpp
     services/DocumentService.cpp
@@ -83,6 +84,7 @@ set(HEADERS
     converters/XamlConverter.h
     converters/RtfConverter.h
     converters/DocxConverter.h
+    converters/DocxCommon.h
     plugins/IPlugin.h
     plugins/PluginManager.h
     plugins/PluginContext.h
