@@ -50,6 +50,9 @@ add_document_editor_test(test_Settings test_Settings.cpp)
 # ThemeManager test
 add_document_editor_test(test_ThemeManager test_ThemeManager.cpp)
 
+# SpellCheckHighlighter test
+add_document_editor_test(test_SpellCheckHighlighter test_SpellCheckHighlighter.cpp)
+
 # DocumentService test
 add_document_editor_test(test_DocumentService test_DocumentService.cpp)
 

@@ -5,6 +5,7 @@
 #include <QTextDocument>
 #include <QTemporaryFile>
 #include <QFile>
+#include <QSignalSpy>
 #include "editor/DocumentManager.h"
 #include "editor/DocumentTab.h"
 #include "editor/DocumentEditor.h"
@@ -25,6 +26,7 @@ private slots:
         m_mdiArea = new QMdiArea(m_mainWindow);
         m_mainWindow->setCentralWidget(m_mdiArea);
         m_manager = new DocumentManager(m_mdiArea, m_mainWindow, m_mainWindow);
+        qRegisterMetaType<DocumentTab *>("DocumentTab*");
     }
 
     void cleanupTestCase()
@@ -134,6 +136,98 @@ private slots:
 
         QVERIFY(tab->editor()->saveToFile(path));
         QFile::remove(path);
+    }
+
+    void testSaveDocumentWithName()
+    {
+        DocumentTab *tab = m_manager->createDocument();
+        tab->editor()->textCursor().insertText(QStringLiteral("content to save"));
+
+        QTemporaryFile tmp;
+        QVERIFY(tmp.open());
+        QString path = tmp.fileName() + QStringLiteral(".xaml");
+        tmp.close();
+
+        // Give the tab a document name so saveDocument writes directly
+        // (no save-as dialog needed).
+        tab->setDocumentName(path);
+        QVERIFY(m_manager->saveDocument(tab));
+        QFile::remove(path);
+    }
+
+    void testSaveAllDocuments()
+    {
+        // Create tabs with document names so saveDocument writes directly
+        // (no save-as dialog needed in headless mode).
+        DocumentTab *tab1 = m_manager->createDocument(QStringLiteral("Doc 1"));
+        Q_UNUSED(tab1);
+        tab1->editor()->textCursor().insertText(QStringLiteral("content 1"));
+
+        QTemporaryFile tmp1;
+        QVERIFY(tmp1.open());
+        QString path1 = tmp1.fileName() + QStringLiteral(".xaml");
+        tmp1.close();
+        tab1->setDocumentName(path1);
+
+        DocumentTab *tab2 = m_manager->createDocument(QStringLiteral("Doc 2"));
+        Q_UNUSED(tab2);
+        tab2->editor()->textCursor().insertText(QStringLiteral("content 2"));
+
+        QTemporaryFile tmp2;
+        QVERIFY(tmp2.open());
+        QString path2 = tmp2.fileName() + QStringLiteral(".xaml");
+        tmp2.close();
+        tab2->setDocumentName(path2);
+
+        QCOMPARE(m_manager->tabCount(), 2);
+        QVERIFY(m_manager->allTabs().first()->editor()->isModified());
+        QVERIFY(m_manager->allTabs().at(1)->editor()->isModified());
+
+        m_manager->saveAllDocuments();
+        QVERIFY(!m_manager->allTabs().first()->editor()->isModified());
+        QVERIFY(!m_manager->allTabs().at(1)->editor()->isModified());
+
+        QFile::remove(path1);
+        QFile::remove(path2);
+    }
+
+    void testCloseAllButCurrent()
+    {
+        DocumentTab *tab1 = m_manager->createDocument(QStringLiteral("First"));
+        DocumentTab *tab2 = m_manager->createDocument(QStringLiteral("Second"));
+        Q_UNUSED(tab1);
+        Q_UNUSED(tab2);
+
+        QCOMPARE(m_manager->tabCount(), 2);
+        QCOMPARE(m_manager->activeTab(), tab2);
+
+        m_manager->closeAllButCurrent();
+
+        QCOMPARE(m_manager->tabCount(), 1);
+        QCOMPARE(m_manager->activeTab(), tab2);
+    }
+
+    void testCloseAllButCurrentSingleTab()
+    {
+        DocumentTab *tab = m_manager->createDocument();
+        Q_UNUSED(tab);
+
+        QCOMPARE(m_manager->tabCount(), 1);
+        m_manager->closeAllButCurrent();
+        QCOMPARE(m_manager->tabCount(), 1);
+    }
+
+    void testTabAboutToCloseSignal()
+    {
+        QSignalSpy spy(m_manager, &DocumentManager::tabAboutToClose);
+
+        DocumentTab *tab = m_manager->createDocument();
+        QVERIFY(tab != nullptr);
+
+        m_manager->closeDocument(tab);
+
+        QCOMPARE(spy.count(), 1);
+        QCOMPARE(spy.takeFirst().at(0).value<DocumentTab *>(), tab);
     }
 };
 
