@@ -740,6 +740,13 @@ static void parseTable(QXmlStreamReader &xml, QTextCursor &cursor,
         cols = qMax(cols, row.size());
     if (cols == 0) return;
 
+    // Cap table dimensions so a crafted document can't force a huge
+    // allocation (mirrors XamlConverter's clamping).
+    constexpr int kMaxTableRows = 500;
+    constexpr int kMaxTableCols = 100;
+    rows = qBound(1, rows, kMaxTableRows);
+    cols = qBound(1, cols, kMaxTableCols);
+
     QTextTable *table = cursor.insertTable(rows, cols);
 
     // Collect vertical-merge ranges (per column) first, then apply each merge
@@ -751,6 +758,8 @@ static void parseTable(QXmlStreamReader &xml, QTextCursor &cursor,
         for (int c = 0; c < grid[r].size(); ++c) {
             const CellContent &cc = grid[r][c];
             const int gc = cc.gridCol;
+            if (gc >= cols)
+                continue; // cell lies beyond the clamped column count
             if (cc.vMergeContinue) {
                 if (mergeStartRow[gc] < 0)
                     mergeStartRow[gc] = r;
@@ -775,6 +784,8 @@ static void parseTable(QXmlStreamReader &xml, QTextCursor &cursor,
     for (int r = 0; r < rows; ++r) {
         for (int i = 0; i < grid[r].size(); ++i) {
             const CellContent &cc = grid[r][i];
+            if (cc.gridCol >= cols)
+                continue; // cell lies beyond the clamped column count
             QTextTableCell cell = table->cellAt(r, cc.gridCol);
             QTextCursor cellCursor = cell.firstCursorPosition();
             cellCursor.movePosition(QTextCursor::NextBlock, QTextCursor::KeepAnchor);
@@ -822,6 +833,8 @@ static void parseTable(QXmlStreamReader &xml, QTextCursor &cursor,
     for (int r = 0; r < rows; ++r) {
         for (int i = 0; i < grid[r].size(); ++i) {
             const CellContent &cc = grid[r][i];
+            if (cc.gridCol >= cols)
+                continue; // cell lies beyond the clamped column count
             if (cc.colSpan > 1) {
                 int span = qMin(cc.colSpan, cols - cc.gridCol);
                 if (span > 1)

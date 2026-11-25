@@ -25,13 +25,15 @@ find_package(Qt6 REQUIRED COMPONENTS
 
 # Enable compiler warnings so issues are surfaced in CI. -Werror keeps the
 # tree warning-free; -Wsfinae-incomplete is disabled because Qt's moc output
-# trips it on GCC (it forward-declares the class being defined).
+# trips it on GCC (it forward-declares the class being defined). This flag is
+# GCC-specific and is not recognized by clang.
 if(MSVC)
     add_compile_options(/W4)
 else()
     add_compile_options(-Wall -Wextra -Werror)
-    # Qt moc trips -Wsfinae-incomplete on GCC (valid for C++, rejected for C).
-    add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-Wno-sfinae-incomplete>)
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+        add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-Wno-sfinae-incomplete>)
+    endif()
 endif()
 
 add_compile_definitions(APP_VERSION="${PROJECT_VERSION}")

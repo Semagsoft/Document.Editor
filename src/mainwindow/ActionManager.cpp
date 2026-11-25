@@ -526,8 +526,7 @@ void ActionManager::setupToolBars(QMainWindow* mainWindow)
     m_fontCombo = new QComboBox(m_fontToolBar);
     m_fontCombo->setMinimumWidth(150);
     m_fontCombo->setEditable(false);
-    const QFontDatabase fontDb;
-    const QStringList families = fontDb.families();
+    const QStringList families = QFontDatabase::families();
     for (const QString& family : families)
         m_fontCombo->addItem(family);
     m_fontToolBar->addWidget(m_fontCombo);

@@ -63,7 +63,7 @@ void NetworkUtils::checkForUpdates(const QString &currentVersion,
 
     auto timeout = new QTimer(this);
     timeout->setSingleShot(true);
-    connect(timeout, &QTimer::timeout, this, [this, reply, timeout]() {
+    connect(timeout, &QTimer::timeout, this, [reply, timeout]() {
         if (reply->isRunning()) {
             reply->setProperty("timedOut", true);
             reply->abort();

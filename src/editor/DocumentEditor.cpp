@@ -249,7 +249,7 @@ void DocumentEditor::setZoomLevel(qreal level)
 
     // Walk every frame (root + table cells) so formatted runs inside tables
     // respond to zoom too. A rootFrame()-only iteration skips child frames.
-    auto scaleFragments = [this, factor, doc](auto &&self, QTextFrame *frame) -> void {
+    auto scaleFragments = [factor, doc](auto &&self, QTextFrame *frame) -> void {
         for (QTextFrame::iterator fit = frame->begin(); !fit.atEnd(); ++fit) {
             if (QTextFrame *child = fit.currentFrame()) {
                 self(self, child);

@@ -69,7 +69,7 @@ void RulerWidget::paintEvent(QPaintEvent *)
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
 
-    QRectF rect = this->rect().adjusted(0.5, 0.5, -0.5, -0.5);
+    QRectF rect = QRectF(this->rect()).adjusted(0.5, 0.5, -0.5, -0.5);
 
     // Background
     painter.fillRect(rect, QColor(248, 248, 248));
